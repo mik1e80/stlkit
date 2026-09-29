@@ -30,6 +30,9 @@ pub(all) struct ValidationReport {
 ///|
 /// 欧拉示性数 χ = V − E + F。
 ///
+/// 对应 trimesh 的 `mesh.euler_number`。和 `count_parts` 一样，
+/// 是看了 trimesh 的设计之后补的，详细对比见 `COMPARISON.md`。
+///
 /// 水密网格上这个数是有拓扑含义的：
 ///
 /// - 单个实体、没有洞（topologically 一个球面）：**χ = 2**
@@ -237,6 +240,9 @@ pub fn validate_default(mesh : Mesh) -> ValidationReport {
 
 ///|
 /// 数一数这个网格由几个互不相连的实体组成。
+///
+/// 对应 trimesh 的 `mesh.split()`。这个能力是看了 trimesh 的设计之后补的，
+/// 详细对比见仓库根目录的 `COMPARISON.md`。
 ///
 /// 判据是**面的邻接**：两个三角形共用一条边就算连在一起，
 /// 连通块的个数就是零件数。这和水密性用的是同一套拓扑，

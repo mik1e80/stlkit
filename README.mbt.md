@@ -395,6 +395,27 @@ $ moon run cmd/main examples/flipped.stl --fix fixed.stl
 1. **相邻面的方向必须跟当前面比，不能跟边的规范顺序比**。拿规范顺序比会得到「所有面都和规范顺序一致」这种恒真的结论，规则直接失效。
 2. **同一条边的两个面都要留着**。绕向反了的那条边上，两个面走的是**同一个方向**——只存「谁走了这个方向」的话，后写入的会覆盖先写入的，查找时还会返回自己。
 
+## 参考
+
+**设计上参考过 [trimesh](https://trimesh.org/)（Python 的通用三角网格库）**：
+
+- **零件数**（`count_parts`）对应它的 `mesh.split()`——按面的邻接数连通块
+- **欧拉示性数**（`ValidationReport::euler_number`）对应它的 `mesh.euler_number`
+- 水密性、绕向一致性的判据也是同一套拓扑定义
+
+这两个能力是看完 trimesh 的设计之后补的。**没有复制它的任何代码**（它是 MIT 许可的
+Python 库，本项目是 MoonBit 实现，语言和数据结构都不同），借鉴的是「该有哪几项指标」
+这个层面的思路。
+
+和它的完整对比——包括它有哪些能力、stlkit 有哪些没有、两者能跑的地方差在哪——
+在 [`COMPARISON.md`](COMPARISON.md)。
+
+其它参考：
+
+- 3MF 的格式定义来自 [3MF Consortium](https://3mf.io/) 的规范；
+  `examples/conformance/` 下收的 13 个一致性测试文件也来自他们的
+  [3mf-samples](https://github.com/3MFConsortium/3mf-samples) 仓库（BSD 2-Clause）
+
 ## 许可证
 
 Apache License 2.0，见 [LICENSE](LICENSE)。
