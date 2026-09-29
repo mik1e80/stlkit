@@ -106,7 +106,7 @@ moon run cmd/main model.stl --bench
 仓库根目录就是 MoonBit 模块根：
 
 ```bash
-moon test            # 跑测试（199 个，零警告）
+moon test            # 跑测试（206 个，零警告）
 moon run cmd/main    # 不带参数会打印帮助
 bash web/build.sh    # 重新编译网页用的 JS
 ```

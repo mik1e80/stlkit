@@ -151,16 +151,23 @@ test "按后缀选导出格式" {
   // .stl 和 .obj 都要能出字节
   assert_true(write_mesh(cube_mesh(), "out.stl") is Ok(_))
   assert_true(write_mesh(cube_mesh(), "out.obj") is Ok(_))
+  assert_true(write_mesh(cube_mesh(), "out.ply") is Ok(_))
   // 大小写不敏感
   assert_true(write_mesh(cube_mesh(), "out.STL") is Ok(_))
   assert_true(write_mesh(cube_mesh(), "out.OBJ") is Ok(_))
+  assert_true(write_mesh(cube_mesh(), "out.PLY") is Ok(_))
 }
 
 ///|
 test "认不出的后缀要报错" {
-  match write_mesh(cube_mesh(), "out.ply") {
+  // 拿一个我们确实不支持的后缀。以前这里用的是 .ply——PLY 支持之后
+  // 它变成合法后缀了，测试得跟着换
+  match write_mesh(cube_mesh(), "out.glb") {
     Ok(_) => fail("不支持的后缀不该成功")
-    Err(msg) => assert_true(msg.contains(".stl") && msg.contains(".obj"))
+    Err(msg) =>
+      assert_true(
+        msg.contains(".stl") && msg.contains(".obj") && msg.contains(".ply"),
+      )
   }
 }
 

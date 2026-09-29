@@ -655,3 +655,106 @@ fn append_fan(
   }
   Ok(())
 }
+
+// ── 导出 ────────────────────────────────────────────────────────────────
+//
+// 对应 trimesh 的 `mesh.export('x.ply')`。有了导出，「PLY 读写」才齐。
+
+///|
+/// 把网格拆成 PLY 需要的两个数组：去重后的顶点表 + 面的下标。
+///
+/// **导出前要焊接顶点。** 我们的 Mesh 是三角形列表，一个立方体存了 36 个
+/// 顶点（每个面重写一遍）；PLY 是共享顶点表格式，只需要 8 个。
+/// 不焊接的话文件会大三倍，而且和「PLY 就是共享顶点格式」这件事对不上。
+///
+/// 用 `pack_position` 去重，和校验、流式扫描是同一套量化——
+/// 「什么算同一个点」整个项目只有一个答案。
+fn ply_arrays(mesh : Mesh) -> (Array[Vec3], Array[(Int, Int, Int)]) {
+  let table : Map[UInt64, Int] = Map([])
+  let verts : Array[Vec3] = []
+  let faces : Array[(Int, Int, Int)] = []
+  for t in mesh.triangles {
+    let ia = ply_intern(table, verts, t.a)
+    let ib = ply_intern(table, verts, t.b)
+    let ic = ply_intern(table, verts, t.c)
+    faces.push((ia, ib, ic))
+  }
+  (verts, faces)
+}
+
+///|
+/// 查表拿编号，没有就登记一个新顶点。
+fn ply_intern(table : Map[UInt64, Int], verts : Array[Vec3], v : Vec3) -> Int {
+  let key = pack_position(v)
+  match table.get(key) {
+    Some(id) => id
+    None => {
+      let id = verts.length()
+      table.set(key, id)
+      verts.push(v)
+      id
+    }
+  }
+}
+
+///|
+/// 导出成 ASCII PLY。
+///
+/// ASCII 的好处是人眼能看、能直接 diff；代价是文件大好几倍
+/// （一个坐标要写十几位十进制，二进制只要 4 个字节）。
+/// 要存下来给别人用就选二进制的那个。
+pub fn write_ply_ascii(mesh : Mesh) -> String {
+  let (verts, faces) = ply_arrays(mesh)
+  let mut s = "ply\nformat ascii 1.0\ncomment created by stlkit\n"
+  s = s + "element vertex \{verts.length()}\n"
+  s = s + "property float x\nproperty float y\nproperty float z\n"
+  s = s + "element face \{faces.length()}\n"
+  s = s + "property list uchar int vertex_indices\n"
+  s = s + "end_header\n"
+  for v in verts {
+    s = s + "\{v.x} \{v.y} \{v.z}\n"
+  }
+  for f in faces {
+    let (a, b, c) = f
+    s = s + "3 \{a} \{b} \{c}\n"
+  }
+  s
+}
+
+///|
+/// 导出成二进制 PLY（小端）。
+///
+/// 选小端是因为**现在的读写器基本都是小端**，大端只剩考古价值了——
+/// 但读的时候两种都得认，谁知道会收到什么文件。
+pub fn write_ply_binary(mesh : Mesh) -> Bytes {
+  let (verts, faces) = ply_arrays(mesh)
+  let out : Array[Byte] = []
+  let head = "ply\nformat binary_little_endian 1.0\ncomment created by stlkit\n" +
+    "element vertex \{verts.length()}\n" +
+    "property float x\nproperty float y\nproperty float z\n" +
+    "element face \{faces.length()}\n" +
+    "property list uchar int vertex_indices\nend_header\n"
+  for b in @utf8.encode(head) {
+    out.push(b)
+  }
+  for v in verts {
+    push_f32(out, v.x)
+    push_f32(out, v.y)
+    push_f32(out, v.z)
+  }
+  for f in faces {
+    let (a, b, c) = f
+    // 列表长度写成 uchar（规范里声明的是 uchar）
+    out.push(b'\x03')
+    push_u32(out, a)
+    push_u32(out, b)
+    push_u32(out, c)
+  }
+  Bytes::from_array(out)
+}
+
+///|
+/// 导出成 PLY，默认走二进制——和 trimesh 的默认一致，文件也小得多。
+pub fn write_ply(mesh : Mesh) -> Bytes {
+  write_ply_binary(mesh)
+}

@@ -40,7 +40,7 @@ stlkit 是用 **MoonBit** 写的 3D 打印前置检查工具链，编译成原�
 | 语言 / 运行时 | Python 3.10+，要 numpy | MoonBit，编译成原生代码 / wasm / JS |
 | 编译产物 | 不适用（解释执行） | native 可执行文件 / wasm / 一个 js 文件 |
 | 输入格式 | STL、OBJ、OFF、PLY、GLTF/GLB、3MF、XAML、3DXML… | STL（ASCII + 二进制）、OBJ、3MF、PLY（ASCII + 两种字节序的二进制） |
-| 输出格式 | GLB/GLTF、STL、PLY、OFF、OBJ、COLLADA | 二进制 / ASCII STL、OBJ |
+| 输出格式 | GLB/GLTF、STL、PLY、OFF、OBJ、COLLADA | 二进制 / ASCII STL、OBJ、PLY |
 | 布尔运算、体素化、平滑、细分 | 有 | 没有 |
 | 射线求交、最近点、有符号距离 | 有 | 没有 |
 | 质量属性 | 体积、质心、转动惯量、惯性主轴 | 体积、表面积、包围盒、重心、转动惯量、主惯量、零件数、欧拉数 |
@@ -144,9 +144,13 @@ trimesh 是 Python 的。它进不了 MoonBit。
 实现上只在结论是水密时才报——不水密的时候这个数只是一堆计数的组合，
 报出来会让人以为读出了什么。
 
-**PLY 支持**（对应它的 PLY 读写）。PLY 是**三维扫描仪最常用的输出格式**，
+**PLY 读写**（对应它的 PLY 导入导出）。PLY 是**三维扫描仪最常用的输出格式**，
 这一点对 stlkit 特别有意义：扫描件动辄几百 MB，正是流式扫描要解决的那种文件。
-实现了 ASCII 和两种字节序的二进制三种编码。
+读支持 ASCII 和两种字节序的二进制，写默认走二进制（和 trimesh 的默认一致）。
+
+导出时会**先焊接顶点**——我们的 Mesh 是三角形列表，一个立方体存 36 个顶点；
+PLY 是共享顶点表格式，只该写 8 个。去重用的量化方式和校验、流式扫描是同一套，
+「什么算同一个点」整个项目只有一个答案。
 
 写这个解析器时撞上一个真实案例：trimesh 自带的 `fuze_ascii.ply`，**头里声明每个面
 15 个值、实际数据每行 21 个**——文件自己前后不一致。按声明一路读下去会让第一个面
@@ -183,7 +187,7 @@ trimesh 是 Python 的。它进不了 MoonBit。
 - 射线求交、最近点查询、有符号距离
 - 有向包围盒 / 包围球 / 包围柱
 - 导入 OFF / GLTF / XAML / 3DXML
-- 导出 GLB / PLY / COLLADA / DXF / SVG
+- 导出 GLB / COLLADA / DXF / SVG
 - 交互式 3D 预览窗口（stlkit 只出静态 SVG 等轴测图）
 
 它们服务的是「对网格做变换和运算」，stlkit 服务的是「判断这个网格能不能打印」。

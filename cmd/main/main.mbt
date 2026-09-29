@@ -30,7 +30,7 @@ fn command() -> @argparse.Command {
       ),
       @argparse.OptionArg(
         "fix",
-        about="修复网格并存到指定文件（按后缀选格式：.stl 或 .obj）",
+        about="修复网格并存到指定文件（按后缀选格式：.stl / .obj / .ply）",
       ),
     ],
     flags=[
@@ -380,8 +380,10 @@ fn report(
       "  重心      \{fmt(c.x, 3)}, \{fmt(c.y, 3)}, \{fmt(c.z, 3)} mm",
     )
     let pm = mesh.principal_moments()
+    // 用 3 位小数，和别的字段一致。不能只留 1 位——单位立方体的主惯量是
+    // 1/6 ≈ 0.167，只留 1 位就变成「0.2」，对着公式验的人会被误导
     println(
-      "  主惯量    \{fmt(pm[0], 1)} / \{fmt(pm[1], 1)} / \{fmt(pm[2], 1)}（密度取 1）",
+      "  主惯量    \{fmt(pm[0], 3)} / \{fmt(pm[1], 3)} / \{fmt(pm[2], 3)}（密度取 1）",
     )
   }
   let has_problem = !check.is_watertight() ||

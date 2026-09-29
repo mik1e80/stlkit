@@ -158,9 +158,13 @@ pub fn write_mesh(mesh : Mesh, path : String) -> Result[Bytes, String] {
     Ok(@utf8.encode(write_obj(mesh)))
   } else if ends_with_ignore_case(path, ".stl") {
     Ok(write_stl_binary(mesh))
+  } else if ends_with_ignore_case(path, ".ply") {
+    // 二进制 PLY。ASCII 版也有（write_ply_ascii），但那是给人看的，
+    // 命令行导出走默认的二进制
+    Ok(write_ply_binary(mesh))
   } else {
     Err(
-      "认不出要导出成什么格式：文件名「\{path}」既不以 .stl 结尾也不以 .obj 结尾",
+      "认不出要导出成什么格式：文件名「\{path}」既不以 .stl、.obj 结尾，也不以 .ply 结尾",
     )
   }
 }

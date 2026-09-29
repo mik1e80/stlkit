@@ -515,6 +515,133 @@ test "二进制 STL 的头以 ply 开头也不会被误判" {
   assert_true(detect_format(data) is Binary)
 }
 
+// ── 导出 ────────────────────────────────────────────────────────────────
+
+///|
+test "导出的二进制 PLY 能读回来，几何一模一样" {
+  // 导出器的正确性就靠往返：写出去、读回来、和原件逐项比。
+  // 只测「写出来没报错」等于没测——字节序写反了照样不报错
+  let original = cube_mesh()
+  let data = write_ply(original)
+  let back = match parse_ply(data) {
+    Ok(m) => m
+    Err(msg) => fail("读不回来：\{msg}")
+  }
+  assert_eq(back.triangle_count(), 12)
+  assert_true(close(back.volume(), 1.0))
+  assert_true(close(back.surface_area(), 6.0))
+  let before = validate_default(original)
+  let after = validate_default(back)
+  assert_eq(after.unique_vertex_count, before.unique_vertex_count)
+  assert_eq(after.boundary_edge_count, before.boundary_edge_count)
+  assert_eq(after.euler_number(), before.euler_number())
+}
+
+///|
+test "导出的 ASCII PLY 能读回来" {
+  let back = match parse_ply(@utf8.encode(write_ply_ascii(cube_mesh()))) {
+    Ok(m) => m
+    Err(msg) => fail("读不回来：\{msg}")
+  }
+  assert_eq(back.triangle_count(), 12)
+  assert_true(close(back.volume(), 1.0))
+}
+
+///|
+test "导出时顶点要去重" {
+  // 我们的 Mesh 是三角形列表，立方体存了 36 个顶点；
+  // PLY 是共享顶点表格式，只该写 8 个。
+  //
+  // 不去重的话文件大三倍，而且和「PLY 就是共享顶点格式」这件事对不上。
+  // 这一条直接数导出的顶点数
+  let text = write_ply_ascii(cube_mesh())
+  assert_true(text.contains("element vertex 8\n"))
+  assert_true(text.contains("element face 12\n"))
+  // 8 个顶点 + 12 个面 = 20 行数据
+  let mut data_lines = 0
+  let mut seen_header = false
+  for raw in text.split("\n") {
+    if seen_header {
+      if raw.length() > 0 {
+        data_lines = data_lines + 1
+      }
+    }
+    if raw == "end_header" {
+      seen_header = true
+    }
+  }
+  assert_eq(data_lines, 20)
+}
+
+///|
+test "导出的三种格式互相一致" {
+  // 同一个网格导出成 STL / OBJ / PLY 再读回来，几何必须一致。
+  // 三个导出器各写各的，这条能把「某个导出器把坐标写错了」抓出来
+  let mesh = cube_mesh()
+  let from_stl = match parse_stl_binary(write_stl_binary(mesh)) {
+    Ok(m) => m
+    Err(msg) => fail("STL 往返失败：\{msg}")
+  }
+  let from_obj = match parse_obj(write_obj(mesh)) {
+    Ok(m) => m
+    Err(msg) => fail("OBJ 往返失败：\{msg}")
+  }
+  let from_ply = match parse_ply(write_ply(mesh)) {
+    Ok(m) => m
+    Err(msg) => fail("PLY 往返失败：\{msg}")
+  }
+  assert_true(close(from_stl.volume(), from_obj.volume()))
+  assert_true(close(from_obj.volume(), from_ply.volume()))
+  assert_true(close(from_stl.surface_area(), from_ply.surface_area()))
+  // 重心也要一致——它比体积更敏感，坐标错位一点就偏
+  let cs = from_stl.center_mass()
+  let cp = from_ply.center_mass()
+  assert_true(close(cs.x, cp.x))
+  assert_true(close(cs.y, cp.y))
+  assert_true(close(cs.z, cp.z))
+}
+
+///|
+test "write_mesh 按后缀选 PLY" {
+  let data = match write_mesh(cube_mesh(), "out.ply") {
+    Ok(d) => d
+    Err(msg) => fail("不该失败：\{msg}")
+  }
+  assert_true(is_ply(data))
+  assert_true(detect_format(data) is Ply)
+  // 大小写不敏感
+  assert_true(write_mesh(cube_mesh(), "OUT.PLY") is Ok(_))
+}
+
+///|
+test "导出的 PLY 头是合规的" {
+  // 头写错了别的软件读不了，而自己的解析器可能照样能读——
+  // 所以这里直接查文本内容，不靠往返
+  let text = write_ply_ascii(cube_mesh())
+  assert_true(text.has_prefix("ply\n"))
+  assert_true(text.contains("format ascii 1.0\n"))
+  assert_true(text.contains("property float x\n"))
+  assert_true(text.contains("property float y\n"))
+  assert_true(text.contains("property float z\n"))
+  assert_true(text.contains("property list uchar int vertex_indices\n"))
+  assert_true(text.contains("end_header\n"))
+  let bin = write_ply_binary(cube_mesh())
+  assert_true(
+    @utf8
+      .decode_lossy(bin[:40])
+      .contains("format binary_little_endian 1.0"),
+  )
+}
+
+///|
+test "空网格导出不崩" {
+  let text = write_ply_ascii(Mesh::empty())
+  assert_true(text.contains("element vertex 0\n"))
+  assert_true(text.contains("element face 0\n"))
+  let bin = write_ply_binary(Mesh::empty())
+  assert_true(is_ply(bin))
+}
+
 ///|
 test "PLY 解析出来的网格能走校验和预览" {
   let (verts, faces) = cube_ply_parts()
