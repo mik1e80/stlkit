@@ -248,59 +248,93 @@ PLY 是共享顶点表格式，只该写 8 个。去重用的量化方式和校�
 
 ---
 
-## 六、MoonBit 生态内部对比
+## 六、MoonBit 生态内部的对比
 
-MoonBit 生态里已有的两个 3D 相关包：`mizchi/three`（three-mbt）和 `mizchi/mesh3d`。
+MoonBit 生态里的 3D 相关包可以分几类。**逐类说清楚和 stlkit 的关系**——
+检索过 mooncakes 全部 2439 个包，把 3D 相关的候选逐个过了一遍。
 
-### 1. 本质
+### 1. 渲染引擎和运行时
 
-- **`mizchi/three`**：three.js 的类型化 FFI 绑定
-- **`mizchi/mesh3d`**：渲染用的网格原语，从 kagura 抽出来的
-- **stlkit**：文件格式与网格质量工具链
+`three`（three.js 的类型化 FFI 绑定）、`luna_three`（声明式 three.js）、
+`kagura_engine` / `kagura_core` / `kagura_physics` / `kagura_ui`（渲染引擎）、
+`crater-renderer`、`moon-ray`（Monte Carlo 路径追踪）、`raylib` 的几个绑定、
+`cube_render`、`vibecraft`、`renderer2d`、`sfengine`。
 
-### 2. 模型解析在哪实现
+- **它们**：把模型画出来。`moon-ray` 甚至带 BVH 加速和 PBR 材质
+- **stlkit**：不画。出的是体检报告，不是图像
 
-- **`mizchi/three`**：在 JavaScript 里。`src/stlloader_generated.mbt` 是脚本生成的绑定，
-  实际解析是 `extern "js"` 里调 three.js 的 `self.parse()`；OBJ 还额外依赖一个 `.mjs` 文件
-- **`mizchi/mesh3d`**：纯 MoonBit，但只做到顶点/格式原语这一层
-- **stlkit**：四种格式的解析器全是自己写的
+### 2. 渲染用的网格 / 几何原语
 
-### 3. 跑在哪
+`mesh3d`（网格和顶点格式原语，从 kagura 抽出）、`geom`（Vec2 / Vec3 / Mat4 /
+Quaternion）、`anim3d`（变换层级、关键帧动画、骨骼绑定）、`geometry3d`、`kagura_core`。
 
-- **`mizchi/three`**：只有 JS 后端，要 three.js + npm 工具链 + bundler
-- **`mizchi/mesh3d`**：JS（kagura 渲染管线的一部分）
-- **stlkit**：native / wasm / js 三端都能跑
+`mesh3d` 是这一类里最相关的一个，逐条说：
 
-### 4. 保不保留拓扑
-
-- **`mizchi/three`**：不保留。输出 `BufferGeometry`——给 GPU 用的
-- **`mizchi/mesh3d`**：不保留。OBJ 解析器逐面展开顶点，源码注释原文就是
-  *Emit vertices for this face*，没有共享顶点表
+- **它**：渲染管线的网格数据结构。OBJ 解析器**逐面展开顶点**，源码注释原文就是
+  *Emit vertices for this face*——没有共享顶点表
 - **stlkit**：保留三角形与顶点的对应关系
 
-这一条决定了能不能回答「每条边被几个面共用」——而那正是判断能不能打印的**唯一依据**。
+这一条决定能不能回答「每条边被几个面共用」，而那正是判断能不能打印的**唯一依据**。
+另外它的 `Mesh3D::from_obj` 返回 `Mesh3D` 而不是 `Result`，顶点索引越界静默按
+`0.0` 处理；stlkit 返回 `Result`，错误带行号或字节偏移。
 
-### 5. 读出错怎么办
+### 3. 渲染资产品管（glTF）—— 生态里最接近的一个
 
-- **`mizchi/three`**：抛 JS 异常
-- **`mizchi/mesh3d`**：顶点索引越界静默按 `0.0` 处理，返回 `Mesh3D` 而不是 `Result`，
-  调用方无从知道文件是坏的
-- **stlkit**：返回 `Result`，错误信息带行号或字节偏移
+`moonbit-gltf-tools` 值得单独说，因为它的**形态**和 stlkit 很像：读、校验、处理
+3D 资产，有 `quality_gate`、`mesh_cost_report`、给 CI 用的机器可读报告。
 
-### 6. 输出是什么
+但它的「质量」是**渲染口径**的。查过源码：
 
-- **两者**：给渲染用的几何
-- **stlkit**：校验报告
+- `g_quality.mbt` 里 `quality_gate` 检查的是纹理数量、动画通道数、骨骼节点数、
+  double-sided 材质数、draw call 预算
+- `g_mesh_analysis.mbt` 里 `mesh_cost_report` 报的是顶点字节数、属性槽位、
+  顶点数最多的 mesh、没索引的 mesh 数
 
-### 7. MoonBit 生态里有别的包做网格质量验证吗
+**这两个文件里 `watertight` / `manifold` / `boundary` / `degenerate` 出现 0 次。**
+它不查水密性、非流形边、退化面——它管的是「这个资产渲染起来贵不贵」，
+不是「这个网格能不能打出来」。
 
-**没有。** 检索过 mooncakes 全部 2439 个包，逐个检查 15 个 3D 相关候选，
-全是渲染方向。
+而且它做的是 **glTF/GLB**（渲染资产格式，带场景图、材质、动画），
+stlkit 做的是 **STL / OBJ / 3MF / PLY**（3D 打印和三维扫描格式）。
 
-`mizchi/mesh3d` 的注册表描述原文就是 "Mesh / vertex-format primitives for
-**3D rendering** (extracted from kagura)"。
+### 4. 网格优化（渲染性能）
 
----
+`meshopt_mbt`（MeshOptimizer 的绑定）：量化、顶点重映射、索引/顶点编解码、
+顶点缓存 / overdraw 优化、简化、meshlet、stripification、分析、切线生成、空间排序。
+
+- **它**：把网格改成**渲染更快**的样子。「分析」也是这个口径——顶点缓存命中率、
+  overdraw。而且是 **native 绑定**，不是纯 MoonBit
+- **stlkit**：不改网格，判断它能不能打印
+
+### 5. 计算几何（偏 2D）
+
+`computational-geometry`、`loop_invariants_geometry`、`generative_patterns`。
+做的是凸包、交点、噪声场这类算法，基本是 2D 的。
+
+### 6. 计算机视觉 / 相机几何
+
+`moonbit_camera_models`（相机模型与 3D 坐标变换）、`moon-cv-geometry`
+（多视图几何、单应、对极约束、RANSAC）、`fiducial_marker`（ArUco/AprilTag
+检测与 3D 位姿估计）、`moonbit-feature-forge`。
+
+- **它们**：处理**图像里的 3D**——从照片重建点云、算位姿
+- **stlkit**：处理**已有的网格文件**
+
+### 7. 其它领域的几何工具
+
+- `moon-shapefile` / `moonbit9`：GIS 矢量数据（Shapefile）的读写
+- `moonbit-gerberkit`：PCB 的 Gerber / Excellon 解析 + DFM 检查
+
+`moonbit-gerberkit` 的**形式和 stlkit 几乎一样**（解析 + 几何 + 制造性检查），
+但领域完全不同：PCB 是 2D 的。
+
+### 8. 结论
+
+把上面几类合起来看：**MoonBit 生态里没有任何一个包做三角网格质量验证**——
+水密性、非流形边、退化面、绕向一致性，一个都没有。
+
+最接近的两个都差一层：`moonbit-gltf-tools` 管的是**渲染成本**，
+`mesh3d` 连拓扑都不保留。
 
 ## 七、一句话总结
 
