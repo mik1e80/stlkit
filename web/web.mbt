@@ -114,6 +114,11 @@ fn analyze_inner(file_base64 : String) -> Result[Array[String], String] {
     lines.push(
       "主惯量|\{round3(pm[0])} / \{round3(pm[1])} / \{round3(pm[2])}",
     )
+    // 壁厚：从表面往里打射线量对面有多远。只有闭合网格才量得了
+    let thick = @stlkit.check_thickness_default(mesh)
+    if thick.hits > 0 {
+      lines.push("最薄处|\{round3(thick.min_thickness)}")
+    }
   }
   lines.push("水密|\{check.is_watertight()}")
   lines.push("边界边|\{check.boundary_edge_count}")

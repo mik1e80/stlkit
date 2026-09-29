@@ -143,6 +143,9 @@ function renderReport(fields) {
   if (fields["主惯量"] !== undefined) {
     statRow(geo, "主惯量", fields["主惯量"], "");
   }
+  if (fields["最薄处"] !== undefined) {
+    statRow(geo, "最薄处", fields["最薄处"], "mm");
+  }
   box.append(geo);
 
   // 校验结论

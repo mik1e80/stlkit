@@ -396,6 +396,18 @@ fn report(
     println(
       "  主惯量    \{fmt(pm[0], 3)} / \{fmt(pm[1], 3)} / \{fmt(pm[2], 3)}（密度取 1）",
     )
+    // 壁厚：从表面往里打射线，量到对面有多远。**只有闭合的网格才量得了**
+    let thick = @stlkit.check_thickness_default(mesh)
+    if thick.hits > 0 {
+      println("  最薄处    \{fmt(thick.min_thickness, 3)} mm")
+      // 常见 FDM 打印机的最小可靠壁厚在 0.8 毫米上下。
+      // 这个阈值和机器有关，所以只说「偏薄」不下结论
+      if thick.min_thickness < 0.8 {
+        println(
+          "    ⚠ 比常见 FDM 打印机的最小可靠壁厚（0.8 毫米左右）还薄，打出来可能一碰就碎",
+        )
+      }
+    }
   }
   let has_problem = !check.is_watertight() ||
     check.non_manifold_edge_count > 0 ||
