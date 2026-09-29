@@ -39,7 +39,7 @@ stlkit 是用 **MoonBit** 写的 3D 打印前置检查工具链，编译成原�
 | --- | --- | --- |
 | 语言 / 运行时 | Python 3.10+，要 numpy | MoonBit，编译成原生代码 / wasm / JS |
 | 编译产物 | 不适用（解释执行） | native 可执行文件 / wasm / 一个 js 文件 |
-| 输入格式 | STL、OBJ、OFF、PLY、GLTF/GLB、3MF、XAML、3DXML… | STL（ASCII + 二进制）、OBJ、3MF |
+| 输入格式 | STL、OBJ、OFF、PLY、GLTF/GLB、3MF、XAML、3DXML… | STL（ASCII + 二进制）、OBJ、3MF、PLY（ASCII + 两种字节序的二进制） |
 | 输出格式 | GLB/GLTF、STL、PLY、OFF、OBJ、COLLADA | 二进制 / ASCII STL、OBJ |
 | 布尔运算、体素化、平滑、细分 | 有 | 没有 |
 | 射线求交、最近点、有符号距离 | 有 | 没有 |
@@ -144,6 +144,16 @@ trimesh 是 Python 的。它进不了 MoonBit。
 实现上只在结论是水密时才报——不水密的时候这个数只是一堆计数的组合，
 报出来会让人以为读出了什么。
 
+**PLY 支持**（对应它的 PLY 读写）。PLY 是**三维扫描仪最常用的输出格式**，
+这一点对 stlkit 特别有意义：扫描件动辄几百 MB，正是流式扫描要解决的那种文件。
+实现了 ASCII 和两种字节序的二进制三种编码。
+
+写这个解析器时撞上一个真实案例：trimesh 自带的 `fuze_ascii.ply`，**头里声明每个面
+15 个值、实际数据每行 21 个**——文件自己前后不一致。按声明一路读下去会让第一个面
+之后的所有面错位。改成「读完一个元素就跳到下一行」之后，
+同一模型的 ASCII 版和二进制版给出了逐项相同的结果（1000 个三角形、502 个顶点、
+同样的体积和欧拉数）。
+
 **单位换算和装配体**：3MF 里写 `inch` 而不换算，体积会差 25.4³ ≈ 16387 倍；
 对象可以由别的对象拼出来，各带一个 4×3 的行向量变换矩阵。
 
@@ -161,7 +171,7 @@ trimesh 是 Python 的。它进不了 MoonBit。
 - 射线求交、最近点查询、有符号距离
 - 有向包围盒 / 包围球 / 包围柱
 - 质心、转动惯量、惯性主轴
-- 导入 OFF / PLY / GLTF / XAML / 3DXML
+- 导入 OFF / GLTF / XAML / 3DXML
 - 导出 GLB / PLY / COLLADA / DXF / SVG
 - 交互式 3D 预览窗口（stlkit 只出静态 SVG 等轴测图）
 

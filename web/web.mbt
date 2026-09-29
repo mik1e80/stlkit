@@ -118,6 +118,7 @@ fn format_name(data : Bytes) -> String {
     @stlkit.Binary => "二进制 STL"
     @stlkit.Ascii => "ASCII STL"
     @stlkit.ThreeMF => "3MF"
+    @stlkit.Ply => "PLY"
     @stlkit.Unknown => "OBJ"
   }
 }

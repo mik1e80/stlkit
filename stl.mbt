@@ -35,6 +35,7 @@ pub fn parse_stl(data : Bytes) -> Result[Mesh, String] {
       parse_stl_ascii(@utf8.decode_lossy(data))
     ThreeMF =>
       Err("这是一个 3MF 文件（ZIP 包），不是 STL——请用 parse_mesh 或 parse_3mf")
+    Ply => Err("这是一个 PLY 文件，不是 STL——请用 parse_mesh 或 parse_ply")
     Unknown =>
       Err(
         "认不出这是 ASCII 还是二进制 STL：文件 \{data.length()} 字节，" +
@@ -54,6 +55,7 @@ pub fn parse_stl(data : Bytes) -> Result[Mesh, String] {
 pub fn parse_mesh(data : Bytes) -> Result[Mesh, String] {
   match detect_format(data) {
     ThreeMF => parse_3mf(data)
+    Ply => parse_ply(data)
     Unknown => parse_obj(@utf8.decode_lossy(data))
     _ => parse_stl(data)
   }
@@ -69,16 +71,28 @@ pub(all) enum MeshFormat {
   Binary
   /// 3MF：ZIP 包 + XML，现代切片软件用的格式
   ThreeMF
+  /// PLY：三维扫描仪常用的格式
+  Ply
   Unknown
 }
 
 ///|
 /// 判断数据是哪种格式。
+///
+/// 顺序有讲究：**带魔数的排前面，靠长度算术的排后面**。
+/// 二进制 STL 的判据是「文件长度正好等于 84 + 数量 × 50」，
+/// 一个随便什么文件撞上这个式子的概率大约是 1/50——所以不能在它前面
+/// 留一个「可能会被误判成二进制 STL」的岔路。3MF 和 PLY 都只看开头
+/// 几个固定字节，几乎不会误判，放前面最稳。
 pub fn detect_format(data : Bytes) -> MeshFormat {
   // 3MF 是个 ZIP 包，按魔数认。放在最前面判断是最省的——
   // 只看 4 个字节，而下面的二进制 STL 判断要读长度做算术
   if is_3mf(data) {
     return ThreeMF
+  }
+  // PLY 的第一行必须是 `ply`
+  if is_ply(data) {
+    return Ply
   }
   // 二进制：长度必须正好是 84 + 数量 × 50
   if data.length() >= 84 {

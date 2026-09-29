@@ -26,7 +26,8 @@
 ## 能做什么
 
 ```
-解析    STL（ASCII + 二进制）、OBJ（含多边形面与负数编号）、3MF（含装配体与单位换算）
+解析    STL（ASCII + 二进制）、OBJ（含多边形面与负数编号）、
+        3MF（含装配体与单位换算）、PLY（ASCII + 两种字节序的二进制）
 校验    水密性、非流形边、退化面、法线朝向、绕向一致性
 分析    体积、表面积、包围盒、尺寸、三角形数、去重顶点数、
         零件数（几块互不相连的几何）、欧拉示性数
@@ -289,7 +290,7 @@ bash web/build.sh    # 重新编译网页用的 JS
 实测结果：
 
 ```text
-Total tests: 167, passed: 167, failed: 0.
+Total tests: 186, passed: 186, failed: 0.
 ```
 
 `moon check --target all --deny-warn` 零警告。

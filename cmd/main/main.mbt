@@ -3,7 +3,7 @@
 // 参数解析交给官方库 moonbitlang/core/argparse，文件读取交给
 // moonbitlang/x/fs，退出码用 moonbitlang/x/sys。
 //
-// 给一个 STL / OBJ / 3MF 文件，打印它的体检报告：几何数据加四项校验结论。
+// 给一个 STL / OBJ / 3MF / PLY 文件，打印它的体检报告：几何数据加四项校验结论。
 // 可选 --svg 导出等轴测预览图，--fix 修复并存到指定文件。
 
 ///|
@@ -15,11 +15,11 @@
 fn command() -> @argparse.Command {
   @argparse.Command(
     "stlkit",
-    about="STL / OBJ / 3MF 三维网格工具链——解析、校验、分析 3D 打印模型",
+    about="STL / OBJ / 3MF / PLY 三维网格工具链——解析、校验、分析 3D 打印模型",
     positionals=[
       @argparse.PositionArg(
         "file",
-        about="要处理的模型文件路径（STL / OBJ / 3MF）",
+        about="要处理的模型文件路径（STL / OBJ / 3MF / PLY）",
         num_args=@argparse.ValueRange(lower=0, upper=1),
       ),
     ],
@@ -296,7 +296,7 @@ fn help_text(cmd : @argparse.Command) -> String {
   "  stlkit model.stl --bench          跑基准测试，对比三种解析方式的耗时与内存\n" +
   "  stlkit                            不带参数时打印这份帮助\n" +
   "\n" +
-  "格式：二进制 STL、ASCII STL、OBJ、3MF 四种都能认，按文件内容判断，\n" +
+  "格式：二进制 STL、ASCII STL、OBJ、3MF、PLY 五种都能认，按文件内容判断，\n" +
   "不看扩展名——从别处拷来的文件经常带着错的扩展名。\n"
 }
 
@@ -335,6 +335,7 @@ fn report(
     @stlkit.Binary => "二进制 STL"
     @stlkit.Ascii => "ASCII STL"
     @stlkit.ThreeMF => "3MF"
+    @stlkit.Ply => "PLY"
     // STL 的两个分支都不认，那就当 OBJ 试。用内容判断而不是看扩展名——
     // 从别处拷来的文件经常带着错的扩展名。
     @stlkit.Unknown => "OBJ"
