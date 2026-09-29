@@ -124,6 +124,10 @@ function renderReport(fields) {
   const geo = document.createElement("div");
   geo.className = "report-head";
   statRow(geo, "包围盒", fields["包围盒"] || "-", "mm");
+  // 定向包围盒贴着模型走，斜着摆的模型能看出真实占地
+  if (fields["定向包围盒"] !== undefined) {
+    statRow(geo, "定向包围盒", fields["定向包围盒"], "mm");
+  }
   statRow(geo, "体积", fields["体积"] || "-", "mm³");
   statRow(geo, "表面积", fields["表面积"] || "-", "mm²");
   // 几块互不相连的几何。不是「错误」，是得知道的信息

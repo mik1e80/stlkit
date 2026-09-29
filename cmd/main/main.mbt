@@ -361,6 +361,17 @@ fn report(
     }
     None => ()
   }
+  // 定向包围盒。斜着摆的模型用轴对齐的盒子量会虚胖，
+  // 这个贴着模型走，能看出「它实际占多大地方」
+  match mesh.oriented_bounding_box() {
+    Some(obb) => {
+      let size = obb.size()
+      println(
+        "  定向包围盒 \{fmt(size.x, 3)} × \{fmt(size.y, 3)} × \{fmt(size.z, 3)} mm",
+      )
+    }
+    None => ()
+  }
   println("  体积      \{fmt(mesh.volume(), 3)} mm³")
   println("  表面积    \{fmt(mesh.surface_area(), 3)} mm²")
   let winding = @stlkit.check_winding_default(mesh)

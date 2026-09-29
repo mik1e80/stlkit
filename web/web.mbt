@@ -91,6 +91,16 @@ fn analyze_inner(file_base64 : String) -> Result[Array[String], String] {
     }
     None => ()
   }
+  // 定向包围盒：斜着摆的模型用轴对齐的盒子量会虚胖，这个贴着模型走
+  match mesh.oriented_bounding_box() {
+    Some(obb) => {
+      let size = obb.size()
+      lines.push(
+        "定向包围盒|\{round3(size.x)} × \{round3(size.y)} × \{round3(size.z)}",
+      )
+    }
+    None => ()
+  }
   lines.push("体积|\{round3(mesh.volume())}")
   lines.push("表面积|\{round3(mesh.surface_area())}")
   // 几块互不相连的几何。大于 1 说明打出来是几个独立的零件

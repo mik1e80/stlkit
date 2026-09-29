@@ -158,63 +158,7 @@ pub fn Mesh::moment_inertia(self : Mesh) -> FixedArray[Double] {
 ///
 /// 张量是对称的，所以特征值有闭式解（Cardano 公式），不用迭代。
 pub fn Mesh::principal_moments(self : Mesh) -> FixedArray[Double] {
-  let m = self.moment_inertia()
-  let a = m[0]
-  let b = m[1]
-  let c = m[2]
-  let d = m[4]
-  let e = m[5]
-  let f = m[8]
-
-  // 对称 3×3 的特征多项式： λ³ − p λ² + q λ − r = 0
-  let p = a + d + f
-  let q = a * d + d * f + f * a - b * b - c * c - e * e
-  let r = a * (d * f - e * e) - b * (b * f - c * e) + c * (b * e - c * d)
-
-  // 消掉二次项：λ = x + p/3，得到 x³ + p2·x + q2 = 0
-  //
-  // 常数项是 s³ − I₁s² + I₂s − I₃（s = I₁/3）展开的结果：
-  //     I₁³/27 − I₁³/9 + I₁I₂/3 − I₃ = −2I₁³/27 + I₁I₂/3 − I₃
-  //
-  // 这三个符号**都要小心**：写反一个，特征值就全错。
-  // 一开始我就在这里把整体符号抄反了，算出来的三个根加起来还对（迹是不变量），
-  // 但每个值都偏了 33333.33——这种错光看「和等于迹」是发现不了的
-  let shift = p / 3.0
-  let p2 = q - p * p / 3.0
-  let q2 = -2.0 * p * p * p / 27.0 + p * q / 3.0 - r
-
-  // x³ + p2·x + q2 = 0，用 Cardano 公式
-  let half = q2 / 2.0
-  let third = p2 / 3.0
-  let disc = half * half + third * third * third
-  let roots : FixedArray[Double] = FixedArray::make(3, 0.0)
-  if disc >= 0.0 {
-    // 一个实根两个复根（对称实矩阵不会出现，保险起见还是写上）
-    let s = disc.sqrt()
-    let u = @math.cbrt(-half + s)
-    let v = @math.cbrt(-half - s)
-    roots[0] = u + v + shift
-    roots[1] = -(u + v) / 2.0 + shift
-    roots[2] = roots[1]
-  } else {
-    // 三个不同的实根（对称矩阵的正常情况）
-    let radius = (-third).sqrt()
-    let cos_arg = -half / (radius * radius * radius)
-    // acos 的定义域是 [-1, 1]，浮点误差可能让它超出去一点点
-    let clamped = if cos_arg > 1.0 {
-      1.0
-    } else if cos_arg < -1.0 {
-      -1.0
-    } else {
-      cos_arg
-    }
-    let theta = @math.acos(clamped)
-    for k = 0; k < 3; k = k + 1 {
-      let angle = (theta - 2.0 * 3.141592653589793 * k.to_double()) / 3.0
-      roots[k] = 2.0 * radius * @math.cos(angle) + shift
-    }
-  }
-  // 从大到小
-  roots.sort()
-  [roots[2], roots[1], roots[0]]
+  // 特征值用共用实现（mat3.mbt）——有向包围盒的主轴也要用同一套，
+  // 写两遍迟早会改漏一处
+  symmetric_eigenvalues(self.moment_inertia())
 }
