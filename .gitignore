@@ -11,4 +11,9 @@ moonbit-coverage-*.txt
 .vscode/
 *.swp
 *.swo
+
+# AI 助手的交接文档。本地留着方便接着干活，
+# 但不进仓库——里面记的是开发过程中的内部决策和驳回记录，
+# 不属于这个项目对外的一部分
+CLAUDE.md
 .claude/
