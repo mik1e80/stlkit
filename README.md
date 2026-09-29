@@ -18,6 +18,25 @@
 
 三者跑的是同一份转换代码。网页上的分析不是 JavaScript 重写的，而是 MoonBit 经 `moon build --target js` 编译出来的。
 
+## 能做什么
+
+```text
+解析    STL（ASCII + 二进制）、OBJ（多边形面、负数编号、CRLF）、
+        3MF（装配体、变换矩阵、单位换算）、PLY（ASCII + 两种字节序）
+校验    水密性、非流形边、退化面、法线朝向、绕向一致性
+分析    体积、表面积、包围盒、定向包围盒、零件数、欧拉示性数、
+        重心、转动惯量、最薄处壁厚
+修复    补洞、删退化面、删重复面、统一绕向、重算法线
+导出    二进制 / ASCII STL、OBJ、PLY
+预览    等轴测 SVG 图（自带背面剔除与明暗）
+流式    分块扫描超大模型，内存不随模型大小增长
+形态    库 + 命令行 + 网页
+```
+
+其中**最薄处壁厚**是别处很少见的一项：从表面往模型里面打射线，打到对面有多远，
+那里的壁就有多厚。壁太薄是 3D 打印最常见的失败原因之一，而这个问题
+**从外面看模型完完整整，看不出来**。
+
 ## 为什么需要它
 
 3D 打印失败最常见的原因不是打印机，是模型本身有问题：网格上有破洞、一条边被三个面共用、有零面积的三角形。**渲染器能告诉你模型长什么样，但告诉不了你有没有破洞**——那要靠网格拓扑分析，数清楚每条边被几个面共用。
@@ -54,11 +73,36 @@ OBJ 和 3MF 直接写着下标，不存在猜的可能。
 
 ## 和现有 3D 库的关系
 
-> 完整的对比（含 Python 的 `trimesh`）在 **[COMPARISON.md](COMPARISON.md)**。
-> 简单说：trimesh 是 Python 生态里最成熟的通用三角网格库，能力范围比 stlkit
-> 大得多；stlkit 不替代它，两者能跑的地方和回答的问题都不一样。
+### 参考了 trimesh 哪些设计
 
-MoonBit 生态里已经有几个 3D 相关的包，但做的是**完全不同的事**：
+[trimesh](https://trimesh.org/) 是 Python 生态的通用三角网格库（需要 Python + numpy），
+也是这个项目在设计上参考最多的一个。下面这些能力是看了它的 API 之后补的：
+
+| stlkit | 对应 trimesh 的 | 是什么 |
+| --- | --- | --- |
+| `count_parts_default(mesh)` | `mesh.split()` | 数模型由几个互不相连的实体组成 |
+| `ValidationReport::euler_number()` | `mesh.euler_number` | 欧拉示性数 χ = V − E + F |
+| `Mesh::center_mass()` | `mesh.center_mass` | 重心 |
+| `Mesh::moment_inertia()` | `mesh.moment_inertia` | 转动惯量张量 |
+| `Mesh::principal_moments()` | `mesh.principal_inertia_components` | 三个主转动惯量 |
+| `Mesh::oriented_bounding_box()` | `mesh.bounding_box_oriented` | 按主成分分析求的包围盒 |
+| `Mesh::ray_cast()` | `mesh.ray` | 射线与网格求交 |
+| `Mesh::nearest_point()` | `mesh.nearest.on_surface` | 表面上离给定点最近的位置 |
+| `parse_ply()` / `write_ply()` | PLY 导入导出 | 三维扫描仪最常用的格式 |
+
+**没有复制任何代码**——trimesh 是 MIT 许可的 Python 库，本项目是 MoonBit 实现，
+语言和数据结构都不同。借鉴的是「一个网格库该有哪几项能力、数据怎么组织」
+这个层面的东西。
+
+**还有一项 trimesh 没有：壁厚检查。** 从表面往模型里面打一条射线，打到对面
+有多远，那里的壁就有多厚。壁太薄是 3D 打印最常见的失败原因之一，而
+**从外面看模型完完整整，看不出哪里薄**。
+
+完整的逐项对比（包括它有哪些能力、我们有哪些没有）在 [COMPARISON.md](COMPARISON.md)。
+
+### MoonBit 生态里的 3D 包
+
+有几个，但做的是**完全不同的事**：
 
 |  | `mizchi/three`（three-mbt） | `mizchi/mesh3d` | stlkit |
 | --- | --- | --- | --- |
