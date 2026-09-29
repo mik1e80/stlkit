@@ -363,6 +363,16 @@ fn report(
   println("  体积      \{fmt(mesh.volume(), 3)} mm³")
   println("  表面积    \{fmt(mesh.surface_area(), 3)} mm²")
   let winding = @stlkit.check_winding_default(mesh)
+  // 零件数：几块互不相连的几何。单独一项显示，不是「错误」——
+  // 分开的零件本身是合法模型，只是要知道
+  let parts = @stlkit.count_parts_default(mesh)
+  println("  零件      \{parts} 个")
+  // 欧拉示性数只在网格水密时才有拓扑含义（2 = 一个实心块，0 = 有一个
+  // 穿透的洞……）。不水密的时候它只是「顶点数减边数加面数」，
+  // 报出来会让人以为读出了什么，所以不显示
+  if check.is_watertight() {
+    println("  欧拉数    \{check.euler_number()}（每多 2 就是多一个穿透的洞）")
+  }
   let has_problem = !check.is_watertight() ||
     check.non_manifold_edge_count > 0 ||
     check.degenerate_count > 0 ||
@@ -370,7 +380,7 @@ fn report(
     winding.flipped_faces > 0
 
   println("")
-  print_findings(check, winding)
+  print_findings(check, winding, parts)
 
   if fix_path != "" {
     return fix_and_save(mesh, check, winding, fix_path)
@@ -394,7 +404,11 @@ fn report(
 /// 每一条「不通过」都要说清楚**为什么这是问题**，不能只报一个数字。
 /// 看到「有 3 条边界边」的人不知道这意味着什么，看到「切片软件分不清
 /// 哪里是外面」才知道要修。
-fn print_findings(check : @stlkit.ValidationReport, winding : @stlkit.WindingReport) -> Unit {
+fn print_findings(
+  check : @stlkit.ValidationReport,
+  winding : @stlkit.WindingReport,
+  parts : Int,
+) -> Unit {
   let mut problems = 0
 
   if winding.flipped_faces > 0 {
@@ -442,6 +456,17 @@ fn print_findings(check : @stlkit.ValidationReport, winding : @stlkit.WindingRep
 
   if problems == 0 {
     println("  ✓ 水密网格，拓扑上没有阻碍打印的问题")
+    // 零件数不是「问题」，但多块几何值得说一句——
+    // 分开的零件本身合法（比如一组要分别打印的件），只是用户得知道
+    if parts > 1 {
+      println("")
+      println(
+        "  ⚠ 这个模型由 \{parts} 块互不相连的几何组成，切片软件会分别生成路径，打出来是 \{parts} 个独立的零件",
+      )
+      println(
+        "    如果你以为它是一整个，那就是模型有问题——比如两块只在角上碰了一下，那种接触在切片时是断的",
+      )
+    }
     return
   }
 

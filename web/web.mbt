@@ -93,6 +93,12 @@ fn analyze_inner(file_base64 : String) -> Result[Array[String], String] {
   }
   lines.push("体积|\{round3(mesh.volume())}")
   lines.push("表面积|\{round3(mesh.surface_area())}")
+  // 几块互不相连的几何。大于 1 说明打出来是几个独立的零件
+  lines.push("零件|\{@stlkit.count_parts_default(mesh)}")
+  // 欧拉示性数只在网格水密时才有拓扑含义，不水密就不报
+  if (check.is_watertight()) {
+    lines.push("欧拉数|\{check.euler_number()}")
+  }
   lines.push("水密|\{check.is_watertight()}")
   lines.push("边界边|\{check.boundary_edge_count}")
   lines.push("非流形边|\{check.non_manifold_edge_count}")

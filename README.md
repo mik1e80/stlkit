@@ -53,6 +53,10 @@ OBJ 和 3MF 直接写着下标，不存在猜的可能。
 
 ## 和现有 3D 库的关系
 
+> 完整的对比（含 Python 的 `trimesh`）在 **[COMPARISON.md](COMPARISON.md)**。
+> 简单说：trimesh 是 Python 生态里最成熟的通用三角网格库，能力范围比 stlkit
+> 大得多；stlkit 不替代它，两者能跑的地方和回答的问题都不一样。
+
 MoonBit 生态里已经有几个 3D 相关的包，但做的是**完全不同的事**：
 
 |  | `mizchi/three`（three-mbt） | `mizchi/mesh3d` | stlkit |
@@ -101,7 +105,7 @@ moon run cmd/main model.stl --bench
 仓库根目录就是 MoonBit 模块根：
 
 ```bash
-moon test            # 跑测试（145 个，零警告）
+moon test            # 跑测试（167 个，零警告）
 moon run cmd/main    # 不带参数会打印帮助
 bash web/build.sh    # 重新编译网页用的 JS
 ```

@@ -126,6 +126,12 @@ function renderReport(fields) {
   statRow(geo, "包围盒", fields["包围盒"] || "-", "mm");
   statRow(geo, "体积", fields["体积"] || "-", "mm³");
   statRow(geo, "表面积", fields["表面积"] || "-", "mm²");
+  // 几块互不相连的几何。不是「错误」，是得知道的信息
+  statRow(geo, "零件", fields["零件"] || "1", "个");
+  // 欧拉示性数只在网格水密时才有意义，所以后端不水密时根本不发这一项
+  if (fields["欧拉数"] !== undefined) {
+    statRow(geo, "欧拉数", fields["欧拉数"], "");
+  }
   box.append(geo);
 
   // 校验结论
@@ -171,6 +177,19 @@ function renderReport(fields) {
     note.className = "report-note";
     note.textContent =
       "注意：网格不闭合，上面那个体积数不可信 —— 体积是靠各面的有符号体积正负抵消算出来的，有破洞就抵消不干净。";
+    box.append(note);
+  }
+
+  // 多块互不相连的几何要说一句。分开的零件本身合法——比如一组要分别打印的
+  // 件——但用户得知道打出来是几个东西，不然会以为是模型坏了
+  const parts = parseInt(fields["零件"] || "1", 10);
+  if (parts > 1) {
+    const note = document.createElement("p");
+    note.className = "report-note";
+    note.textContent =
+      `这个模型由 ${parts} 块互不相连的几何组成，切片软件会分别生成路径，` +
+      `打出来是 ${parts} 个独立的零件。如果你以为它是一整个，那就是模型有问题 —— ` +
+      `比如两块只在角上碰了一下，那种接触在切片时是断的。`;
     box.append(note);
   }
 

@@ -23,6 +23,27 @@ pub(all) struct ValidationReport {
   degenerate_count : Int
   /// 法线朝向和文件里写的明显不符的三角形数量
   wrong_normal_count : Int
+  /// 不同边的条数（去重后）。和顶点数、三角形数一起能算出欧拉示性数
+  unique_edge_count : Int
+}
+
+///|
+/// 欧拉示性数 χ = V − E + F。
+///
+/// 水密网格上这个数是有拓扑含义的：
+///
+/// - 单个实体、没有洞（topologically 一个球面）：**χ = 2**
+/// - 有一个穿透的洞（比如甜甜圈）：**χ = 0**
+/// - 有两个穿透的洞：**χ = −2**
+///
+/// 有 k 个互不相连的实体时，χ = 2 × k（每个实体贡献 2）。
+/// 所以这个数还能反过来验证零件数：`零件 × 2 − χ` 一定是偶数，
+/// 它的一半就是所有零件上「洞」的总数。
+///
+/// 注意：**网格不水密时这个数没有上面的含义**，只是一堆计数。
+/// 报告里也只在结论是水密的情况下才拿它说事。
+pub fn ValidationReport::euler_number(self : ValidationReport) -> Int {
+  self.unique_vertex_count - self.unique_edge_count + self.triangle_count
 }
 
 ///|
@@ -204,6 +225,7 @@ pub fn validate(mesh : Mesh, tolerance : Double) -> ValidationReport {
     non_manifold_edge_count: non_manifold,
     degenerate_count: degenerate,
     wrong_normal_count: wrong_normal,
+    unique_edge_count: edge_counts.length(),
   }
 }
 
@@ -211,4 +233,102 @@ pub fn validate(mesh : Mesh, tolerance : Double) -> ValidationReport {
 /// 用默认容差校验。
 pub fn validate_default(mesh : Mesh) -> ValidationReport {
   validate(mesh, default_weld_tolerance())
+}
+
+///|
+/// 数一数这个网格由几个互不相连的实体组成。
+///
+/// 判据是**面的邻接**：两个三角形共用一条边就算连在一起，
+/// 连通块的个数就是零件数。这和水密性用的是同一套拓扑，
+/// 不需要额外的几何判断。
+///
+/// 为什么 3D 打印要看这个：切片软件按连通块分别生成路径，
+/// 一个「看起来是一个模型」的文件里如果有 5 块互不相连的几何，
+/// 打出来就是 5 个零散的东西——它们可能根本没连在一起，拿起来就散了。
+/// 而且这类问题从预览图上看不出来，模型画出来是完整的。
+///
+/// 注意**只有共用边才算连接**。两个零件刚好顶点碰着顶点不算——
+/// 那种接触在切片时是断的，和分开放没有区别。
+/// （这也是为什么不用「顶点相同就算连通」来判，那样会漏报。）
+pub fn count_parts(mesh : Mesh, tolerance : Double) -> Int {
+  let n = mesh.triangle_count()
+  if n == 0 {
+    return 0
+  }
+  let weld = weld_vertices(mesh, tolerance)
+
+  // 无向边 → 用到它的面。同一条边上的面互为邻居
+  let edge_faces : Map[String, Array[Int]] = Map([])
+  for i = 0; i < n; i = i + 1 {
+    let ia = weld.ids[i * 3]
+    let ib = weld.ids[i * 3 + 1]
+    let ic = weld.ids[i * 3 + 2]
+    for e in [(ia, ib), (ib, ic), (ic, ia)] {
+      // 焊接后两端重合的边是退化的，不算连接
+      if e.0 == e.1 {
+        continue
+      }
+      let k = edge_key(e.0, e.1)
+      let key = "\{k.0},\{k.1}"
+      let list = match edge_faces.get(key) {
+        Some(l) => l
+        None => {
+          let l : Array[Int] = []
+          edge_faces.set(key, l)
+          l
+        }
+      }
+      list.push(i)
+    }
+  }
+
+  let visited : Array[Bool] = []
+  for _i = 0; _i < n; _i = _i + 1 {
+    visited.push(false)
+  }
+
+  let mut parts = 0
+  // 每个连通块做一次广度优先。用下标当队头而不用 pop，
+  // 免得每弹一个元素就挪一次数组
+  let queue : Array[Int] = []
+  for seed = 0; seed < n; seed = seed + 1 {
+    if visited[seed] {
+      continue
+    }
+    parts = parts + 1
+    visited[seed] = true
+    queue.clear()
+    queue.push(seed)
+    let mut head = 0
+    while head < queue.length() {
+      let cur = queue[head]
+      head = head + 1
+      let a = weld.ids[cur * 3]
+      let b = weld.ids[cur * 3 + 1]
+      let c = weld.ids[cur * 3 + 2]
+      for e in [(a, b), (b, c), (c, a)] {
+        if e.0 == e.1 {
+          continue
+        }
+        let k = edge_key(e.0, e.1)
+        match edge_faces.get("\{k.0},\{k.1}") {
+          Some(list) =>
+            for other in list {
+              if !visited[other] {
+                visited[other] = true
+                queue.push(other)
+              }
+            }
+          None => ()
+        }
+      }
+    }
+  }
+  parts
+}
+
+///|
+/// 用默认容差数零件。
+pub fn count_parts_default(mesh : Mesh) -> Int {
+  count_parts(mesh, default_weld_tolerance())
 }
