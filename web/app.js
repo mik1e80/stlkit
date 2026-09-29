@@ -128,9 +128,16 @@ function renderReport(fields) {
   statRow(geo, "表面积", fields["表面积"] || "-", "mm²");
   // 几块互不相连的几何。不是「错误」，是得知道的信息
   statRow(geo, "零件", fields["零件"] || "1", "个");
-  // 欧拉示性数只在网格水密时才有意义，所以后端不水密时根本不发这一项
+  // 欧拉示性数和质量属性只在网格闭合时才有意义，
+  // 所以后端不水密时这几项根本不发
   if (fields["欧拉数"] !== undefined) {
     statRow(geo, "欧拉数", fields["欧拉数"], "");
+  }
+  if (fields["重心"] !== undefined) {
+    statRow(geo, "重心", fields["重心"], "mm");
+  }
+  if (fields["主惯量"] !== undefined) {
+    statRow(geo, "主惯量", fields["主惯量"], "");
   }
   box.append(geo);
 

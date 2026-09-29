@@ -373,6 +373,16 @@ fn report(
   // 报出来会让人以为读出了什么，所以不显示
   if check.is_watertight() {
     println("  欧拉数    \{check.euler_number()}（每多 2 就是多一个穿透的洞）")
+    // 质量属性也只在网格闭合时才有意义——重心靠有符号一阶矩算出来，
+    // 有破洞就抵消不干净
+    let c = mesh.center_mass()
+    println(
+      "  重心      \{fmt(c.x, 3)}, \{fmt(c.y, 3)}, \{fmt(c.z, 3)} mm",
+    )
+    let pm = mesh.principal_moments()
+    println(
+      "  主惯量    \{fmt(pm[0], 1)} / \{fmt(pm[1], 1)} / \{fmt(pm[2], 1)}（密度取 1）",
+    )
   }
   let has_problem = !check.is_watertight() ||
     check.non_manifold_edge_count > 0 ||
