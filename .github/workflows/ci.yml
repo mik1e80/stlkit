@@ -51,14 +51,11 @@ jobs:
       - name: 测试
         run: moon test
 
-      # 网页产物是提交进仓库的编译结果。这里重新编一遍并比对，
-      # 防止「改了 MoonBit 代码但忘了跑 build.sh」——那样线上页面会和源码对不上
-      - name: 网页产物和源码是否一致
-        run: |
-          bash web/build.sh
-          if ! git diff --quiet -- web/dist/web.js; then
-            echo "::error::web/dist/web.js 和当前源码对不上，本地跑一下 bash web/build.sh 再提交"
-            git diff --stat -- web/dist/web.js
-            exit 1
-          fi
-          echo "网页产物是最新的"
+      # 网页版的 JS 是提交进仓库的编译产物，所以这里只验「干净机器上能编出来」，
+      # **不比字节**。
+      #
+      # 试过比对，跨平台和跨编译器版本都会产出不同的字节，CI 装了新版工具链就会
+      # 误报。真正要防的是「改了 MoonBit 代码但忘了重新编译」——那个靠提交前
+      # 自觉跑一遍 build.sh（build.sh 的注释里写了）
+      - name: 网页版能编译出来
+        run: bash web/build.sh
