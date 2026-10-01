@@ -221,4 +221,8 @@ bash web/build.sh                      # 重新编译网页用的 JS
 
 ## 许可证
 
-[Apache License 2.0](LICENSE)
+[Apache License 2.0](LICENSE)。
+
+`examples/` 下的 17 个 `.3mf` 文件来自 [3MF Consortium 的 3mf-samples](https://github.com/3MFConsortium/3mf-samples)
+（BSD 2-Clause），设计上参考过 [trimesh](https://trimesh.org/)（MIT，只参考 API、没有用代码）。
+完整的第三方声明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
