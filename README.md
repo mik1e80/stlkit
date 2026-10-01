@@ -145,17 +145,67 @@ moon run cmd/main model.stl --bench
 
 详细的实现说明、API、测试策略都在 [`README.mbt.md`](README.mbt.md)。
 
+## 安装和用法
+
+### 作为库
+
+```bash
+moon add mik1e80/stlkit
+```
+
+```moonbit nocheck
+// data 是你自己读进来的字节。STL / OBJ / 3MF / PLY 都认，按内容判断格式
+let mesh = match @stlkit.parse_mesh(data) {
+  Ok(mesh) => mesh
+  Err(msg) => { println("读不了：\{msg}"); return }
+}
+
+// 体检
+let check = @stlkit.validate_default(mesh)
+if check.is_watertight() {
+  println("水密，体积 \{mesh.volume()} mm³")
+} else {
+  println("有 \{check.boundary_edge_count} 条边界边，需要先修复")
+}
+
+// 打印专项：最薄处够不够厚
+let thick = @stlkit.check_thickness_default(mesh)
+println("最薄处 \{thick.min_thickness} mm")
+```
+
+### 命令行
+
+```bash
+git clone https://github.com/mik1e80/stlkit
+cd stlkit
+moon run cmd/main examples/cube.stl      # 出一份体检报告
+moon run cmd/main                         # 不带参数打印帮助
+```
+
+### 网页
+
+在线版 <https://mik1e80.github.io/stlkit/>。
+
+也可以直接把仓库拿下来双击 `web/index.html`——**不用起服务器**，
+`dist/web.js` 是提交进仓库的编译产物（用 `iife` 格式而不是 ES module，
+就是为了能在 `file://` 下打开）。
+
 ## 开发
 
 仓库根目录就是 MoonBit 模块根：
 
 ```bash
-moon test            # 跑测试（239 个，零警告）
-moon run cmd/main    # 不带参数会打印帮助
-bash web/build.sh    # 重新编译网页用的 JS
+moon test                              # 跑测试（239 个）
+moon check --target all --deny-warn    # 全目标检查，要求零警告
+moon run cmd/main                      # 不带参数会打印帮助
+bash web/build.sh                      # 重新编译网页用的 JS
 ```
 
-网页部分由 GitHub Actions 自动发布，见 [`.github/workflows/pages.yml`](.github/workflows/pages.yml)。
+两个 GitHub Actions 分工不同：
+
+- [`ci.yml`](.github/workflows/ci.yml) —— 每次推送跑检查 / 构建 / 测试，
+  顺带比对 `web/dist/web.js` 和源码是否一致（防止改了代码忘了重新编译）
+- [`pages.yml`](.github/workflows/pages.yml) —— 把网页发到 GitHub Pages
 
 ## 依赖
 
