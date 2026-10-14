@@ -46,6 +46,22 @@ pub fn Triangle::area(self : Triangle) -> Double {
 }
 
 ///|
+/// 按最长边归一化，避免大坐标叉乘溢出，也避免微小面面积下溢。
+fn triangle_is_degenerate(triangle : Triangle) -> Bool {
+  let ab = triangle.b.sub(triangle.a)
+  let ac = triangle.c.sub(triangle.a)
+  let scale = ab.x.abs().max(ab.y.abs()).max(ab.z.abs())
+    .max(ac.x.abs()).max(ac.y.abs()).max(ac.z.abs())
+  if scale == 0.0 {
+    return true
+  }
+  let u = Vec3::new(ab.x / scale, ab.y / scale, ab.z / scale)
+  let v = Vec3::new(ac.x / scale, ac.y / scale, ac.z / scale)
+  let cross = u.cross(v)
+  cross.x == 0.0 && cross.y == 0.0 && cross.z == 0.0
+}
+
+///|
 /// 有符号体积贡献。
 ///
 /// 把「三角形 + 原点」看成一个四面体，用混合积算它的有符号体积。

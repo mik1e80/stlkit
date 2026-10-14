@@ -183,7 +183,7 @@ pub fn validate(mesh : Mesh, tolerance : Double) -> ValidationReport {
     // 退化面：三个顶点焊接后有两个或以上是同一个点，说明这个面没有面积。
     // 用焊接后的编号判断而不是看面积是否为零——焊接后的判断和拓扑一致，
     // 不会因为浮点误差漏掉。
-    if ia == ib || ib == ic || ia == ic {
+    if ia == ib || ib == ic || ia == ic || triangle_is_degenerate(triangle) {
       degenerate = degenerate + 1
     }
 

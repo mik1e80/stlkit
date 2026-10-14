@@ -107,7 +107,8 @@ pub fn repair(mesh : Mesh, options : RepairOptions) -> RepairResult {
     let ic = weld.ids[i * 3 + 2]
 
     // 退化面：焊接后有两个顶点是同一个点，这个面没有面积
-    if options.drop_degenerate && (ia == ib || ib == ic || ia == ic) {
+    if options.drop_degenerate &&
+      (ia == ib || ib == ic || ia == ic || triangle_is_degenerate(triangle)) {
       removed_degenerate = removed_degenerate + 1
       continue
     }
@@ -136,14 +137,10 @@ pub fn repair(mesh : Mesh, options : RepairOptions) -> RepairResult {
   let mut result = kept
   if options.fill_holes {
     let before = result.length()
-    result = fill_holes(result, kept_ids, options.tolerance)
-    let after = result.length()
-    added_triangles = after - before
-    // 每个洞补的三角形数 = 环上的边数，所以环数要靠边界边数推。
-    // 这里简单起见：有新增就记一次，具体的洞数在下面的辅助函数里数。
-    if added_triangles > 0 {
-      filled_holes = 1
-    }
+    let (patched, count) = fill_holes(result, kept_ids, options.tolerance)
+    result = patched
+    added_triangles = result.length() - before
+    filled_holes = count
   }
 
   // 统一绕向。必须排在重算法线**之前**：绕向一变，法线跟着变，
@@ -227,7 +224,7 @@ fn fill_holes(
   triangles : Array[Triangle],
   ids : Array[(Int, Int, Int)],
   tolerance : Double,
-) -> Array[Triangle] {
+) -> (Array[Triangle], Int) {
   // 数每条边被几个面用。方向要记下来——补洞时要用反向的。
   // 键是「去的方向」：'a>b'，值是出现次数。
   let counts : Map[String, Int] = Map([])
@@ -278,7 +275,7 @@ fn fill_holes(
   }
 
   if boundary.length() == 0 {
-    return triangles
+    return (triangles, 0)
   }
 
   // 把边界边串成环。做法是「每个起点找一条以它开头的边」，一路接下去
@@ -324,13 +321,13 @@ fn fill_holes(
         }
       }
     }
-    if ring.length() >= 3 {
+    if current == start && ring.length() >= 3 {
       rings.push(ring)
     }
   }
 
   if rings.length() == 0 {
-    return triangles
+    return (triangles, 0)
   }
 
   let result : Array[Triangle] = []
@@ -375,7 +372,7 @@ fn fill_holes(
     }
   }
   let _ = tolerance
-  result
+  (result, rings.length())
 }
 
 ///|
