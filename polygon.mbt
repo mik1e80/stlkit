@@ -2,30 +2,49 @@
 // 凹多边形用耳切；自相交或非平面的多边形明确报错。
 
 ///|
-fn polygon_turn(a : (Double, Double), b : (Double, Double), c : (Double, Double)) -> Double {
+fn polygon_turn(
+  a : (Double, Double),
+  b : (Double, Double),
+  c : (Double, Double),
+) -> Double {
   (b.0 - a.0) * (c.1 - a.1) - (b.1 - a.1) * (c.0 - a.0)
 }
 
 ///|
-fn polygon_on_segment(p : (Double, Double), a : (Double, Double), b : (Double, Double)) -> Bool {
+fn polygon_on_segment(
+  p : (Double, Double),
+  a : (Double, Double),
+  b : (Double, Double),
+) -> Bool {
   polygon_turn(a, b, p).abs() <= 1.0e-14 &&
-  p.0 >= a.0.min(b.0) && p.0 <= a.0.max(b.0) &&
-  p.1 >= a.1.min(b.1) && p.1 <= a.1.max(b.1)
+  p.0 >= a.0.min(b.0) &&
+  p.0 <= a.0.max(b.0) &&
+  p.1 >= a.1.min(b.1) &&
+  p.1 <= a.1.max(b.1)
 }
 
 ///|
-fn polygon_edges_cross(a : (Double, Double), b : (Double, Double), c : (Double, Double), d : (Double, Double)) -> Bool {
+fn polygon_edges_cross(
+  a : (Double, Double),
+  b : (Double, Double),
+  c : (Double, Double),
+  d : (Double, Double),
+) -> Bool {
   let ab_c = polygon_turn(a, b, c)
   let ab_d = polygon_turn(a, b, d)
   let cd_a = polygon_turn(c, d, a)
   let cd_b = polygon_turn(c, d, b)
   (ab_c * ab_d < 0.0 && cd_a * cd_b < 0.0) ||
-  polygon_on_segment(c, a, b) || polygon_on_segment(d, a, b) ||
-  polygon_on_segment(a, c, d) || polygon_on_segment(b, c, d)
+  polygon_on_segment(c, a, b) ||
+  polygon_on_segment(d, a, b) ||
+  polygon_on_segment(a, c, d) ||
+  polygon_on_segment(b, c, d)
 }
 
 ///|
-fn triangulate_polygon(vertices : Array[Vec3]) -> Result[Array[(Int, Int, Int)], String] {
+fn triangulate_polygon(
+  vertices : Array[Vec3],
+) -> Result[Array[(Int, Int, Int)], String] {
   let n = vertices.length()
   if n < 3 {
     return Err("一个面至少要有三个顶点")
@@ -67,11 +86,24 @@ fn triangulate_polygon(vertices : Array[Vec3]) -> Result[Array[(Int, Int, Int)],
       return Err("仅支持平面多边形；这个面的顶点不共面")
     }
   }
-  let axis = if nx.abs() >= ny.abs() && nx.abs() >= nz.abs() { 0 }
-    else if ny.abs() >= nz.abs() { 1 } else { 2 }
+  let axis = if nx.abs() >= ny.abs() && nx.abs() >= nz.abs() {
+    0
+  } else if ny.abs() >= nz.abs() {
+    1
+  } else {
+    2
+  }
   let points : Array[(Double, Double)] = []
   for p in normalized {
-    points.push(if axis == 0 { (p.y, p.z) } else if axis == 1 { (p.z, p.x) } else { (p.x, p.y) })
+    points.push(
+      if axis == 0 {
+        (p.y, p.z)
+      } else if axis == 1 {
+        (p.z, p.x)
+      } else {
+        (p.x, p.y)
+      },
+    )
   }
   let mut area = 0.0
   for i = 0; i < n; i = i + 1 {
@@ -91,7 +123,9 @@ fn triangulate_polygon(vertices : Array[Vec3]) -> Result[Array[(Int, Int, Int)],
   let result : Array[(Int, Int, Int)] = []
   let mut convex = true
   for i = 0; i < n; i = i + 1 {
-    if polygon_turn(points[(i + n - 1) % n], points[i], points[(i + 1) % n]) * sign < 0.0 {
+    if polygon_turn(points[(i + n - 1) % n], points[i], points[(i + 1) % n]) *
+      sign <
+      0.0 {
       convex = false
     }
   }
@@ -102,7 +136,9 @@ fn triangulate_polygon(vertices : Array[Vec3]) -> Result[Array[(Int, Int, Int)],
     return Ok(result)
   }
   let mut live : Array[Int] = []
-  for i = 0; i < n; i = i + 1 { live.push(i) }
+  for i = 0; i < n; i = i + 1 {
+    live.push(i)
+  }
   while live.length() > 3 {
     let count = live.length()
     let mut ear : Int? = None
@@ -115,21 +151,33 @@ fn triangulate_polygon(vertices : Array[Vec3]) -> Result[Array[(Int, Int, Int)],
       }
       let mut blocked = false
       for j in live {
-        if j == a || j == b || j == c { continue }
+        if j == a || j == b || j == c {
+          continue
+        }
         if polygon_turn(points[a], points[b], points[j]) * sign >= -1.0e-14 &&
           polygon_turn(points[b], points[c], points[j]) * sign >= -1.0e-14 &&
           polygon_turn(points[c], points[a], points[j]) * sign >= -1.0e-14 {
           blocked = true
         }
       }
-      if !blocked { ear = Some(i); break }
+      if !blocked {
+        ear = Some(i)
+        break
+      }
     }
     match ear {
-      None => return Err("多边形无法安全三角化，请先修正这个面")
+      None =>
+        return Err("多边形无法安全三角化，请先修正这个面")
       Some(i) => {
-        result.push((live[(i + count - 1) % count], live[i], live[(i + 1) % count]))
+        result.push(
+          (live[(i + count - 1) % count], live[i], live[(i + 1) % count]),
+        )
         let next : Array[Int] = []
-        for j = 0; j < count; j = j + 1 { if j != i { next.push(live[j]) } }
+        for j = 0; j < count; j = j + 1 {
+          if j != i {
+            next.push(live[j])
+          }
+        }
         live = next
       }
     }

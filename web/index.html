@@ -3,18 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>stlkit —— 这个模型能打印吗</title>
+    <title>stlkit —— 模型打印前检查</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <header class="page-head">
       <h1>stlkit</h1>
       <p>
-        把一个 STL、OBJ、3MF 或 PLY 文件拖进来，看看<strong>它能不能被 3D 打印</strong>。
-        渲染器能告诉你模型长什么样，但告诉不了你有没有破洞、法线是不是反的——
-        那些要靠网格拓扑分析。这个页面就是干这件事的，转换逻辑是 MoonBit 写的
-        （<code>mik1e80/stlkit</code>），<code>dist/web.js</code> 是
-        <code>moon build --target js</code> 的产物。
+        拖入 STL、OBJ、3MF 或 PLY 文件，检查网格、估算采样壁厚并查看预览。
+        报告可帮助发现模型问题；打印前仍需确认单位、材料、设备和切片设置。
       </p>
     </header>
 

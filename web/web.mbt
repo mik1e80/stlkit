@@ -20,7 +20,10 @@ pub fn analyze(file_base64 : String) -> String {
 }
 
 ///|
-pub fn analyze_with_threshold(file_base64 : String, min_thickness : Double) -> String {
+pub fn analyze_with_threshold(
+  file_base64 : String,
+  min_thickness : Double,
+) -> String {
   match analyze_inner(file_base64, min_thickness) {
     Ok(lines) => lines.join("\n")
     Err(_) => ""
@@ -71,7 +74,10 @@ fn analyze_mesh(file_base64 : String) -> Result[@stlkit.Mesh, String] {
 
 ///|
 /// 真正的分析逻辑。
-fn analyze_inner(file_base64 : String, min_thickness : Double) -> Result[Array[String], String] {
+fn analyze_inner(
+  file_base64 : String,
+  min_thickness : Double,
+) -> Result[Array[String], String] {
   let data = match decode(file_base64) {
     Ok(data) => data
     Err(msg) => return Err(msg)
@@ -112,7 +118,7 @@ fn analyze_inner(file_base64 : String, min_thickness : Double) -> Result[Array[S
   // 几块互不相连的几何。大于 1 说明打出来是几个独立的零件
   lines.push("零件|\{@stlkit.count_parts_default(mesh)}")
   // 欧拉示性数和质量属性都只在网格闭合时才有意义，不水密就不报
-  if (check.is_watertight()) {
+  if check.is_watertight() {
     lines.push("欧拉数|\{check.euler_number()}")
     let c = mesh.center_mass()
     lines.push("重心|\{round3(c.x)}, \{round3(c.y)}, \{round3(c.z)}")
@@ -122,16 +128,19 @@ fn analyze_inner(file_base64 : String, min_thickness : Double) -> Result[Array[S
     )
   }
   match review.thickness {
-    Some(thick) => if thick.hits > 0 {
-      lines.push("最薄处|\{round3(thick.min_thickness)}")
-      lines.push("壁厚采样|\{thick.samples}")
-      lines.push("壁厚命中|\{thick.hits}")
-    }
+    Some(thick) =>
+      if thick.hits > 0 {
+        lines.push("最薄处|\{round3(thick.min_thickness)}")
+        lines.push("壁厚采样|\{thick.samples}")
+        lines.push("壁厚命中|\{thick.hits}")
+      }
     None => ()
   }
   lines.push("整体朝内|\{if review.inward() { 1 } else { 0 }}")
   lines.push("薄壁|\{if review.thin_wall() { 1 } else { 0 }}")
-  lines.push("壁厚未评估|\{if review.thickness_unavailable() { 1 } else { 0 }}")
+  lines.push(
+    "壁厚未评估|\{if review.thickness_unavailable() { 1 } else { 0 }}",
+  )
   lines.push("壁厚阈值|\{min_thickness}")
   lines.push("需复核|\{review.needs_review()}")
   lines.push("结论|\{review.verdict()}")
@@ -191,7 +200,10 @@ pub fn fix_report(file_base64 : String) -> String {
 }
 
 ///|
-pub fn fix_report_with_threshold(file_base64 : String, min_thickness : Double) -> String {
+pub fn fix_report_with_threshold(
+  file_base64 : String,
+  min_thickness : Double,
+) -> String {
   match repair_of(file_base64) {
     Err(_) => ""
     Ok(result) => {
@@ -248,9 +260,7 @@ pub fn fix_error(file_base64 : String) -> String {
 ///|
 /// 解码 + 解析 + 修复。三个修复相关的导出函数都要走这条链路，
 /// 抽出来免得写三遍。
-fn repair_of(
-  file_base64 : String,
-) -> Result[@stlkit.RepairResult, String] {
+fn repair_of(file_base64 : String) -> Result[@stlkit.RepairResult, String] {
   let mesh = match analyze_mesh(file_base64) {
     Ok(mesh) => mesh
     Err(msg) => return Err(msg)

@@ -12,6 +12,7 @@ import {
 
 // 基准测试要分块读文件，走的是 moonbitlang/async 的 fs，
 // 而它只在 wasm / native 上有实现
+
 supported_targets = "-all+wasm+native"
 
 pkgtype(kind: "executable")

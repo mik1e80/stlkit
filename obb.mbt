@@ -152,7 +152,7 @@ pub fn Mesh::oriented_bounding_box(self : Mesh) -> Obb? {
     sorted_axes.push(axes[k])
     sorted_half.push(half[k])
   }
-  Some({ center, axes: sorted_axes, half: sorted_half })
+  Some({ center, axes: sorted_axes, half: sorted_half, })
 }
 
 ///|

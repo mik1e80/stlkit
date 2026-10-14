@@ -160,13 +160,13 @@ fn weld_vertex(table : Map[PositionKey, Int], v : Vec3) -> Int {
 ///|
 /// 逐分量取小。
 fn vec_min(a : Vec3, b : Vec3) -> Vec3 {
-  Vec3::{ x: a.x.min(b.x), y: a.y.min(b.y), z: a.z.min(b.z) }
+  Vec3::{ x: a.x.min(b.x), y: a.y.min(b.y), z: a.z.min(b.z), }
 }
 
 ///|
 /// 逐分量取大。
 fn vec_max(a : Vec3, b : Vec3) -> Vec3 {
-  Vec3::{ x: a.x.max(b.x), y: a.y.max(b.y), z: a.z.max(b.z) }
+  Vec3::{ x: a.x.max(b.x), y: a.y.max(b.y), z: a.z.max(b.z), }
 }
 
 ///|
@@ -180,6 +180,7 @@ fn expand_bbox(min : Vec3?, max : Vec3?, v : Vec3) -> (Vec3?, Vec3?) {
     _ => (Some(v), Some(v))
   }
 }
+
 ///|
 /// 把一条边的两个端点编号打包成一个 64 位的整数。
 ///
@@ -305,7 +306,9 @@ pub fn stream_stl_ascii(text : String) -> Result[StreamReport, String] {
   }
 
   if triangles == 0 {
-    return Err("这个 ASCII STL 里一个三角形都没有，可能不是 STL 文件")
+    return Err(
+      "这个 ASCII STL 里一个三角形都没有，可能不是 STL 文件",
+    )
   }
   let (boundary, non_manifold) = count_edges(edges)
   Ok(StreamReport::{

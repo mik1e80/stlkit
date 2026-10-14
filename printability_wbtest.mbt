@@ -11,7 +11,9 @@ test "薄板触发参考壁厚提醒，阈值可调整" {
 ///|
 test "整体朝内模型不能给出通过结论" {
   let out : Array[Triangle] = []
-  for t in cube_mesh().triangles { out.push(Triangle::from_vertices(t.a, t.c, t.b)) }
+  for t in cube_mesh().triangles {
+    out.push(Triangle::from_vertices(t.a, t.c, t.b))
+  }
   let mesh = Mesh::new(out)
   let report = check_printability(mesh, 0.8)
   assert_true(report.inward())

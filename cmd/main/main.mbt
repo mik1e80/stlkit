@@ -24,7 +24,10 @@ fn command() -> @argparse.Command {
       ),
     ],
     options=[
-      @argparse.OptionArg("min-thickness", about="参考最小壁厚（毫米），默认0.8；0不设阈值"),
+      @argparse.OptionArg(
+        "min-thickness",
+        about="参考最小壁厚（毫米），默认0.8；0不设阈值",
+      ),
       @argparse.OptionArg(
         "svg",
         about="把等轴测预览图导出成 SVG 文件",
@@ -41,7 +44,7 @@ fn command() -> @argparse.Command {
       ),
       @argparse.FlagArg(
         "bench",
-        about="跑基准测试，对比全量解析和流式扫描的耗时与内存",
+        about="跑基准测试，对比耗时并估算主要数据字段量",
       ),
       @argparse.FlagArg("help", short='h', about="显示这份帮助"),
     ],
@@ -49,38 +52,37 @@ fn command() -> @argparse.Command {
   )
 }
 
-
 // ── 基准测试 ────────────────────────────────────────────────────────────
 //
 // 回答一个问题：处理超大模型时，**不保留网格**能省多少。
 //
-// 内存数字是**按数据结构大小算的**，不是操作系统实测的进程内存——
-// wasm 的线性内存按页增长、还会预留，直接看进程 RSS 不准。
-// 算的是「程序自己分配了多少字节」，公式写在下面的注释里，可以核对。
+// 仅估算文件及主要数据字段，不包含哈希索引、对象头、分配器和运行时开销。
+// 各路径还会分配额外分析数据；这些数字不能用来计算实际内存节省比例。
 
 ///|
-/// 全量解析的内存占用（字节）。
+/// 文件与三角形坐标数据量（字节），不是完整内存占用。
 ///
 /// - 文件字节：读进来之后一直在内存里
-/// - Triangle 数组：每个 Triangle 是 4 个 Vec3 = 12 个 Double = 96 字节，
-///   加上 Array 本身的元素指针（8 字节），合计 104 字节/三角形
-fn full_memory(file_size : Int, triangles : Int) -> Int {
-  file_size + triangles * 104
+/// - 每个三角形是 4 个 Vec3 = 12 个 Double = 96 字节
+/// 不计容器、对象头、顶点焊接与绕向分析的附加存储。
+fn full_memory(file_size : Int, triangles : Int) -> Int64 {
+  file_size.to_int64() + triangles.to_int64() * 96L
 }
 
 ///|
-/// 流式扫描的内存占用（字节）。
+/// 文件、顶点字段与全部边记录的数据量（字节）。
 ///
-/// - 文件字节：同上（没有分块读的 API，这一份省不掉）
-/// - 顶点表：Map 的链表哈希表，每项 = 8 字节键 + 4 字节值 + 链表指针和桶的开销，估 24 字节
-/// - 边数组：紧凑的 UInt64 数组，8 字节/条
-fn stream_memory(file_size : Int, vertices : Int, edges : Int) -> Int {
-  file_size + vertices * 24 + edges * 8
+/// - 文件字节：整块扫描入口的输入
+/// - 顶点字段：三个 Double 坐标与一个 Int 编号，28 字节/项
+/// - 边记录：每个三角形存三条 UInt64，24 字节/三角形，含重复边
+/// 不计坐标键标签、哈希索引、对象头、容器与分配器开销。
+fn stream_memory(file_size : Int, vertices : Int, triangles : Int) -> Int64 {
+  file_size.to_int64() + vertices.to_int64() * 28L + triangles.to_int64() * 24L
 }
 
 ///|
 /// 把字节数格式化成好读的样子。
-fn fmt_bytes(n : Int) -> String {
+fn fmt_bytes(n : Int64) -> String {
   let mb = 1024.0 * 1024.0
   let kb = 1024.0
   let d = n.to_double()
@@ -94,12 +96,9 @@ fn fmt_bytes(n : Int) -> String {
 }
 
 ///|
-/// 跑两种解析方式，对比耗时和内存。
-///|
 /// 分块读取文件并流式扫描。
 ///
-/// **整个过程文件不进内存**，只有一块固定大小的缓冲区在循环复用。
-/// 这是和上面两种模式的本质区别：那两种都得先把文件整个读进来。
+/// 不将完整文件读入内存；读取缓冲区固定，顶点表和边记录仍随规模增长。
 ///
 /// 走 `moonbitlang/async/fs` 是因为 `moonbitlang/x/fs` 只有
 /// `read_file_to_bytes`（一次读完），没有带偏移量的读取。
@@ -121,8 +120,8 @@ async fn scan_chunked(path : String) -> Result[@stlkit.StreamReport, String] {
   let mut pos = 0L
   let mut failure : String? = None
   while pos < size && failure is None {
-    let remain = (size - pos).to_int()
-    let want = if remain < chunk { remain } else { chunk }
+    let remain = size - pos
+    let want = if remain < chunk.to_int64() { remain.to_int() } else { chunk }
     let n = file.read_at(buf, position=pos, offset=0, len=want) catch {
       err => {
         failure = Some("读文件失败：\{err}")
@@ -148,11 +147,9 @@ async fn scan_chunked(path : String) -> Result[@stlkit.StreamReport, String] {
 }
 
 ///|
-/// 跑三种解析方式，对比耗时和内存。
+/// 跑三种解析方式，记录耗时与主要字段数据量估算。
 ///
-/// 内存数字是**按各自需要的数据结构算出来的**，不是操作系统实测的进程内存——
-/// wasm 的线性内存按页增长、还会预留，直接看进程占用不准。公式可以在
-/// `full_memory` / `stream_memory` 的注释里核对。
+/// 估算公式见 `full_memory` / `stream_memory`，不是进程内存实测。
 async fn bench(path : String) -> Result[Bool, String] {
   // ── 先做分块流式：这一步不碰整个文件，测出来的才是真流式 ──
   //
@@ -173,13 +170,11 @@ async fn bench(path : String) -> Result[Bool, String] {
   }
   let file_size = data.length()
 
-  // 3MF 是个 ZIP 包，里面那段 deflate 流必须**整个解开**才知道内容，
-  // 没有「边读边算」的余地——这个格式天生不支持流式。
-  // 与其让它跑到后面报一句「全量和流式的结论对不上」，不如在这里说清楚。
-  if @stlkit.detect_format(data) is @stlkit.ThreeMF {
+  // 本工具的流式实现仅针对 STL，不将其他格式送入 STL 扫描器。
+  let format = @stlkit.detect_format(data)
+  if !(format is @stlkit.Ascii) && !(format is @stlkit.Binary) {
     return Err(
-      "--bench 比的是流式扫描和全量解析，3MF 是 ZIP 包、必须整个解开才能算，不适用。" +
-      "拿一个 STL 文件来跑，或者直接不带 --bench 看体检报告",
+      "--bench 目前只支持 STL；其他格式请不带 --bench 查看报告",
     )
   }
 
@@ -211,45 +206,54 @@ async fn bench(path : String) -> Result[Bool, String] {
 
   // 结论必须一致，不然快也没意义
   if check.triangle_count != stream.triangle_count ||
-    check.boundary_edge_count != stream.boundary_edge_count {
+    check.unique_vertex_count != stream.unique_vertex_count ||
+    check.boundary_edge_count != stream.boundary_edge_count ||
+    check.non_manifold_edge_count != stream.non_manifold_edge_count {
     return Err("全量和流式的结论对不上，不能作为基准")
   }
   match chunked {
     Some(c) =>
       if c.triangle_count != stream.triangle_count ||
-        c.boundary_edge_count != stream.boundary_edge_count {
-        return Err("分块流式和整块流式的结论对不上，不能作为基准")
+        c.unique_vertex_count != stream.unique_vertex_count ||
+        c.boundary_edge_count != stream.boundary_edge_count ||
+        c.non_manifold_edge_count != stream.non_manifold_edge_count {
+        return Err(
+          "分块流式和整块流式的结论对不上，不能作为基准",
+        )
       }
     None => ()
   }
 
   let triangles = mesh.triangle_count()
-  // 边的条数：水密网格里每条边被两个面共用，所以是三角形数的 1.5 倍
-  let edges = stream.boundary_edge_count + stream.non_manifold_edge_count +
-    triangles * 3 / 2
-  // 分块模式的常驻内存：256 KB 缓冲 + 两张表，**不含文件**
-  let chunk_bytes = 262144
+  // 分块输入缓冲加保留的字段，不含完整文件。
+  let chunk_bytes = 262144L
   let full_mem = full_memory(file_size, triangles)
-  let stream_mem = stream_memory(file_size, stream.unique_vertex_count, edges)
+  let stream_fields = stream_memory(0, stream.unique_vertex_count, triangles)
+  let stream_mem = stream_memory(
+    file_size,
+    stream.unique_vertex_count,
+    triangles,
+  )
   let chunked_mem = match chunked {
-    Some(c) => chunk_bytes + c.unique_vertex_count * 24 + edges * 8
-    None => 0
+    Some(c) =>
+      chunk_bytes + stream_memory(0, c.unique_vertex_count, c.triangle_count)
+    None => 0L
   }
 
   println(path)
-  println("  文件大小    \{fmt_bytes(file_size)}")
+  println("  文件大小    \{fmt_bytes(file_size.to_int64())}")
   println("  三角形      \{triangles}")
   println("")
   println("  全量解析（保留网格，能校验能修复）")
   println("    耗时      \{fmt(full_us / 1000.0, 1)} ms")
   println(
-    "    内存      文件 \{fmt_bytes(file_size)} + 网格 \{fmt_bytes(triangles * 104)} = \{fmt_bytes(full_mem)}",
+    "    数据量估算 文件 \{fmt_bytes(file_size.to_int64())} + 三角形字段 \{fmt_bytes(triangles.to_int64() * 96L)} = \{fmt_bytes(full_mem)}",
   )
   println("")
   println("  流式扫描（不保留网格，文件整块读）")
   println("    耗时      \{fmt(stream_us / 1000.0, 1)} ms")
   println(
-    "    内存      文件 \{fmt_bytes(file_size)} + 顶点边表 \{fmt_bytes(edges * 8 + stream.unique_vertex_count * 24)} = \{fmt_bytes(stream_mem)}",
+    "    数据量估算 文件 \{fmt_bytes(file_size.to_int64())} + 顶点边字段 \{fmt_bytes(stream_fields)} = \{fmt_bytes(stream_mem)}",
   )
   println("")
   println("  流式扫描（不保留网格，文件分块读）")
@@ -257,30 +261,34 @@ async fn bench(path : String) -> Result[Bool, String] {
     Some(_) => {
       println("    耗时      \{fmt(chunked_us / 1000.0, 1)} ms")
       println(
-        "    内存      缓冲 \{fmt_bytes(chunk_bytes)} + 顶点边表 \{fmt_bytes(chunked_mem - chunk_bytes)} = \{fmt_bytes(chunked_mem)}",
+        "    数据量估算 缓冲 \{fmt_bytes(chunk_bytes)} + 顶点边字段 \{fmt_bytes(chunked_mem - chunk_bytes)} = \{fmt_bytes(chunked_mem)}",
       )
     }
     None =>
-      println("    跳过      分块扫描目前只支持二进制 STL，这个文件是 ASCII 格式")
+      println(
+        "    跳过      分块扫描目前只支持二进制 STL，这个文件是 ASCII 格式",
+      )
   }
   println("")
 
-  println("  交叉验证    三角形数一致、水密性一致（通过）")
+  println(
+    "  交叉验证    三角形、顶点、边界边和非流形边计数一致（通过）",
+  )
   println(
     "              绕向一致性：全量查出 \{winding.flipped_faces} 个反向面（流式做不到这项）",
   )
   println("")
-  println("  说明        内存对比是公平的：差别只在要不要留下 Triangle 数组和文件本身；")
-  println("              耗时对比对流式有利，因为全量还多做了绕向分析。")
-  let best_mem = if chunked_mem > 0 { chunked_mem } else { stream_mem }
-  let best_us = if chunked_mem > 0 { chunked_us } else { stream_us }
-  let saved = full_mem - best_mem
-  let pct = saved.to_double() / full_mem.to_double() * 100.0
   println(
-    "  省内存      \{fmt_bytes(saved)}（\{fmt(pct, 1)}%）—— \{if chunked_mem > 0 { "分块读不占文件，" } else { "" }}流式不建网格",
+    "  说明        以上是主要数据字段量的粗略估算，不是进程内存实测；",
   )
+  println(
+    "              耗时对比对流式有利，因为全量还多做了绕向分析。",
+  )
+  let best_us = if chunked_mem > 0L { chunked_us } else { stream_us }
   if full_us > 0.0 && best_us > 0.0 {
-    println("  提速        \{fmt(full_us / best_us, 1)} 倍")
+    println(
+      "  本次耗时比  全量 / 流式 = \{fmt(full_us / best_us, 1)}（包含的分析步骤不同）",
+    )
   }
   Ok(false)
 }
@@ -294,7 +302,7 @@ fn help_text(cmd : @argparse.Command) -> String {
   "  stlkit model.stl --fix fixed.stl  修复并存到 fixed.stl\n" +
   "  stlkit model.stl --svg a.svg      顺便导出等轴测预览图\n" +
   "  stlkit model.stl --strict         模型有问题时退出码为 1（给 CI 用）\n" +
-  "  stlkit model.stl --bench          跑基准测试，对比三种解析方式的耗时与内存\n" +
+  "  stlkit model.stl --bench          跑基准测试，记录耗时与数据量估算\n" +
   "  stlkit                            不带参数时打印这份帮助\n" +
   "\n" +
   "格式：二进制 STL、ASCII STL、OBJ、3MF、PLY 五种都能认，按文件内容判断，\n" +
@@ -385,13 +393,13 @@ fn report(
   // 穿透的洞……）。不水密的时候它只是「顶点数减边数加面数」，
   // 报出来会让人以为读出了什么，所以不显示
   if check.is_watertight() {
-    println("  欧拉数    \{check.euler_number()}（每多 2 就是多一个穿透的洞）")
+    println(
+      "  欧拉数    \{check.euler_number()}（单个闭合可定向曲面：χ = 2 − 2g）",
+    )
     // 质量属性也只在网格闭合时才有意义——重心靠有符号一阶矩算出来，
     // 有破洞就抵消不干净
     let c = mesh.center_mass()
-    println(
-      "  重心      \{fmt(c.x, 3)}, \{fmt(c.y, 3)}, \{fmt(c.z, 3)} mm",
-    )
+    println("  重心      \{fmt(c.x, 3)}, \{fmt(c.y, 3)}, \{fmt(c.z, 3)} mm")
     let pm = mesh.principal_moments()
     // 用 3 位小数，和别的字段一致。不能只留 1 位——单位立方体的主惯量是
     // 1/6 ≈ 0.167，只留 1 位就变成「0.2」，对着公式验的人会被误导
@@ -400,9 +408,12 @@ fn report(
     )
   }
   match review.thickness {
-    Some(thick) => if thick.hits > 0 {
-      println("  采样最小厚度 \{fmt(thick.min_thickness, 3)} mm（命中 \{thick.hits}/\{thick.samples}）")
-    }
+    Some(thick) =>
+      if thick.hits > 0 {
+        println(
+          "  采样最小厚度 \{fmt(thick.min_thickness, 3)} mm（命中 \{thick.hits}/\{thick.samples}）",
+        )
+      }
     None => ()
   }
   let has_problem = review.needs_review()
@@ -433,15 +444,41 @@ fn report(
 /// 哪里是外面」才知道要修。
 fn print_findings(review : @stlkit.PrintabilityReport, parts : Int) -> Unit {
   let check = review.validation
-  if check.boundary_edge_count > 0 { println("  ⚠ 有 \{check.boundary_edge_count} 条边界边，请复核开放面") }
-  if check.non_manifold_edge_count > 0 { println("  ⚠ 有 \{check.non_manifold_edge_count} 条非流形边") }
-  if check.degenerate_count > 0 { println("  ⚠ 有 \{check.degenerate_count} 个退化面") }
-  if check.wrong_normal_count > 0 { println("  ⚠ 有 \{check.wrong_normal_count} 个面的声明法线与顶点顺序不一致") }
-  if review.winding.flipped_faces > 0 { println("  ⚠ 有 \{review.winding.flipped_faces} 个面的相邻绕向不一致") }
-  if review.inward() { println("  ⚠ 整体有符号体积为负，请复核向内的朝向") }
-  if review.thin_wall() { println("  ⚠ 采样厚度低于参考阈值 \{fmt(review.min_thickness, 3)} mm；请按材料和设备确认") }
-  if review.thickness_unavailable() { println("  ⚠ 当前网格无法可靠评估壁厚") }
-  if parts > 1 { println("  提示：有 \{parts} 个按共享边分离的零件") }
+  if check.boundary_edge_count > 0 {
+    println(
+      "  ⚠ 有 \{check.boundary_edge_count} 条边界边，请复核开放面",
+    )
+  }
+  if check.non_manifold_edge_count > 0 {
+    println("  ⚠ 有 \{check.non_manifold_edge_count} 条非流形边")
+  }
+  if check.degenerate_count > 0 {
+    println("  ⚠ 有 \{check.degenerate_count} 个退化面")
+  }
+  if check.wrong_normal_count > 0 {
+    println(
+      "  ⚠ 有 \{check.wrong_normal_count} 个面的声明法线与顶点顺序不一致",
+    )
+  }
+  if review.winding.flipped_faces > 0 {
+    println(
+      "  ⚠ 有 \{review.winding.flipped_faces} 个面的相邻绕向不一致",
+    )
+  }
+  if review.inward() {
+    println("  ⚠ 整体有符号体积为负，请复核向内的朝向")
+  }
+  if review.thin_wall() {
+    println(
+      "  ⚠ 采样厚度低于参考阈值 \{fmt(review.min_thickness, 3)} mm；请按材料和设备确认",
+    )
+  }
+  if review.thickness_unavailable() {
+    println("  ⚠ 当前网格无法可靠评估壁厚")
+  }
+  if parts > 1 {
+    println("  提示：有 \{parts} 个按共享边分离的零件")
+  }
   println("  结论：\{review.verdict()}")
 }
 
@@ -460,7 +497,8 @@ fn fix_and_save(
   if before.is_watertight() &&
     before.degenerate_count == 0 &&
     before.wrong_normal_count == 0 &&
-    winding.flipped_faces == 0 && winding.signed_volume >= 0.0 {
+    winding.flipped_faces == 0 &&
+    winding.signed_volume >= 0.0 {
     println("")
     println("这个网格没有问题，不用修。")
     return Ok(@stlkit.check_printability(mesh, min_thickness).needs_review())
@@ -522,10 +560,7 @@ fn fix_and_save(
 
 ///|
 /// 常规检查路径。
-fn run(
-  matches : @argparse.Matches,
-  path : String,
-) -> Result[Bool, String] {
+fn run(matches : @argparse.Matches, path : String) -> Result[Bool, String] {
   let svg_path = match matches.values.get("svg") {
     Some([first, ..]) => first
     _ => ""
@@ -536,8 +571,12 @@ fn run(
   }
   let min_thickness = match matches.values.get("min-thickness") {
     Some([raw, ..]) => {
-      let value = @string.parse_double(raw) catch { _ => return Err("--min-thickness 必须是非负有限数字") }
-      if value.is_nan() || value.is_inf() || value < 0.0 { return Err("--min-thickness 必须是非负有限数字") }
+      let value = @string.parse_double(raw) catch {
+        _ => return Err("--min-thickness 必须是非负有限数字")
+      }
+      if value.is_nan() || value.is_inf() || value < 0.0 {
+        return Err("--min-thickness 必须是非负有限数字")
+      }
       value
     }
     _ => 0.8

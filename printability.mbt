@@ -10,17 +10,22 @@ pub(all) struct PrintabilityReport {
 }
 
 ///|
-pub fn check_printability(mesh : Mesh, min_thickness : Double) -> PrintabilityReport {
+pub fn check_printability(
+  mesh : Mesh,
+  min_thickness : Double,
+) -> PrintabilityReport {
   let validation = validate_default(mesh)
   let winding = check_winding_default(mesh)
-  let thickness = if mesh.is_empty() || !validation.is_watertight() ||
-    validation.degenerate_count > 0 || winding.flipped_faces > 0 ||
+  let thickness = if mesh.is_empty() ||
+    !validation.is_watertight() ||
+    validation.degenerate_count > 0 ||
+    winding.flipped_faces > 0 ||
     winding.signed_volume <= 0.0 {
     None
   } else {
     Some(check_thickness_default(mesh))
   }
-  { validation, winding, thickness, min_thickness }
+  { validation, winding, thickness, min_thickness, }
 }
 
 ///|
@@ -31,22 +36,36 @@ pub fn PrintabilityReport::inward(self : PrintabilityReport) -> Bool {
 ///|
 pub fn PrintabilityReport::thin_wall(self : PrintabilityReport) -> Bool {
   match self.thickness {
-    Some(r) => r.hits > 0 && self.min_thickness > 0.0 && r.min_thickness < self.min_thickness
+    Some(r) =>
+      r.hits > 0 &&
+      self.min_thickness > 0.0 &&
+      r.min_thickness < self.min_thickness
     None => false
   }
 }
 
 ///|
-pub fn PrintabilityReport::thickness_unavailable(self : PrintabilityReport) -> Bool {
-  match self.thickness { Some(r) => r.hits == 0; None => true }
+pub fn PrintabilityReport::thickness_unavailable(
+  self : PrintabilityReport,
+) -> Bool {
+  match self.thickness {
+    Some(r) => r.hits == 0
+    None => true
+  }
 }
 
 ///|
 pub fn PrintabilityReport::needs_review(self : PrintabilityReport) -> Bool {
-  self.min_thickness.is_nan() || self.min_thickness.is_inf() || self.min_thickness < 0.0 ||
-  self.validation.triangle_count == 0 || !self.validation.is_watertight() ||
-  self.validation.degenerate_count > 0 || self.validation.wrong_normal_count > 0 ||
-  self.winding.flipped_faces > 0 || self.inward() || self.thin_wall() ||
+  self.min_thickness.is_nan() ||
+  self.min_thickness.is_inf() ||
+  self.min_thickness < 0.0 ||
+  self.validation.triangle_count == 0 ||
+  !self.validation.is_watertight() ||
+  self.validation.degenerate_count > 0 ||
+  self.validation.wrong_normal_count > 0 ||
+  self.winding.flipped_faces > 0 ||
+  self.inward() ||
+  self.thin_wall() ||
   self.thickness_unavailable()
 }
 

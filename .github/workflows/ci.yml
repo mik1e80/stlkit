@@ -2,8 +2,7 @@ name: 检查、构建、测试
 
 # 每次推到 main、以及每个 PR 都跑一遍。
 #
-# 和 pages.yml 分工不同：那个只管把网页产物发到 GitHub Pages，不装工具链；
-# 这个装工具链，跑检查 / 构建 / 测试。
+# 本工作流检查库、CLI 和网页；pages.yml 从同一提交重建网页后部署。
 #
 # 三件事分开跑而不是串成一条命令，是为了在 Actions 页面上能一眼看出是哪一步挂了。
 
@@ -51,12 +50,17 @@ jobs:
       - name: 测试
         run: moon test
 
-      # 网页版的 JS 是提交进仓库的编译产物，所以这里只验「干净机器上能编出来」，
-      # **不比字节**。
-      #
-      # 试过比对，跨平台和跨编译器版本都会产出不同的字节，CI 装了新版工具链就会
-      # 误报。真正要防的是「改了 MoonBit 代码但忘了重新编译」——那个靠提交前
-      # 自觉跑一遍 build.sh（build.sh 的注释里写了）
+      - name: JS 后端测试
+        run: moon test --target js
+
+      - name: Native 后端测试
+        run: moon test --target native
+
+      - name: CLI 参数和退出码回归
+        run: node cmd/main/smoke.cjs
+
+      # 编译产物可能随平台或工具链版本变化，因此验证运行结果，不比较字节。
+      # Pages 部署也会重新构建；本地直接打开网页使用仓库随附的产物。
       - name: 网页版能编译出来
         run: bash web/build.sh
 

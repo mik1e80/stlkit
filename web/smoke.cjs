@@ -73,6 +73,11 @@ async function load(text) {
   rendered = descendants(document.getElementById("report"));
   assert(rendered.some(e => e.className === "verdict verdict-ok"));
   assert(!rendered.some(e => /可以.*打印/.test(e.textContent)), "修复后也不能承诺打印成功");
+  document.getElementById("min-thickness").events.get("change")();
+  assert(descendants(document.getElementById("report")).some(e => e.className === "verdict verdict-ok"), "阈值调整应继续检查修复后的模型");
+  await load("invalid model");
+  document.getElementById("min-thickness").events.get("change")();
+  assert(!descendants(document.getElementById("report")).some(e => e.className.startsWith("verdict")), "无效文件不能恢复上一个模型的报告");
   document.getElementById("min-thickness").value = "";
   await load(cube);
   assert(descendants(document.getElementById("report")).some(e => e.textContent.includes("请填写参考壁厚")));

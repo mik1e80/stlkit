@@ -50,8 +50,13 @@ pub fn Triangle::area(self : Triangle) -> Double {
 fn triangle_is_degenerate(triangle : Triangle) -> Bool {
   let ab = triangle.b.sub(triangle.a)
   let ac = triangle.c.sub(triangle.a)
-  let scale = ab.x.abs().max(ab.y.abs()).max(ab.z.abs())
-    .max(ac.x.abs()).max(ac.y.abs()).max(ac.z.abs())
+  let scale = ab.x
+    .abs()
+    .max(ab.y.abs())
+    .max(ab.z.abs())
+    .max(ac.x.abs())
+    .max(ac.y.abs())
+    .max(ac.z.abs())
   if scale == 0.0 {
     return true
   }

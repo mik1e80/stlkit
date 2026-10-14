@@ -53,9 +53,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 **使用方式**：**只参考了 API 设计，没有复制任何代码。** 本项目是 MoonBit 实现，
 和它的 Python 实现语言、数据结构都不同。逐项对应关系见
-[README](README.md#参考了-trimesh-哪些设计) 和 [COMPARISON.md](COMPARISON.md)。
+[接口文档](README.mbt.md#许可与参考) 和 [COMPARISON.md](COMPARISON.md#参考关系)。
 
-因为它没有代码进入本项目，MIT 许可证的条款不触发；这里列出是为了如实说明设计来源。
+这里列出 API 设计参考来源；本项目代码及随附样例分别按上述许可证说明。
 
 ---
 

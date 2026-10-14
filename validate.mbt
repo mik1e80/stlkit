@@ -1,7 +1,5 @@
-// 网格校验：回答「这个模型能不能打印」。
-//
-// 这是整个工具链的价值所在。渲染器能告诉你模型长什么样，但告诉不了你
-// 它有没有破洞、法线是不是反的、有没有退化的面——那些要靠网格拓扑分析。
+// 网格校验：发现边界边、非流形边、退化面和声明法线异常。
+// 这些检查只覆盖部分几何问题，不能保证打印成功。
 //
 // 各项检查的原理都不复杂，难的是「两个顶点算不算同一个点」这个前置问题，
 // 见下面 weld_vertices 的注释。
@@ -33,18 +31,14 @@ pub(all) struct ValidationReport {
 /// 对应 trimesh 的 `mesh.euler_number`。和 `count_parts` 一样，
 /// 是看了 trimesh 的设计之后补的，详细对比见 `COMPARISON.md`。
 ///
-/// 水密网格上这个数是有拓扑含义的：
+/// 对闭合、可定向的流形表面，这个数具有以下含义：
 ///
 /// - 单个实体、没有洞（topologically 一个球面）：**χ = 2**
 /// - 有一个穿透的洞（比如甜甜圈）：**χ = 0**
 /// - 有两个穿透的洞：**χ = −2**
 ///
-/// 有 k 个互不相连的实体时，χ = 2 × k（每个实体贡献 2）。
-/// 所以这个数还能反过来验证零件数：`零件 × 2 − χ` 一定是偶数，
-/// 它的一半就是所有零件上「洞」的总数。
-///
-/// 注意：**网格不水密时这个数没有上面的含义**，只是一堆计数。
-/// 报告里也只在结论是水密的情况下才拿它说事。
+/// 有 k 个独立表面时，χ = 2k − 2Σg，g 为各表面的亏格。
+/// 边闭合不证明网格无自相交或非流形顶点；解释前需要核实这些前提。
 pub fn ValidationReport::euler_number(self : ValidationReport) -> Int {
   self.unique_vertex_count - self.unique_edge_count + self.triangle_count
 }
@@ -52,9 +46,8 @@ pub fn ValidationReport::euler_number(self : ValidationReport) -> Int {
 ///|
 /// 网格是不是水密的。
 ///
-/// 判据：每条边都恰好被两个面共用。这是 3D 打印能成功的必要条件——
-/// 切片软件要靠这个判断哪是「里面」哪是「外面」，有破洞就分不清，
-/// 算出来的实心区域是错的。
+/// 判据：每条边都恰好被两个面共用；不检查非流形顶点、自相交或朝向。
+/// 空网格也满足这项边计数判据，调用方应另行检查三角形数。
 pub fn ValidationReport::is_watertight(self : ValidationReport) -> Bool {
   self.boundary_edge_count == 0 && self.non_manifold_edge_count == 0
 }
@@ -62,24 +55,15 @@ pub fn ValidationReport::is_watertight(self : ValidationReport) -> Bool {
 ///|
 /// 默认的顶点焊接容差。
 ///
-/// 1e-6 毫米 = 1 纳米。选这个量级是因为：STL 二进制里存的是 32 位浮点，
-/// 有效精度大约 7 位十进制，所以同一个点在文件里重复出现时可能有
-/// 1e-7 相对量级的差异。1e-6 的绝对容差能盖住这个误差，又远小于任何
-/// 有意义的建模特征（3D 打印机的精度是 0.1 毫米量级）。
+/// 默认 1e-6 毫米是坐标格子宽度，不保证覆盖所有 float32 舍入误差。
+/// 物理尺度与文件精度不同的模型，应由调用方选择合适容差。
 pub fn default_weld_tolerance() -> Double {
   1.0e-6
 }
 
 ///|
-/// 把一个坐标按容差量化成整数。
-///
-/// 这是「两个顶点算不算同一个点」的答案：把每个坐标除以容差再四舍五入，
-/// 落在同一格的就算同一个点。这样把浮点比较换成了整数比较，既避免
-/// 「0.1 + 0.2 != 0.3」这类问题，又能用哈希表查。
-///
-/// 代价是在格子边界上会分家：两个相距 1e-9 的点，如果正好一个在格子
-/// 左边一个在右边，会被当成不同的点。实际影响很小——这种点本来就在
-/// 容差边缘，怎么判都说得过去。
+/// 用 Double 保存取整后的格子坐标，避免固定宽度整数截断。
+/// 量化按格子相等判定，并非距离搜索；格子边界两侧的近点仍可能分开。
 priv enum CoordinateKey {
   Grid(Double)
   Exact(Double)
@@ -106,7 +90,11 @@ priv struct PositionKey {
 
 ///|
 fn position_key(v : Vec3, tolerance : Double) -> PositionKey {
-  { x: quantize(v.x, tolerance), y: quantize(v.y, tolerance), z: quantize(v.z, tolerance) }
+  {
+    x: quantize(v.x, tolerance),
+    y: quantize(v.y, tolerance),
+    z: quantize(v.z, tolerance),
+  }
 }
 
 ///|

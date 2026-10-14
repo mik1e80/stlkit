@@ -33,7 +33,9 @@ pub fn parse_obj(text : String) -> Result[Mesh, String] {
     for raw_token in obj_words(raw_line) {
       let token = strip_cr(raw_token)
       if token.length() > 0 {
-        if token.has_prefix("#") { break }
+        if token.has_prefix("#") {
+          break
+        }
         tokens.push(token)
       }
     }
@@ -79,7 +81,9 @@ fn obj_words(line : StringView) -> Array[StringView] {
     while i < line.length() && !is_ascii_space(line.code_unit_at(i).to_int()) {
       i = i + 1
     }
-    if i > start { words.push(line[start:i]) }
+    if i > start {
+      words.push(line[start:i])
+    }
   }
   words
 }

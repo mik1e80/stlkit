@@ -1,228 +1,101 @@
 # stlkit
 
-用 MoonBit 写的 STL / OBJ / 3MF / PLY 三维网格工具链。回答一个问题：**这个模型能不能 3D 打印。**
+用 MoonBit 实现的三维网格工具链：读取 STL / OBJ / 3MF / PLY，检查模型的几何与拓扑问题，提供修复、分析和 SVG 预览。
 
 **在线试用：<https://mik1e80.github.io/stlkit/>**
 
-![体检报告](web/screenshot.png)
+库、命令行和网页使用同一份 MoonBit 核心代码。网页在浏览器本地处理文件，不上传模型。
 
-拖一个 STL / OBJ / 3MF / PLY 文件进网页，左边出等轴测预览图，右边出体检报告——查水密性、非流形边、退化面、法线朝向、绕向一致性，最后给一句话结论。
+## 本次修订
 
-## 三种形态
+GitHub 源码版本为 **0.1.1**。本次修复了坐标去重碰撞、大坐标溢出、共线退化面漏检、凹多边形三角化和补洞计数，并统一了 CLI 与网页的复核结论。
 
-| 形态 | 位置 | 怎么用 |
-| --- | --- | --- |
-| **网页** | `web/` | 打开 `web/index.html`，或直接拖文件进去 |
-| **命令行** | `cmd/main/` | `moon run cmd/main model.stl` |
-| **库** | 仓库根目录的 `*.mbt` | `@stlkit.parse_mesh(data)` |
-
-三者跑的是同一份转换代码。网页上的分析不是 JavaScript 重写的，而是 MoonBit 经 `moon build --target js` 编译出来的。
+**0.1.1 尚待发布到 Mooncakes；已发布的 0.1.0 不包含本次修复。** 验证本次修订请使用 GitHub 源码。
 
 ## 能做什么
 
-```text
-解析    STL（ASCII + 二进制）、OBJ（多边形面、负数编号、CRLF）、
-        3MF（装配体、变换矩阵、单位换算）、PLY（ASCII + 两种字节序）
-校验    水密性、非流形边、退化面、法线朝向、绕向一致性
-分析    体积、表面积、包围盒、定向包围盒、零件数、欧拉示性数、
-        重心、转动惯量、最薄处壁厚
-修复    补洞、删退化面、删重复面、统一绕向、重算法线
-导出    二进制 / ASCII STL、OBJ、PLY
-预览    等轴测 SVG 图（自带背面剔除与明暗）
-流式    分块扫描超大模型，内存不随模型大小增长
-形态    库 + 命令行 + 网页
+| 模块 | 已实现能力 |
+| --- | --- |
+| 读取 | ASCII / 二进制 STL，OBJ，3MF，ASCII / 两种字节序的二进制 PLY |
+| 多边形 | OBJ / PLY 的平面简单凸、凹多边形三角化；自相交或非平面多边形明确报错 |
+| 3MF | ZIP / XML 读取、对象引用、嵌套变换、单位换算 |
+| 网格检查 | 边界边、非流形边、退化面、声明法线、相邻面绕向；整体有符号体积为负时提示复核 |
+| 壁厚 | 确定性表面采样与射线估算；按用户设定的参考阈值提示薄壁 |
+| 分析 | 体积、表面积、包围盒、PCA 定向包围盒、连通零件数、欧拉数、重心、转动惯量 |
+| 修复 | 删除退化与重复面、简单边界环补洞、统一绕向、重算法线，并重新检查 |
+| 导出 | ASCII / 二进制 STL、OBJ、ASCII / 二进制 PLY |
+| 预览 | 等轴测 SVG |
+| 流式 | 二进制 STL 分块扫描；不保存完整文件和三角形数组，仍保留顶点表和边表 |
+
+## 使用
+
+先安装 [MoonBit 工具链](https://www.moonbitlang.com/download/)，再获取源码：
+
+```bash
+git clone https://github.com/mik1e80/stlkit
+cd stlkit
+moon update
+moon run cmd/main examples/cube.stl
 ```
 
-其中**最薄处壁厚**是别处很少见的一项：从表面往模型里面打射线，打到对面有多远，
-那里的壁就有多厚。壁太薄是 3D 打印最常见的失败原因之一，而这个问题
-**从外面看模型完完整整，看不出来**。
+```bash
+moon run cmd/main examples/broken.stl --strict
+moon run cmd/main examples/broken.stl --fix fixed.stl
+moon run cmd/main examples/torus.obj --svg torus.svg
+moon run cmd/main model.stl --min-thickness 0.5 --strict
+```
 
-## 为什么需要它
+`--min-thickness` 的单位是毫米，默认参考值为 0.8；应按材料和设备调整，设为 0 可关闭薄壁阈值提醒。`--strict` 在发现需复核问题时退出 1；普通模式可正常输出问题报告。参数或文件错误也退出 1。
 
-3D 打印失败最常见的原因不是打印机，是模型本身有问题：网格上有破洞、一条边被三个面共用、有零面积的三角形。**渲染器能告诉你模型长什么样，但告诉不了你有没有破洞**——那要靠网格拓扑分析，数清楚每条边被几个面共用。
+网页版支持拖入模型、调整参考壁厚、查看报告与预览、下载修复结果。也可双击本地 `web/index.html`；仓库附带编译好的 `web/dist/web.js`。
 
-而且这些毛病肉眼看不出来：一个缺了一个三角形的立方体，看上去还是完完整整一个立方体，但它的体积已经从 1 变成 0.833 了。
+已发布的库可通过 `moon add mik1e80/stlkit` 安装。库接口和本次源码新增的 `check_printability()` 见 [README.mbt.md](README.mbt.md)。
 
-![破洞的模型](web/screenshot-broken.png)
+## 如何理解结果
 
-## 发现问题之后能修
+- **检查通过不等于保证打印成功。** 本工具没有覆盖网格自相交、全部非流形顶点、支撑需求、材料与切片工艺等所有条件。
+- 壁厚字段表示**采样最小厚度**，可能漏掉局部薄处。开放或朝向异常的模型不作可靠壁厚评估。
+- STL / OBJ / PLY 没有在本工具中提供可靠的物理单位声明，默认按毫米解释；3MF 按声明换算到毫米。使用前请确认单位。
+- 内部 `Mesh` 是三角形列表；拓扑分析统一按容差重建顶点关系，不保留 OBJ / PLY / 3MF 原始顶点身份。默认焊接容差为 1e-6 毫米，格子边界两侧的点可能不会合并。
+- PCA 定向包围盒不是最小体积包围盒；体积和质量属性需结合闭合性与绕向解释。
+- 自动补洞只适合简单边界环，复杂、凹形或非平面洞可能需要手工处理。修复后仍需检查模型。
 
-体检报告里有问题时，会多出一个「修复这个模型」按钮：补洞、删退化面、删重复面、统一绕向、重算法线，点一下就地修好，更新预览，给一个下载链接。
-
-![修复](web/screenshot-fix.png)
-
-关键是修完会**重新校验**，把修复前后的数字对照着打出来——只报「修复完成」没法让人判断到底修好了没有，显示「3 条边界边 → 0 条边界边」才叫证据。命令行上是 `--fix`，导出格式按文件名后缀选（`.stl` 出二进制 STL，`.obj` 出 OBJ）。
-
-## 四种格式，各有各的坑
-
-|  | 顶点 | 单位 | 容器 | 最容易出问题的地方 |
-| --- | --- | --- | --- | --- |
-| **STL** | 每个三角形重写三遍 | 没有 | 裸文件 | 破了洞肉眼看不出来；拷来的文件扩展名经常是错的 |
-| **OBJ** | 共享顶点表 | 没有 | 裸文件 | 面可以是任意多边形，得扇形三角化；编号从 1 开始，还能是负数 |
-| **3MF** | 共享顶点表 | 有 | ZIP + XML | 本身就是个压缩包，得先解开；对象能互相引用拼成装配体 |
-| **PLY** | 共享顶点表 | 没有 | 裸文件 | 头部是自描述的，所以**未知属性必须能正确跳过**（法线、颜色、纹理坐标），跳错一个字节后面全乱；编号从 **0** 开始（不是 OBJ 那套从 1 开始） |
-
-**只有 3MF 把拓扑写清楚了**，这一点对「能不能打印」很关键。STL 里「哪些三角形
-共用同一个顶点」必须靠容差去猜——差 1e-9 的算不算同一个点？猜错就把水密性判错了。
-OBJ 和 3MF 直接写着下标，不存在猜的可能。
-
-3MF 还带单位。STL 和 OBJ 都没有单位概念，一路按毫米处理；3MF 写明是 `inch`
-的话不换算，体积会差 25.4³ ≈ 16387 倍。
-
-装配体也是 3MF 独有的：一个对象可以由别的对象拼出来，各带一个 4×3 的变换矩阵。
-
-## 和现有 3D 库的关系
-
-### 参考了 trimesh 哪些设计
-
-[trimesh](https://trimesh.org/) 是 Python 生态的通用三角网格库（需要 Python + numpy），
-也是这个项目在设计上参考最多的一个。下面这些能力是看了它的 API 之后补的：
-
-| stlkit | 对应 trimesh 的 | 是什么 |
-| --- | --- | --- |
-| `count_parts_default(mesh)` | `mesh.split()` | 数模型由几个互不相连的实体组成 |
-| `ValidationReport::euler_number()` | `mesh.euler_number` | 欧拉示性数 χ = V − E + F |
-| `Mesh::center_mass()` | `mesh.center_mass` | 重心 |
-| `Mesh::moment_inertia()` | `mesh.moment_inertia` | 转动惯量张量 |
-| `Mesh::principal_moments()` | `mesh.principal_inertia_components` | 三个主转动惯量 |
-| `Mesh::oriented_bounding_box()` | `mesh.bounding_box_oriented` | 按主成分分析求的包围盒 |
-| `Mesh::ray_cast()` | `mesh.ray` | 射线与网格求交 |
-| `Mesh::nearest_point()` | `mesh.nearest.on_surface` | 表面上离给定点最近的位置 |
-| `parse_ply()` / `write_ply()` | PLY 导入导出 | 三维扫描仪最常用的格式 |
-
-**没有复制任何代码**——trimesh 是 MIT 许可的 Python 库，本项目是 MoonBit 实现，
-语言和数据结构都不同。借鉴的是「一个网格库该有哪几项能力、数据怎么组织」
-这个层面的东西。
-
-**还有一项 trimesh 没有：壁厚检查。** 从表面往模型里面打一条射线，打到对面
-有多远，那里的壁就有多厚。壁太薄是 3D 打印最常见的失败原因之一，而
-**从外面看模型完完整整，看不出哪里薄**。
-
-完整的逐项对比（包括它有哪些能力、我们有哪些没有）在 [COMPARISON.md](COMPARISON.md)。
-
-### MoonBit 生态里的 3D 包
-
-有几个，但做的是**完全不同的事**：
-
-|  | `mizchi/three`（three-mbt） | `mizchi/mesh3d` | stlkit |
-| --- | --- | --- | --- |
-| 本质 | three.js 的类型化 FFI 绑定 | 渲染用的网格/顶点格式原语（从 kagura 抽出来的） | 纯 MoonBit 文件格式工具链 |
-| 跑在哪 | 只有 JS 后端，要浏览器 + WebGL + npm 工具链 | JS（kagura 渲染管线的一部分） | native / wasm / js 都能跑 |
-| 怎么读模型 | 交给 three.js 解析——`src/stlloader_generated.mbt` 是 `generate.mjs` 生成的绑定，实际解析是 `extern "js"` 里调 `self.parse()` | `Mesh3D::from_obj` 逐面展开顶点，不留共享顶点表，也不留拓扑 | 自己解析，保留三角形与顶点关系 |
-| 读出错怎么办 | 抛 `LoadError` | 顶点索引越界静默按 `0.0` 处理，返回 `Mesh3D` 而不是 `Result` | 返回 `Result`，错误信息带行号或字节偏移 |
-| 输出是什么 | `BufferGeometry`——给 GPU 用的 | `Mesh3D`——给渲染用的 | 校验报告：水密性、非流形边、退化面、绕向 |
-| 回答的问题 | 「它长什么样」 | 「它长什么样」 | **「它能不能被 3D 打印出来」** |
-
-**一句话**：这些都是**渲染**方向的库——顶点最终要上传 GPU，所以它们必须把几何留下来。stlkit 是**文件格式与质量**方向的，回答的是打印前的那一个问题。
-
-渲染器能告诉你模型长什么样，但**告诉不了你有没有破洞**——那要数清楚每条边被几个面共用。扫过 mooncakes 上的 3D 相关包，做这件事的：没有。
-
-也正因为定位不同，stlkit 才能做流式扫描：**渲染库必须留下顶点，而做统计不需要**。同样一个 95 MB 的模型，「解析成网格再校验」要 293.73 MB 内存，「流式扫一遍」只要 46.1 MB。
-
-## 大文件怎么办
-
-一个三角形在文件里占 50 字节，在内存里要占 96 字节——解析一个 500 MB 的模型，光是「把三角形存下来」就要再吃掉 1 GB。渲染库必须存（顶点最终要上传 GPU，这是结构性的），但**做统计不需要存**：体积、表面积、包围盒都能一边读一边累加。
-
-`--bench` 在一个 95.37 MB、200 万三角形的模型上实测：
-
-| 方式 | 耗时 | 内存 |
-| --- | --- | --- |
-| 全量解析（能校验能修复） | 18088 ms | 293.73 MB |
-| 流式扫描（整块读） | 2048 ms | 141.22 MB |
-| 流式扫描（**分块读**） | 3334 ms | **46.1 MB** |
-
-分块模式下文件**完全不进内存**，只有一个 256 KB 的缓冲区在循环复用——内存不随模型大小增长。对比全量：省 84.3%，快 5.4 倍。
-
-代价是流式做不到绕向一致性检查（那要反复遍历邻接面，和单遍扫描冲突），报告里会明说这一项没查，而不是假装查过了。
+## 大文件
 
 ```bash
 moon run cmd/main model.stl --bench
 ```
 
-原理和实测细节见 [`README.mbt.md`](README.mbt.md#超大模型流式解析)。
+基准入口会比较全量、整块流式和分块流式结果，并记录耗时。**它会运行全量解析，不是仅流式的低内存命令。** 分块入口 `StlScanner::feed()` / `finish()` 可供调用方独立使用。
 
-## 文档
+读取缓冲区为 256KB，但顶点表和边表仍随规模增长，因此总内存不是常数。CLI 显示的“数据量估算”按主要数据字段计算，不是进程内存实测，也不包含对象头、哈希桶、分配器与运行时开销。此前的内存百分比不作为本次修订的性能承诺。
 
-详细的实现说明、API、测试策略都在 [`README.mbt.md`](README.mbt.md)。
-
-## 安装和用法
-
-### 作为库
+## 验证与开发
 
 ```bash
-moon add mik1e80/stlkit
+moon check --target all --deny-warn
+moon build
+moon test
+moon test --target js
+moon test --target native
+node cmd/main/smoke.cjs
+bash web/build.sh
+node web/smoke.cjs
 ```
 
-```moonbit nocheck
-// data 是你自己读进来的字节。STL / OBJ / 3MF / PLY 都认，按内容判断格式
-let mesh = match @stlkit.parse_mesh(data) {
-  Ok(mesh) => mesh
-  Err(msg) => { println("读不了：\{msg}"); return }
-}
+回归测试覆盖正常模型、损坏输入、坐标碰撞、大坐标、共线退化面、凹多边形、多个独立破洞及报告边界。网页检查执行实际 MoonBit 编译产物，使用最小 DOM 验证报告与修复逻辑；不代替浏览器布局检查。
 
-// 体检
-let check = @stlkit.validate_default(mesh)
-if check.is_watertight() {
-  println("水密，体积 \{mesh.volume()} mm³")
-} else {
-  println("有 \{check.boundary_edge_count} 条边界边，需要先修复")
-}
+[CI](.github/workflows/ci.yml) 执行检查、构建、测试、网页构建与报告回归。[Pages 工作流](.github/workflows/pages.yml) 重新构建并检查网页产物后部署。
 
-// 打印专项：最薄处够不够厚
-let thick = @stlkit.check_thickness_default(mesh)
-println("最薄处 \{thick.min_thickness} mm")
-```
+23 个随附模型中，17 个 3MF 文件来自官方样例库；读取成功只证明已支持的几何路径可处理这些文件，不表示覆盖完整 3MF 规范或所有扩展。
 
-### 命令行
+## 文档与来源
 
-```bash
-git clone https://github.com/mik1e80/stlkit
-cd stlkit
-moon run cmd/main examples/cube.stl      # 出一份体检报告
-moon run cmd/main                         # 不带参数打印帮助
-```
+- [接口、实现与边界](README.mbt.md)
+- [同类项目对比](COMPARISON.md)
+- [示例模型](examples/README.md)
+- [第三方声明](THIRD_PARTY_NOTICES.md)
 
-### 网页
+参考 trimesh 的 API 与模块设计。trimesh 也提供壁厚查询；本项目的区别在于 MoonBit 实现、三后端和库 / CLI / 网页的使用方式，详见对比文档。
 
-在线版 <https://mik1e80.github.io/stlkit/>。
-
-也可以直接把仓库拿下来双击 `web/index.html`——**不用起服务器**，
-`dist/web.js` 是提交进仓库的编译产物（用 `iife` 格式而不是 ES module，
-就是为了能在 `file://` 下打开）。
-
-## 开发
-
-仓库根目录就是 MoonBit 模块根：
-
-```bash
-moon test                              # 跑测试（239 个）
-moon check --target all --deny-warn    # 全目标检查，要求零警告
-moon run cmd/main                      # 不带参数会打印帮助
-bash web/build.sh                      # 重新编译网页用的 JS
-```
-
-两个 GitHub Actions 分工不同：
-
-- [`ci.yml`](.github/workflows/ci.yml) —— 每次推送跑检查 / 构建 / 测试，
-  顺带比对 `web/dist/web.js` 和源码是否一致（防止改了代码忘了重新编译）
-- [`pages.yml`](.github/workflows/pages.yml) —— 把网页发到 GitHub Pages
-
-## 依赖
-
-解析 STL / OBJ 和全部几何分析**只用 MoonBit 自带的核心库**，没有任何第三方依赖。
-
-3MF 支持引入了两个纯 MoonBit 的库：`hustcer/fzip`（解 ZIP）和 `Milky2018/xml`（解 XML）。
-选它们是因为这两件事都不该自己造——ZIP 要写 inflate，还得处理 zip bomb；XML 的实体、
-命名空间、属性引号全是坑。`fzip` 自带解压比检查和路径安全检查，解析用户传上来的文件
-正需要这两道防线。
-
-两者都是纯 MoonBit、没有 FFI，所以**「native / wasm / js 三端都能跑」这条仍然成立**。
-代价是网页产物从 334 KB 涨到了 770 KB。
-
-## 许可证
-
-[Apache License 2.0](LICENSE)。
-
-`examples/` 下的 17 个 `.3mf` 文件来自 [3MF Consortium 的 3mf-samples](https://github.com/3MFConsortium/3mf-samples)
-（BSD 2-Clause），设计上参考过 [trimesh](https://trimesh.org/)（MIT，只参考 API、没有用代码）。
-完整的第三方声明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+本项目采用 [Apache-2.0](LICENSE)。随附 3MF 样例采用 BSD-2-Clause；版权、许可条款与免责声明完整保存在 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。

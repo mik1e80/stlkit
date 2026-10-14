@@ -88,7 +88,8 @@ pub fn parse_ply(data : Bytes) -> Result[Mesh, String] {
     Ok(h) => h
     Err(msg) => return Err(msg)
   }
-  let cursor = match PlyCursor::new(data, body_at, header.binary, header.big_endian) {
+  let cursor = match
+    PlyCursor::new(data, body_at, header.binary, header.big_endian) {
     Ok(c) => c
     Err(msg) => return Err(msg)
   }
@@ -182,7 +183,7 @@ fn parse_header(text : String) -> Result[PlyHeader, String] {
           Ok(v) => v
           Err(msg) => return Err(msg)
         }
-        cur = Some({ name: name.to_owned(), count: n, props: [] })
+        cur = Some({ name: name.to_owned(), count: n, props: [], })
       }
       ["property", "list", count_ty, item_ty, name] => {
         let e = match cur {
@@ -195,7 +196,9 @@ fn parse_header(text : String) -> Result[PlyHeader, String] {
         if ply_type_size(item_ty) is None {
           return Err("PLY 里有个不认识的类型「\{item_ty}」")
         }
-        e.props.push(List(name.to_owned(), count_ty.to_owned(), item_ty.to_owned()))
+        e.props.push(
+          List(name.to_owned(), count_ty.to_owned(), item_ty.to_owned()),
+        )
       }
       ["property", ty, name] => {
         let e = match cur {
@@ -219,7 +222,7 @@ fn parse_header(text : String) -> Result[PlyHeader, String] {
   if elements.length() == 0 {
     return Err("PLY 头里没有声明任何 element")
   }
-  Ok({ binary, big_endian, elements })
+  Ok({ binary, big_endian, elements, })
 }
 
 ///|
@@ -297,15 +300,7 @@ fn PlyCursor::new(
   big_endian : Bool,
 ) -> Result[PlyCursor, String] {
   if binary {
-    Ok({
-      binary: true,
-      big_endian,
-      data,
-      at: body_at,
-      lines: [],
-      li: 0,
-      ci: 0,
-    })
+    Ok({ binary: true, big_endian, data, at: body_at, lines: [], li: 0, ci: 0, })
   } else {
     let text = @utf8.decode_lossy(data[body_at:])
     Ok({
@@ -362,14 +357,19 @@ fn not_finite(v : Double) -> Bool {
 
 ///|
 /// 读一个数，当成浮点用。
-fn PlyCursor::next_double(self : PlyCursor, ty : String) -> Result[Double, String] {
+fn PlyCursor::next_double(
+  self : PlyCursor,
+  ty : String,
+) -> Result[Double, String] {
   if self.binary {
     let size = match ply_type_size(ty[:]) {
       Some(s) => s
       None => return Err("PLY 里有个不认识的类型「\{ty}」")
     }
     if self.at + size > self.data.length() {
-      return Err("PLY 的数据在读到一半就没了——文件被截断了")
+      return Err(
+        "PLY 的数据在读到一半就没了——文件被截断了",
+      )
     }
     let raw = read_ply_number(self.data, self.at, ty, self.big_endian)
     self.at = self.at + size
@@ -377,12 +377,15 @@ fn PlyCursor::next_double(self : PlyCursor, ty : String) -> Result[Double, Strin
   } else {
     // 本行的值读完了就翻到下一行接着读（空行直接跳过）。
     // 这样「一个元素跨多行」的文件也能读——虽然现实中几乎没有
-    while self.li < self.lines.length() && self.ci >= self.lines[self.li].length() {
+    while self.li < self.lines.length() &&
+          self.ci >= self.lines[self.li].length() {
       self.li = self.li + 1
       self.ci = 0
     }
     if self.li >= self.lines.length() {
-      return Err("PLY 的数据在读到一半就没了——文件被截断了")
+      return Err(
+        "PLY 的数据在读到一半就没了——文件被截断了",
+      )
     }
     let tok = self.lines[self.li][self.ci]
     self.ci = self.ci + 1
@@ -473,19 +476,23 @@ fn read_ply_number(data : Bytes, at : Int, ty : String, big : Bool) -> Double {
       if ply_type_signed(ty[:]) {
         match size {
           Some(1) =>
-            (if raw >= 128UL { raw.to_double() - 256.0 } else { raw.to_double() })
+            if raw >= 128UL {
+              raw.to_double() - 256.0
+            } else {
+              raw.to_double()
+            }
           Some(2) =>
-            (if raw >= 32768UL {
+            if raw >= 32768UL {
               raw.to_double() - 65536.0
             } else {
               raw.to_double()
-            })
+            }
           Some(4) =>
-            (if raw >= 2147483648UL {
+            if raw >= 2147483648UL {
               raw.to_double() - 4294967296.0
             } else {
               raw.to_double()
-            })
+            }
           _ => raw.to_double()
         }
       } else {
@@ -596,7 +603,9 @@ fn read_body(cursor : PlyCursor, header : PlyHeader) -> Result[Mesh, String] {
       if is_vertex {
         // 坐标也要查有限性：`nan` / `inf` 混进来后面全是垃圾
         if not_finite(x) || not_finite(y) || not_finite(z) {
-          return Err("PLY 的第 \{vertices.length() + 1} 个顶点坐标不是有限数")
+          return Err(
+            "PLY 的第 \{vertices.length() + 1} 个顶点坐标不是有限数",
+          )
         }
         vertices.push(Vec3::new(x, y, z))
       } else if is_face {
@@ -611,7 +620,9 @@ fn read_body(cursor : PlyCursor, header : PlyHeader) -> Result[Mesh, String] {
   }
 
   if triangles.length() == 0 {
-    return Err("这个 PLY 里一个三角形都没有（可能只有点云，没有面）")
+    return Err(
+      "这个 PLY 里一个三角形都没有（可能只有点云，没有面）",
+    )
   }
 
   // 到这一步才把「下标三元组」换成真正的三角形。
@@ -646,11 +657,15 @@ fn append_polygon(
   let n = vertices.length()
   for k in corners {
     if k < 0 || k >= n {
-      return Err("PLY 里有个面的顶点编号越界（顶点表有 \{n} 个，引用到了 \{k}）")
+      return Err(
+        "PLY 里有个面的顶点编号越界（顶点表有 \{n} 个，引用到了 \{k}）",
+      )
     }
   }
   let points : Array[Vec3] = []
-  for k in corners { points.push(vertices[k]) }
+  for k in corners {
+    points.push(vertices[k])
+  }
   let faces = match triangulate_polygon(points) {
     Ok(faces) => faces
     Err(msg) => return Err("PLY 的面：\{msg}")
@@ -689,7 +704,11 @@ fn ply_arrays(mesh : Mesh) -> (Array[Vec3], Array[(Int, Int, Int)]) {
 
 ///|
 /// 查表拿编号，没有就登记一个新顶点。
-fn ply_intern(table : Map[PositionKey, Int], verts : Array[Vec3], v : Vec3) -> Int {
+fn ply_intern(
+  table : Map[PositionKey, Int],
+  verts : Array[Vec3],
+  v : Vec3,
+) -> Int {
   let key = position_key(v, default_weld_tolerance())
   match table.get(key) {
     Some(id) => id

@@ -52,19 +52,19 @@ const CHECKS = [
     label: "水密性",
     ok: "每条边都恰好被两个面共用",
     bad: (n) =>
-      `有 ${n} 条边只被一个面共用 —— 网格上有破洞，切片软件分不清哪里是实心哪里是空的，直接打印会失败`,
+      `有 ${n} 条边只被一个面共用，网格存在开放边界，请复核模型是否缺面`,
   },
   {
     key: "非流形边",
     label: "非流形边",
     ok: "没有边被三个以上的面共用",
-    bad: (n) => `有 ${n} 条边被三个以上的面共用，这种地方切片软件无法判断该往哪一侧填材料`,
+    bad: (n) => `有 ${n} 条边被三个以上的面共用，请复核连接关系`,
   },
   {
     key: "退化面",
     label: "退化面",
     ok: "没有零面积的三角形",
-    bad: (n) => `有 ${n} 个三角形三个点共线、没有面积，会让切片软件算出零面积的层产生碎片`,
+    bad: (n) => `有 ${n} 个三角形的面积为零或顶点在焊接后重合，请检查或删除`,
   },
   {
     key: "错误法线",
@@ -76,9 +76,9 @@ const CHECKS = [
   {
     key: "绕向反了",
     label: "绕向一致",
-    ok: "所有面的朝向一致",
+    ok: "未发现相邻面的绕向冲突",
     bad: (n) =>
-      `有 ${n} 个面的顶点顺序写反了 —— 它们朝里了。水密性检查看不出这种问题，但体积会算错，切片软件也可能把实心区域填反`,
+      `有 ${n} 个面的相邻绕向不一致，体积和实体内外关系需要复核`,
   },
 ];
 
@@ -208,9 +208,8 @@ function renderReport(fields) {
     const note = document.createElement("p");
     note.className = "report-note";
     note.textContent =
-      `这个模型由 ${parts} 块互不相连的几何组成，切片软件会分别生成路径，` +
-      `打出来是 ${parts} 个独立的零件。如果你以为它是一整个，那就是模型有问题 —— ` +
-      `比如两块只在角上碰了一下，那种接触在切片时是断的。`;
+      `按共享边连接关系检测到 ${parts} 个部分。仅在点上接触的面也会分开计数，` +
+      `请确认这是否符合设计；本工具未检查这些部分是否相交。`;
     box.append(note);
   }
 
@@ -222,7 +221,7 @@ function renderReport(fields) {
     const button = document.createElement("button");
     button.type = "button";
     button.id = "fix";
-    button.textContent = "修复这个模型";
+    button.textContent = "尝试修复网格";
     button.addEventListener("click", runFix);
     actions.append(button);
     box.append(actions);
@@ -335,6 +334,11 @@ function runFix() {
     previewEl.replaceChildren();
     previewEl.innerHTML = svg;
   }
+  // 后续阈值调整继续检查修复后的网格。
+  if (base64 !== "") {
+    currentBase64 = base64;
+    currentFields = parseReport(analyze_with_threshold(base64, currentMinThickness));
+  }
 }
 
 /// 把 base64 解回字节数组。
@@ -390,6 +394,8 @@ function showError(message) {
 }
 
 async function handleFile(file) {
+  currentBase64 = "";
+  currentFields = {};
   statusEl.textContent = "分析中…";
   statusEl.className = "status";
 
@@ -467,5 +473,6 @@ document.getElementById("min-thickness").addEventListener("change", () => {
     currentMinThickness = thicknessThreshold();
     currentFields = parseReport(analyze_with_threshold(currentBase64, currentMinThickness));
     renderReport(currentFields);
+    previewEl.innerHTML = preview(currentBase64);
   } catch (err) { showError(err.message); }
 });
