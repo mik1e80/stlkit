@@ -80,8 +80,33 @@ pub fn default_weld_tolerance() -> Double {
 /// 代价是在格子边界上会分家：两个相距 1e-9 的点，如果正好一个在格子
 /// 左边一个在右边，会被当成不同的点。实际影响很小——这种点本来就在
 /// 容差边缘，怎么判都说得过去。
-fn quantize(value : Double, tolerance : Double) -> Int {
-  (value / tolerance).round().to_int()
+priv enum CoordinateKey {
+  Grid(Double)
+  Exact(Double)
+} derive(Eq, Hash)
+
+///|
+fn quantize(value : Double, tolerance : Double) -> CoordinateKey {
+  let scaled = value / tolerance
+  // 不截成 Int，也不截低位。极端尺度除法溢出时，用独立的精确键。
+  if scaled.is_inf() || scaled.is_nan() {
+    return Exact(if value == 0.0 { 0.0 } else { value })
+  }
+  let q = scaled.round()
+  Grid(if q == 0.0 { 0.0 } else { q })
+}
+
+///|
+/// 三个完整的量化分量作为键，哈希冲突仍由逐分量相等判定区分。
+priv struct PositionKey {
+  x : CoordinateKey
+  y : CoordinateKey
+  z : CoordinateKey
+} derive(Eq, Hash)
+
+///|
+fn position_key(v : Vec3, tolerance : Double) -> PositionKey {
+  { x: quantize(v.x, tolerance), y: quantize(v.y, tolerance), z: quantize(v.z, tolerance) }
 }
 
 ///|
@@ -103,14 +128,13 @@ pub(all) struct WeldResult {
 /// 用 Map 存「量化后的坐标 → 编号」，第一次见到的坐标分配一个新编号，
 /// 之后见到的复用。坐标量化的细节见 quantize。
 fn weld_vertices(mesh : Mesh, tolerance : Double) -> WeldResult {
-  let lookup : Map[String, Int] = Map([])
+  let lookup : Map[PositionKey, Int] = Map([])
   let ids : Array[Int] = []
   let mut next_id = 0
   for triangle in mesh.triangles {
     for v in triangle.vertices() {
-      // 用字符串当键：坐标量化后是三个整数，拼起来天然可哈希、可比较。
-      // 比自定义一个带 Hash 的坐标结构体省事，性能在这个量级也够。
-      let key = "\{quantize(v.x, tolerance)},\{quantize(v.y, tolerance)},\{quantize(v.z, tolerance)}"
+      // 完整的三分量键；哈希只负责查找，相等判定不会丢弃坐标高位。
+      let key = position_key(v, tolerance)
       let id = match lookup.get(key) {
         Some(id) => id
         None => {

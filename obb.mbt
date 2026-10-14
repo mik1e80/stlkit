@@ -177,15 +177,15 @@ fn sort_axes_by_length(half : Array[Double]) -> Array[Int] {
 ///|
 /// 去重后的顶点位置。
 ///
-/// 用 `pack_position` 量化去重——和校验、流式扫描、PLY 导出是同一套。
+/// 用完整坐标键量化去重——和校验、流式扫描、PLY 导出是同一套。
 /// 「什么算同一个点」整个项目只有一个答案，不然同一条边
 /// 在这个环节算共用的、到那个环节又算两个点，报告就会自相矛盾。
 fn unique_positions(mesh : Mesh) -> Array[Vec3] {
-  let table : Map[UInt64, Int] = Map([])
+  let table : Map[PositionKey, Int] = Map([])
   let out : Array[Vec3] = []
   for t in mesh.triangles {
     for v in [t.a, t.b, t.c] {
-      let key = pack_position(v)
+      let key = position_key(v, default_weld_tolerance())
       match table.get(key) {
         Some(_) => ()
         None => {

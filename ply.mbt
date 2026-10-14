@@ -667,10 +667,10 @@ fn append_fan(
 /// 顶点（每个面重写一遍）；PLY 是共享顶点表格式，只需要 8 个。
 /// 不焊接的话文件会大三倍，而且和「PLY 就是共享顶点格式」这件事对不上。
 ///
-/// 用 `pack_position` 去重，和校验、流式扫描是同一套量化——
+/// 用完整坐标键去重，和校验、流式扫描是同一套量化——
 /// 「什么算同一个点」整个项目只有一个答案。
 fn ply_arrays(mesh : Mesh) -> (Array[Vec3], Array[(Int, Int, Int)]) {
-  let table : Map[UInt64, Int] = Map([])
+  let table : Map[PositionKey, Int] = Map([])
   let verts : Array[Vec3] = []
   let faces : Array[(Int, Int, Int)] = []
   for t in mesh.triangles {
@@ -684,8 +684,8 @@ fn ply_arrays(mesh : Mesh) -> (Array[Vec3], Array[(Int, Int, Int)]) {
 
 ///|
 /// 查表拿编号，没有就登记一个新顶点。
-fn ply_intern(table : Map[UInt64, Int], verts : Array[Vec3], v : Vec3) -> Int {
-  let key = pack_position(v)
+fn ply_intern(table : Map[PositionKey, Int], verts : Array[Vec3], v : Vec3) -> Int {
+  let key = position_key(v, default_weld_tolerance())
   match table.get(key) {
     Some(id) => id
     None => {

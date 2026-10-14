@@ -75,7 +75,7 @@ pub fn stream_stl_binary(data : Bytes) -> Result[StreamReport, String] {
   // 需要保留的两样东西：
   //   1. 顶点去重表 —— 只存「量化坐标 → 编号」，不存三角形本身
   //   2. 边表 —— 只存每条边的两个端点编号，最后排序统计
-  let weld : Map[UInt64, Int] = Map([])
+  let weld : Map[PositionKey, Int] = Map([])
   let edges : Array[UInt64] = []
   let mut unique_vertices = 0
 
@@ -145,8 +145,8 @@ pub fn stream_stl_binary(data : Bytes) -> Result[StreamReport, String] {
 ///
 /// 量化方式和全量校验那边一致（`validate.mbt` 的 `quantize`），
 /// 这样两条路径对「两个点算不算同一个」的判断是一样的。
-fn weld_vertex(table : Map[UInt64, Int], v : Vec3) -> Int {
-  let key = pack_position(v)
+fn weld_vertex(table : Map[PositionKey, Int], v : Vec3) -> Int {
+  let key = position_key(v, default_weld_tolerance())
   match table.get(key) {
     Some(id) => id
     None => {
@@ -180,29 +180,6 @@ fn expand_bbox(min : Vec3?, max : Vec3?, v : Vec3) -> (Vec3?, Vec3?) {
     _ => (Some(v), Some(v))
   }
 }
-///|
-/// 容差，和全量校验保持一致。
-const WELD_QUANTUM : Double = 1.0e-6
-
-///|
-/// 把三个量化后的坐标打包成一个 64 位的键。
-///
-/// 每个坐标量化成 21 位整数（约 ±100 万，按 1e-6 毫米的精度够覆盖
-/// ±1 米的模型），三个拼起来 63 位，正好塞进 UInt64。
-///
-/// 用整数当键比字符串省得多——字符串键光是每个字符就要一个字节，
-/// 加上对象头，一个键轻松超过 20 字节；这里只要 8 字节。
-fn pack_position(v : Vec3) -> UInt64 {
-  let x = (v.x / WELD_QUANTUM).round().to_int()
-  let y = (v.y / WELD_QUANTUM).round().to_int()
-  let z = (v.z / WELD_QUANTUM).round().to_int()
-  // 每个坐标取低 21 位，避免负数扩展把邻位污染
-  let mask = 0x1FFFFFUL
-  ((x.reinterpret_as_uint().to_uint64() & mask) << 42) |
-  ((y.reinterpret_as_uint().to_uint64() & mask) << 21) |
-  (z.reinterpret_as_uint().to_uint64() & mask)
-}
-
 ///|
 /// 把一条边的两个端点编号打包成一个 64 位的整数。
 ///
@@ -257,7 +234,7 @@ pub fn stream_stl_ascii(text : String) -> Result[StreamReport, String] {
   let mut area = 0.0
   let mut min : Vec3? = None
   let mut max : Vec3? = None
-  let weld : Map[UInt64, Int] = Map([])
+  let weld : Map[PositionKey, Int] = Map([])
   let edges : Array[UInt64] = []
   let mut unique_vertices = 0
   let mut triangles = 0
@@ -361,7 +338,7 @@ pub fn stream_stl_ascii(text : String) -> Result[StreamReport, String] {
 ///
 /// 用法：反复 `feed` 数据块，最后 `finish` 出报告。
 /// 内部只保留「没凑够一个完整记录的零头」和统计需要的那两张表，
-/// **不保留三角形本身**，所以内存不随模型规模增长。
+/// 不保留文件和三角形本身；顶点表、边表仍随网格规模增长。
 pub(all) struct StlScanner {
   /// 上一次喂进来、还没凑够一个完整记录的零头
   priv tail : Array[Byte]
@@ -376,7 +353,7 @@ pub(all) struct StlScanner {
   priv mut min : Vec3?
   priv mut max : Vec3?
   /// 顶点去重表
-  priv weld : Map[UInt64, Int]
+  priv weld : Map[PositionKey, Int]
   /// 边表，最后统一排序统计
   priv edges : Array[UInt64]
   /// 读到的总字节数，用来核对文件长度
