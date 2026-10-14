@@ -600,7 +600,7 @@ fn read_body(cursor : PlyCursor, header : PlyHeader) -> Result[Mesh, String] {
         }
         vertices.push(Vec3::new(x, y, z))
       } else if is_face {
-        match append_fan(vertices, corners, triangles) {
+        match append_polygon(vertices, corners, triangles) {
           Ok(_) => ()
           Err(msg) => return Err(msg)
         }
@@ -615,7 +615,7 @@ fn read_body(cursor : PlyCursor, header : PlyHeader) -> Result[Mesh, String] {
   }
 
   // 到这一步才把「下标三元组」换成真正的三角形。
-  // 前面append_fan 已经校验过下标范围，这里可以直接取
+  // 前面append_polygon 已经校验过下标范围，这里可以直接取
   let out : Array[Triangle] = []
   for (i, j, k) in triangles {
     out.push(Triangle::from_vertices(vertices[i], vertices[j], vertices[k]))
@@ -627,7 +627,7 @@ fn read_body(cursor : PlyCursor, header : PlyHeader) -> Result[Mesh, String] {
 /// 把一个面的顶点编号展开成三角形。
 ///
 /// PLY 的面天生是多边形（列表长度可变），所以这里和 OBJ 一样要三角化，
-/// 用同样的扇形法：以第一个顶点为中心，跟后面每两个相邻顶点各组成一个。
+/// 共用 OBJ 的凸多边形扇形切分和凹多边形耳切，保留原顶点下标。
 /// 少于三个点的面直接丢掉——它不是个面。
 ///
 /// 编号是**从 0 开始**的（这和 OBJ 不一样，OBJ 从 1 开始）——
@@ -635,7 +635,7 @@ fn read_body(cursor : PlyCursor, header : PlyHeader) -> Result[Mesh, String] {
 ///
 /// 越界在这里就报，不留到后面——编号错了的话后面每个三角形都是错的，
 /// 早报能说清是哪个面的问题。
-fn append_fan(
+fn append_polygon(
   vertices : Array[Vec3],
   corners : Array[Int],
   triangles : Array[(Int, Int, Int)],
@@ -649,9 +649,14 @@ fn append_fan(
       return Err("PLY 里有个面的顶点编号越界（顶点表有 \{n} 个，引用到了 \{k}）")
     }
   }
-  let a = corners[0]
-  for i = 1; i + 1 < corners.length(); i = i + 1 {
-    triangles.push((a, corners[i], corners[i + 1]))
+  let points : Array[Vec3] = []
+  for k in corners { points.push(vertices[k]) }
+  let faces = match triangulate_polygon(points) {
+    Ok(faces) => faces
+    Err(msg) => return Err("PLY 的面：\{msg}")
+  }
+  for face in faces {
+    triangles.push((corners[face.0], corners[face.1], corners[face.2]))
   }
   Ok(())
 }

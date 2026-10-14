@@ -8,9 +8,7 @@
 //
 // **二、OBJ 的面可以是多边形。** `f 1 2 3 4` 是个四边形，甚至可以是
 // 十七边形。而我们的 Mesh 只装三角形，所以要在这里做三角化——
-// 用最简单可靠的扇形法：以第一个顶点为中心，跟后面每两个相邻顶点
-// 各组成一个三角形。对凸多边形永远正确，对凹多边形可能出错，
-// 但 3D 打印模型里的面几乎都是凸的。
+// 凸多边形用扇形法，凹多边形用耳切法；自相交或非平面多边形明确报错。
 //
 // 另外 OBJ 的编号从 1 开始，而且可以是负数（表示从末尾往前数）。
 
@@ -32,9 +30,10 @@ pub fn parse_obj(text : String) -> Result[Mesh, String] {
   for raw_line in text.split("\n") {
     line_no = line_no + 1
     let tokens : Array[StringView] = []
-    for raw_token in raw_line.split(" ") {
+    for raw_token in obj_words(raw_line) {
       let token = strip_cr(raw_token)
       if token.length() > 0 {
+        if token.has_prefix("#") { break }
         tokens.push(token)
       }
     }
@@ -68,6 +67,24 @@ pub fn parse_obj(text : String) -> Result[Mesh, String] {
 }
 
 ///|
+/// 空格、制表符和 CR 都是分隔符；不依赖只替换第一处的 String::replace。
+fn obj_words(line : StringView) -> Array[StringView] {
+  let words : Array[StringView] = []
+  let mut i = 0
+  while i < line.length() {
+    while i < line.length() && is_ascii_space(line.code_unit_at(i).to_int()) {
+      i = i + 1
+    }
+    let start = i
+    while i < line.length() && !is_ascii_space(line.code_unit_at(i).to_int()) {
+      i = i + 1
+    }
+    if i > start { words.push(line[start:i]) }
+  }
+  words
+}
+
+///|
 /// 解析一个面，返回它三角化之后的三角形。
 ///
 /// 每个顶点记号可能是 `3`、`3/5`、`3//7`、`3/5/7` 四种形式之一，
@@ -98,24 +115,27 @@ fn parse_face(
     }
   }
 
-  // 扇形三角化：以第 0 个顶点为中心，跟后面每两个相邻顶点组成一个三角形。
-  // 四边形 → 2 个三角形，五边形 → 3 个，以此类推。
+  let faces = match triangulate_polygon(face_vertices) {
+    Ok(faces) => faces
+    Err(msg) => return Err("第 \{line_no} 行：\{msg}")
+  }
   let result : Array[Triangle] = []
-  for i = 1; i + 1 < face_vertices.length(); i = i + 1 {
+  for face in faces {
+    let (a, b, c) = face
     // 法线优先用文件里写的。一个平面的三个顶点法线一样时直接用
     // （3D 打印模型里绝大多数面都是平的），不一样就留零，
     // 让校验环节去和按顶点顺序算出来的比。
-    let normal = if same_vec(face_normals[0], face_normals[i]) &&
-      same_vec(face_normals[i], face_normals[i + 1]) {
-      face_normals[0]
+    let normal = if same_vec(face_normals[a], face_normals[b]) &&
+      same_vec(face_normals[b], face_normals[c]) {
+      face_normals[a]
     } else {
       Vec3::zero()
     }
     result.push({
       normal,
-      a: face_vertices[0],
-      b: face_vertices[i],
-      c: face_vertices[i + 1],
+      a: face_vertices[a],
+      b: face_vertices[b],
+      c: face_vertices[c],
     })
   }
   Ok(result)
