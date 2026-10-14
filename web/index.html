@@ -39,6 +39,10 @@
         <div class="pane-head">
           <h2>体检报告</h2>
         </div>
+        <label class="threshold-setting" for="min-thickness">参考最小壁厚（mm）
+          <input id="min-thickness" type="number" min="0" step="0.1" value="0.8" />
+          <small>请按材料和设备调整；0 表示不设薄壁阈值。</small>
+        </label>
         <div class="report" id="report">
           <p class="empty">还没有文件。</p>
         </div>

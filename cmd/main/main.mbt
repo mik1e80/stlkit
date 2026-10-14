@@ -24,6 +24,7 @@ fn command() -> @argparse.Command {
       ),
     ],
     options=[
+      @argparse.OptionArg("min-thickness", about="参考最小壁厚（毫米），默认0.8；0不设阈值"),
       @argparse.OptionArg(
         "svg",
         about="把等轴测预览图导出成 SVG 文件",
@@ -327,6 +328,7 @@ fn report(
   path : String,
   svg_path : String,
   fix_path : String,
+  min_thickness : Double,
 ) -> Result[Bool, String] {
   let data = @fs.read_file_to_bytes(path) catch {
     @fs.IOError(msg) => return Err("读不了文件「\{path}」：\{msg}")
@@ -344,7 +346,8 @@ fn report(
     Ok(mesh) => mesh
     Err(msg) => return Err(msg)
   }
-  let check = @stlkit.validate_default(mesh)
+  let review = @stlkit.check_printability(mesh, min_thickness)
+  let check = review.validation
 
   println(path)
   println("  格式      \{format_name}")
@@ -374,7 +377,6 @@ fn report(
   }
   println("  体积      \{fmt(mesh.volume(), 3)} mm³")
   println("  表面积    \{fmt(mesh.surface_area(), 3)} mm²")
-  let winding = @stlkit.check_winding_default(mesh)
   // 零件数：几块互不相连的几何。单独一项显示，不是「错误」——
   // 分开的零件本身是合法模型，只是要知道
   let parts = @stlkit.count_parts_default(mesh)
@@ -396,30 +398,19 @@ fn report(
     println(
       "  主惯量    \{fmt(pm[0], 3)} / \{fmt(pm[1], 3)} / \{fmt(pm[2], 3)}（密度取 1）",
     )
-    // 壁厚：从表面往里打射线，量到对面有多远。**只有闭合的网格才量得了**
-    let thick = @stlkit.check_thickness_default(mesh)
-    if thick.hits > 0 {
-      println("  最薄处    \{fmt(thick.min_thickness, 3)} mm")
-      // 常见 FDM 打印机的最小可靠壁厚在 0.8 毫米上下。
-      // 这个阈值和机器有关，所以只说「偏薄」不下结论
-      if thick.min_thickness < 0.8 {
-        println(
-          "    ⚠ 比常见 FDM 打印机的最小可靠壁厚（0.8 毫米左右）还薄，打出来可能一碰就碎",
-        )
-      }
-    }
   }
-  let has_problem = !check.is_watertight() ||
-    check.non_manifold_edge_count > 0 ||
-    check.degenerate_count > 0 ||
-    check.wrong_normal_count > 0 ||
-    winding.flipped_faces > 0
-
+  match review.thickness {
+    Some(thick) => if thick.hits > 0 {
+      println("  采样最小厚度 \{fmt(thick.min_thickness, 3)} mm（命中 \{thick.hits}/\{thick.samples}）")
+    }
+    None => ()
+  }
+  let has_problem = review.needs_review()
   println("")
-  print_findings(check, winding, parts)
+  print_findings(review, parts)
 
   if fix_path != "" {
-    return fix_and_save(mesh, check, winding, fix_path)
+    return fix_and_save(mesh, check, review.winding, fix_path, min_thickness)
   }
 
   if svg_path != "" {
@@ -440,84 +431,18 @@ fn report(
 /// 每一条「不通过」都要说清楚**为什么这是问题**，不能只报一个数字。
 /// 看到「有 3 条边界边」的人不知道这意味着什么，看到「切片软件分不清
 /// 哪里是外面」才知道要修。
-fn print_findings(
-  check : @stlkit.ValidationReport,
-  winding : @stlkit.WindingReport,
-  parts : Int,
-) -> Unit {
-  let mut problems = 0
-
-  if winding.flipped_faces > 0 {
-    problems = problems + 1
-    println(
-      "  ✗ 有 \{winding.flipped_faces} 个面的绕向和其他面相反（顶点顺序写反了）",
-    )
-    println(
-      "    这些面朝里了：水密性检查看不出问题，但体积会算错，切片软件也可能把实心区域填反",
-    )
-  }
-
-  if check.boundary_edge_count > 0 {
-    problems = problems + 1
-    println(
-      "  ✗ 不是水密网格 —— 有 \{check.boundary_edge_count} 条边只被一个面共用",
-    )
-    println(
-      "    网格上有破洞，切片软件分不清哪里是实心哪里是空的，直接打印会失败",
-    )
-  }
-  if check.non_manifold_edge_count > 0 {
-    problems = problems + 1
-    println(
-      "  ✗ 有 \{check.non_manifold_edge_count} 条边被三个以上的面共用（非流形边）",
-    )
-    println("    这种地方切片软件无法判断该往哪一侧填材料")
-  }
-  if check.degenerate_count > 0 {
-    problems = problems + 1
-    println(
-      "  ✗ 有 \{check.degenerate_count} 个退化三角形（三个点共线，没有面积）",
-    )
-    println("    会让切片软件算出零面积的层，产生碎片")
-  }
-  if check.wrong_normal_count > 0 {
-    problems = problems + 1
-    println(
-      "  ⚠ 有 \{check.wrong_normal_count} 个三角形的法线朝向和顶点顺序不一致",
-    )
-    println(
-      "    多数切片软件会自己重算，但依赖文件里法线的工具会画错",
-    )
-  }
-
-  if problems == 0 {
-    println("  ✓ 水密网格，拓扑上没有阻碍打印的问题")
-    // 零件数不是「问题」，但多块几何值得说一句——
-    // 分开的零件本身合法（比如一组要分别打印的件），只是用户得知道
-    if parts > 1 {
-      println("")
-      println(
-        "  ⚠ 这个模型由 \{parts} 块互不相连的几何组成，切片软件会分别生成路径，打出来是 \{parts} 个独立的零件",
-      )
-      println(
-        "    如果你以为它是一整个，那就是模型有问题——比如两块只在角上碰了一下，那种接触在切片时是断的",
-      )
-    }
-    return
-  }
-
-  println("")
-  if !check.is_watertight() {
-    println("  结论：直接打印会失败，需要先修复")
-  } else if winding.flipped_faces > 0 {
-    // 绕向反了不会让切片失败（多数切片软件会自己重算朝向），
-    // 但**算出来的体积是错的**，报出去的数字不能就这么算了
-    println(
-      "  结论：网格是闭合的，切片软件多半能打印出来，但数据本身有错 —— 上面那个体积不可信，建议先修",
-    )
-  } else {
-    println("  结论：不影响打印，但上面的问题建议先修")
-  }
+fn print_findings(review : @stlkit.PrintabilityReport, parts : Int) -> Unit {
+  let check = review.validation
+  if check.boundary_edge_count > 0 { println("  ⚠ 有 \{check.boundary_edge_count} 条边界边，请复核开放面") }
+  if check.non_manifold_edge_count > 0 { println("  ⚠ 有 \{check.non_manifold_edge_count} 条非流形边") }
+  if check.degenerate_count > 0 { println("  ⚠ 有 \{check.degenerate_count} 个退化面") }
+  if check.wrong_normal_count > 0 { println("  ⚠ 有 \{check.wrong_normal_count} 个面的声明法线与顶点顺序不一致") }
+  if review.winding.flipped_faces > 0 { println("  ⚠ 有 \{review.winding.flipped_faces} 个面的相邻绕向不一致") }
+  if review.inward() { println("  ⚠ 整体有符号体积为负，请复核向内的朝向") }
+  if review.thin_wall() { println("  ⚠ 采样厚度低于参考阈值 \{fmt(review.min_thickness, 3)} mm；请按材料和设备确认") }
+  if review.thickness_unavailable() { println("  ⚠ 当前网格无法可靠评估壁厚") }
+  if parts > 1 { println("  提示：有 \{parts} 个按共享边分离的零件") }
+  println("  结论：\{review.verdict()}")
 }
 
 ///|
@@ -530,18 +455,20 @@ fn fix_and_save(
   before : @stlkit.ValidationReport,
   winding : @stlkit.WindingReport,
   fix_path : String,
+  min_thickness : Double,
 ) -> Result[Bool, String] {
   if before.is_watertight() &&
     before.degenerate_count == 0 &&
     before.wrong_normal_count == 0 &&
-    winding.flipped_faces == 0 {
+    winding.flipped_faces == 0 && winding.signed_volume >= 0.0 {
     println("")
     println("这个网格没有问题，不用修。")
-    return Ok(false)
+    return Ok(@stlkit.check_printability(mesh, min_thickness).needs_review())
   }
 
   let fixed = @stlkit.repair(mesh, @stlkit.RepairOptions::default())
-  let after = @stlkit.validate_default(fixed.mesh)
+  let after_review = @stlkit.check_printability(fixed.mesh, min_thickness)
+  let after = after_review.validation
 
   println("")
   println("修复：")
@@ -588,24 +515,13 @@ fn fix_and_save(
   }
 
   println("")
-  if after.is_watertight() {
-    println(
-      "  已存到 \{fix_path}（\{bytes.length()} 字节），现在可以切片打印了",
-    )
-  } else {
-    println(
-      "  已存到 \{fix_path}，但还有 \{after.boundary_edge_count} 条边界边没补上 —— 洞的形状太复杂，自动补洞处理不了",
-    )
-  }
-  Ok(!after.is_watertight())
+  println("  已存到 \{fix_path}（\{bytes.length()} 字节）")
+  print_findings(after_review, @stlkit.count_parts_default(fixed.mesh))
+  Ok(after_review.needs_review())
 }
 
 ///|
-///|
-/// 出体检报告这条常规路径。
-///
-/// 参数已经在 `main` 里解析过了——因为基准测试那条路是异步的，
-/// 得在 `main` 里分派，没法塞进同步函数。
+/// 常规检查路径。
 fn run(
   matches : @argparse.Matches,
   path : String,
@@ -618,7 +534,15 @@ fn run(
     Some([first, ..]) => first
     _ => ""
   }
-  let has_problem = match report(path, svg_path, fix_path) {
+  let min_thickness = match matches.values.get("min-thickness") {
+    Some([raw, ..]) => {
+      let value = @string.parse_double(raw) catch { _ => return Err("--min-thickness 必须是非负有限数字") }
+      if value.is_nan() || value.is_inf() || value < 0.0 { return Err("--min-thickness 必须是非负有限数字") }
+      value
+    }
+    _ => 0.8
+  }
+  let has_problem = match report(path, svg_path, fix_path, min_thickness) {
     Ok(v) => v
     Err(msg) => return Err(msg)
   }

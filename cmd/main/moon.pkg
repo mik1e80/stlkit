@@ -1,5 +1,6 @@
 import {
   "moonbitlang/core/argparse",
+  "moonbitlang/core/string",
   "moonbitlang/core/bench",
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/async",

@@ -14,9 +14,11 @@ options(
     "js": {
       "exports": [
         "analyze",
+        "analyze_with_threshold",
         "analyze_error",
         "preview",
         "fix_report",
+        "fix_report_with_threshold",
         "fixed_stl",
         "fixed_preview",
         "fix_error",

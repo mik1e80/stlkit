@@ -59,3 +59,6 @@ jobs:
       # 自觉跑一遍 build.sh（build.sh 的注释里写了）
       - name: 网页版能编译出来
         run: bash web/build.sh
+
+      - name: 网页检查和修复回归
+        run: node web/smoke.cjs

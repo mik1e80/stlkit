@@ -44,6 +44,9 @@ function parseReport(text) {
 /// 「有 3 条边界边」对看报告的人没有意义，「切片软件分不清哪里是外面」
 /// 才有。所以每一项都配一句人话解释。
 const CHECKS = [
+  { key: "整体朝内", label: "整体朝向", ok: "未发现整体向内", bad: () => "整体有符号体积为负，请复核朝向" },
+  { key: "薄壁", label: "参考壁厚", ok: "未发现低于设定阈值的采样点", bad: () => "采样厚度低于设定阈值，请按材料和设备复核" },
+  { key: "壁厚未评估", label: "壁厚评估", ok: "已取得厚度样本，仍可能漏掉局部薄处", bad: () => "当前网格无法可靠评估壁厚" },
   {
     key: "边界边",
     label: "水密性",
@@ -144,14 +147,15 @@ function renderReport(fields) {
     statRow(geo, "主惯量", fields["主惯量"], "");
   }
   if (fields["最薄处"] !== undefined) {
-    statRow(geo, "最薄处", fields["最薄处"], "mm");
+    statRow(geo, "采样最小厚度", fields["最薄处"], "mm");
+    statRow(geo, "参考壁厚阈值", fields["壁厚阈值"], "mm");
   }
   box.append(geo);
 
   // 校验结论
   const findings = document.createElement("div");
   findings.className = "findings";
-  let problems = 0;
+
 
   for (const check of CHECKS) {
     const count = parseInt(fields[check.key] || "0", 10);
@@ -169,19 +173,22 @@ function renderReport(fields) {
     row.append(mark, text);
     findings.append(row);
 
-    if (count > 0) problems += 1;
+
   }
   box.append(findings);
 
   // 结论
   const verdict = document.createElement("div");
   verdict.className =
-    problems === 0 ? "verdict verdict-ok" : "verdict verdict-bad";
+    fields["需复核"] === "false" ? "verdict verdict-ok" : "verdict verdict-bad";
   verdict.textContent =
-    problems === 0
-      ? "这个模型可以直接切片打印。"
-      : "直接打印会失败，需要先修复上面标✗的问题。";
+    fields["结论"] || "请根据检查项复核模型与打印设置。";
   box.append(verdict);
+
+  const thicknessNote = document.createElement("p");
+  thicknessNote.className = "report-note";
+  thicknessNote.textContent = "壁厚为表面采样结果，可能漏掉局部薄处；STL、OBJ、PLY 按毫米解释，请先确认模型单位。";
+  box.append(thicknessNote);
 
   // 网格不闭合时，体积那个数是不可信的，得说清楚。
   // 体积是靠各面的有符号体积正负抵消算出来的，有破洞就抵消不干净。
@@ -208,7 +215,8 @@ function renderReport(fields) {
   }
 
   // 有问题才给「修复」按钮。没问题的模型给个按钮反而让人以为要修什么
-  if (problems > 0) {
+  const repairKeys = ["边界边", "非流形边", "退化面", "错误法线", "绕向反了", "整体朝内"];
+  if (repairKeys.some(key => Number(fields[key] || 0) > 0)) {
     const actions = document.createElement("div");
     actions.className = "fix-actions";
     const button = document.createElement("button");
@@ -229,7 +237,7 @@ function runFix() {
     button.textContent = "修复中…";
   }
 
-  const report = fix_report(currentBase64);
+  const report = fix_report_with_threshold(currentBase64, currentMinThickness);
   if (report === "") {
     showError(fix_error(currentBase64));
     return;
@@ -292,11 +300,9 @@ function runFix() {
 
   // 结论
   const verdict = document.createElement("div");
-  const watertight = fixed["修复后水密"] === "true";
+  const watertight = fixed["修复后需复核"] === "false";
   verdict.className = watertight ? "verdict verdict-ok" : "verdict verdict-bad";
-  verdict.textContent = watertight
-    ? `现在可以切片打印了（${fixed["修复后三角形"]} 个三角形）`
-    : "还有补不上的洞 —— 洞的形状太复杂，只能手工修";
+  verdict.textContent = fixed["修复后结论"] || "请复核修复后的模型。";
   box.append(verdict);
 
   // 下载
@@ -352,6 +358,16 @@ const statusEl = document.getElementById("status");
 /// 「修复」按钮要用——它的回调触发时，handleFile 的局部变量已经没了。
 let currentBase64 = "";
 let currentFields = {};
+let currentMinThickness = 0.8;
+
+function thicknessThreshold() {
+  const raw = document.getElementById("min-thickness").value;
+  if (raw.trim() === "") throw new Error("请填写参考壁厚；0 表示不设阈值");
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value < 0) throw new Error("参考壁厚必须是非负有限数字");
+  return value;
+}
+
 
 /// 显示一条错误，样式跟报告里的问题项一致。
 function showError(message) {
@@ -388,13 +404,16 @@ async function handleFile(file) {
 
   // 分析失败时 analyze 返回空串，这时再去问一次原因。
   // 和上个项目一样的套路：Result 过不了 JS 边界，就拆成两个函数。
-  const report = analyze(base64);
+  let threshold;
+  try { threshold = thicknessThreshold(); } catch (err) { showError(err.message); return; }
+  const report = analyze_with_threshold(base64, threshold);
   if (report === "") {
     showError(analyze_error(base64));
     return;
   }
 
   currentBase64 = base64;
+  currentMinThickness = threshold;
   currentFields = parseReport(report);
   renderReport(currentFields);
 
@@ -439,4 +458,14 @@ dropzone.addEventListener("drop", (event) => {
   if (event.dataTransfer.files.length > 0) {
     handleFile(event.dataTransfer.files[0]);
   }
+});
+
+// 调整阈值仅重算当前报告，文件仍留在浏览器本地。
+document.getElementById("min-thickness").addEventListener("change", () => {
+  if (!currentBase64) return;
+  try {
+    currentMinThickness = thicknessThreshold();
+    currentFields = parseReport(analyze_with_threshold(currentBase64, currentMinThickness));
+    renderReport(currentFields);
+  } catch (err) { showError(err.message); }
 });

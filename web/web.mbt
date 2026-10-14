@@ -16,7 +16,12 @@
 ///
 /// 失败时返回空串，具体原因问 `analyze_error`。
 pub fn analyze(file_base64 : String) -> String {
-  match analyze_inner(file_base64) {
+  analyze_with_threshold(file_base64, 0.8)
+}
+
+///|
+pub fn analyze_with_threshold(file_base64 : String, min_thickness : Double) -> String {
+  match analyze_inner(file_base64, min_thickness) {
     Ok(lines) => lines.join("\n")
     Err(_) => ""
   }
@@ -28,7 +33,7 @@ pub fn analyze(file_base64 : String) -> String {
 /// 和 `analyze` 拆成两个函数是因为 `Result` 过不了 JavaScript 边界——
 /// 调用方看到 `analyze` 返回空串时再来问一次原因即可。
 pub fn analyze_error(file_base64 : String) -> String {
-  match analyze_inner(file_base64) {
+  match analyze_inner(file_base64, 0.8) {
     Ok(_) => ""
     Err(msg) => msg
   }
@@ -66,7 +71,7 @@ fn analyze_mesh(file_base64 : String) -> Result[@stlkit.Mesh, String] {
 
 ///|
 /// 真正的分析逻辑。
-fn analyze_inner(file_base64 : String) -> Result[Array[String], String] {
+fn analyze_inner(file_base64 : String, min_thickness : Double) -> Result[Array[String], String] {
   let data = match decode(file_base64) {
     Ok(data) => data
     Err(msg) => return Err(msg)
@@ -75,7 +80,8 @@ fn analyze_inner(file_base64 : String) -> Result[Array[String], String] {
     Ok(mesh) => mesh
     Err(msg) => return Err(msg)
   }
-  let check = @stlkit.validate_default(mesh)
+  let review = @stlkit.check_printability(mesh, min_thickness)
+  let check = review.validation
 
   let lines : Array[String] = []
   lines.push("格式|\{format_name(data)}")
@@ -114,12 +120,21 @@ fn analyze_inner(file_base64 : String) -> Result[Array[String], String] {
     lines.push(
       "主惯量|\{round3(pm[0])} / \{round3(pm[1])} / \{round3(pm[2])}",
     )
-    // 壁厚：从表面往里打射线量对面有多远。只有闭合网格才量得了
-    let thick = @stlkit.check_thickness_default(mesh)
-    if thick.hits > 0 {
-      lines.push("最薄处|\{round3(thick.min_thickness)}")
-    }
   }
+  match review.thickness {
+    Some(thick) => if thick.hits > 0 {
+      lines.push("最薄处|\{round3(thick.min_thickness)}")
+      lines.push("壁厚采样|\{thick.samples}")
+      lines.push("壁厚命中|\{thick.hits}")
+    }
+    None => ()
+  }
+  lines.push("整体朝内|\{if review.inward() { 1 } else { 0 }}")
+  lines.push("薄壁|\{if review.thin_wall() { 1 } else { 0 }}")
+  lines.push("壁厚未评估|\{if review.thickness_unavailable() { 1 } else { 0 }}")
+  lines.push("壁厚阈值|\{min_thickness}")
+  lines.push("需复核|\{review.needs_review()}")
+  lines.push("结论|\{review.verdict()}")
   lines.push("水密|\{check.is_watertight()}")
   lines.push("边界边|\{check.boundary_edge_count}")
   lines.push("非流形边|\{check.non_manifold_edge_count}")
@@ -127,7 +142,7 @@ fn analyze_inner(file_base64 : String) -> Result[Array[String], String] {
   lines.push("错误法线|\{check.wrong_normal_count}")
   // 绕向和法线是两回事：法线可以按错误的绕向重算成「自洽」的，
   // 绕向才是几何本身对不对
-  let winding = @stlkit.check_winding_default(mesh)
+  let winding = review.winding
   lines.push("绕向反了|\{winding.flipped_faces}")
   Ok(lines)
 }
@@ -172,11 +187,19 @@ fn round3(value : Double) -> String {
 /// 报告里除了「做了什么」，还带上修复前后的边界边数——只报「修复完成」
 /// 没法让人判断到底修好了没有，显示「3 → 0」才叫证据。
 pub fn fix_report(file_base64 : String) -> String {
+  fix_report_with_threshold(file_base64, 0.8)
+}
+
+///|
+pub fn fix_report_with_threshold(file_base64 : String, min_thickness : Double) -> String {
   match repair_of(file_base64) {
     Err(_) => ""
     Ok(result) => {
-      let after = @stlkit.validate_default(result.mesh)
+      let review = @stlkit.check_printability(result.mesh, min_thickness)
+      let after = review.validation
       let lines : Array[String] = []
+      lines.push("修复后需复核|\{review.needs_review()}")
+      lines.push("修复后结论|\{review.verdict()}")
       lines.push("可修复|\{result.changed()}")
       lines.push("删退化面|\{result.removed_degenerate}")
       lines.push("删重复面|\{result.removed_duplicates}")

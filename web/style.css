@@ -383,3 +383,7 @@ code {
   color: var(--muted);
   font-size: 18px;
 }
+
+.threshold-setting { padding: 12px 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); }
+.threshold-setting input { width: 90px; padding: 4px 6px; font: inherit; }
+.threshold-setting small { color: var(--muted); }
