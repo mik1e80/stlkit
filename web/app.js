@@ -44,7 +44,7 @@ function parseReport(text) {
 /// 「有 3 条边界边」对看报告的人没有意义，「切片软件分不清哪里是外面」
 /// 才有。所以每一项都配一句人话解释。
 const CHECKS = [
-  { key: "整体朝内", label: "整体朝向", ok: "未发现整体向内", bad: () => "整体有符号体积为负，请复核朝向" },
+  { key: "负体积分量", label: "分量朝向", ok: "未发现确定的负体积闭合分量；未定朝向仍需复核", bad: n => `有 ${n} 个负体积闭合分量，请复核朝向或内腔语义` },
   { key: "薄壁", label: "参考壁厚", ok: "未发现低于设定阈值的采样点", bad: () => "采样厚度低于设定阈值，请按材料和设备复核" },
   { key: "壁厚未评估", label: "壁厚评估", ok: "已取得厚度样本，仍可能漏掉局部薄处", bad: () => "当前网格无法可靠评估壁厚" },
   {
@@ -131,7 +131,7 @@ function renderReport(fields) {
   if (fields["定向包围盒"] !== undefined) {
     statRow(geo, "定向包围盒", fields["定向包围盒"], "mm");
   }
-  statRow(geo, "体积", fields["体积"] || "-", "mm³");
+  statRow(geo, fields["体积朝向已复核"] === "false" ? "有符号贡献绝对值（未验证实体）" : "体积", fields["体积"] || "-", "mm³");
   statRow(geo, "表面积", fields["表面积"] || "-", "mm²");
   // 几块互不相连的几何。不是「错误」，是得知道的信息
   statRow(geo, "零件", fields["零件"] || "1", "个");
@@ -155,6 +155,9 @@ function renderReport(fields) {
   const supports = document.getElementById("supports").value || "unknown";
   statRow(geo, "喷嘴（仅记录）", nozzle === "" ? "未指定" : nozzle, nozzle === "" ? "" : "mm");
   statRow(geo, "支撑（仅记录）", supports, "");
+  for (let i=0;i<Number(fields["绕向分量数"] || 0);i++) {
+    statRow(geo, `分量 ${i}`, fields[`分量${i}`], "");
+  }
   box.append(geo);
 
   // 校验结论
@@ -223,7 +226,7 @@ function renderReport(fields) {
   }
 
   // 有问题才给「修复」按钮。没问题的模型给个按钮反而让人以为要修什么
-  const repairKeys = ["边界边", "非流形边", "退化面", "错误法线", "绕向反了", "整体朝内"];
+  const repairKeys = ["边界边", "非流形边", "退化面", "错误法线", "绕向反了", "负体积分量"];
   if (repairKeys.some(key => Number(fields[key] || 0) > 0)) {
     const actions = document.createElement("div");
     actions.className = "fix-actions";
@@ -269,6 +272,8 @@ function runFix() {
     done.push(
       `翻转 ${fixed["翻转绕向"]} 个绕向反了的面（体积从 ${currentFields["体积"]} 修正为 ${fixed["修复后体积"]}）`
     );
+  if (Number(fixed["整体翻转分量"] || 0) > 0)
+    done.push(`按独立闭合零件假设翻转 ${fixed["整体翻转分量"]} 个负体积分量`);
   if (parseInt(fixed["重算法线"] || "0", 10) > 0)
     done.push(`重算 ${fixed["重算法线"]} 个三角形的法线`);
   if (done.length === 0) done.push("没有可以自动修复的问题");

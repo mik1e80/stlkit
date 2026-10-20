@@ -44,6 +44,12 @@ const thin = cube.split(/\r?\n/).map(line => {
   const [tag, x, y, z] = line.split(/\s+/);
   return `${tag} ${x} ${y} ${Number(z) * 0.1}`;
 }).join("\n");
+const mixed = cube.split(/\r?\n/).map(line => line.startsWith('v ')?'v '+line.slice(2).trim().split(/\s+/).map(Number).map(n=>2*n).join(' '):line).join('\n')+'\n'+
+  inward.split(/\r?\n/).map(line=>{
+    if(line.startsWith('v ')) {const v=line.slice(2).trim().split(/\s+/).map(Number);v[0]+=5;return 'v '+v.join(' ');}
+    if(line.startsWith('f ')) return 'f '+line.slice(2).trim().split(/\s+/).map(Number).map(n=>n+8).join(' ');
+    return line;
+  }).join('\n');
 function report(text, threshold = 0.8) {
   return context.parseReport(context.analyze_with_threshold(Buffer.from(text).toString("base64"), threshold));
 }
@@ -54,12 +60,29 @@ async function load(text) {
     bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) });
 }
 (async () => {
+  const packedPly = fs.readFileSync(path.join(__dirname, '..', 'examples', 'ascii-packed.ply'), 'utf8');
+  const extraPly = fs.readFileSync(path.join(__dirname, '..', 'examples', 'ascii-extra-values.ply'), 'utf8');
+  assert.equal(report(packedPly)['三角形'], '2');
+  assert.equal(report(packedPly)['表面积'], '1');
+  assert.equal(report(packedPly)['需复核'], 'true');
+  assert.equal(context.analyze(Buffer.from(extraPly).toString('base64')), '');
+  assert.match(context.analyze_error(Buffer.from(extraPly).toString('base64')), /未声明的多余数据/);
   assert.equal(report(cube)["需复核"], "false");
   assert.match(report(cube)["结论"], /不构成可打印结论/);
   assert.match(report(cube)["工艺范围"], /喷嘴、支撑/);
   assert.equal(report(cube)["采样最小厚度"], "1");
-  assert.equal(report(inward)["整体朝内"], "1");
+  assert.equal(report(inward)["负体积分量"], "1");
   assert.equal(report(inward)["需复核"], "true");
+  assert.equal(report(mixed)["负体积分量"], "1");
+  assert.equal(report(mixed)["绕向分量数"], "2");
+  assert.match(report(mixed)["分量1"], /有符号体积 -1/);
+  assert.equal(report(mixed)["需复核"], "true");
+  assert.equal(report(mixed)["体积朝向已复核"], "false");
+  assert.equal(report(mixed)["主惯量"], undefined);
+  await load(mixed);
+  assert(descendants(document.getElementById("report")).some(e => e.textContent.includes("负体积方向")));
+  context.runFix();
+  assert(descendants(document.getElementById("report")).some(e => e.className === "verdict verdict-ok"));
   assert.equal(report(thin)["薄壁"], "1");
   assert.equal(report(thin, 0.05)["需复核"], "false");
   assert.equal(report(thin, 0)["薄壁"], "0");

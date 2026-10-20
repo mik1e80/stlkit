@@ -51,6 +51,15 @@ function run(name,args,expected) {
   return r.stdout;
 }
 const cases=[];
+const opposite = cube.map(t=>t.map(v=>v.map(x=>2*x))).concat(cube.map(t=>[t[0],t[2],t[1]].map(([x,y,z])=>[x+5,y,z])));
+let oppositeObj='# Self-authored disjoint components: +8 and -1, positive aggregate +7.\n';
+for(const tri of opposite) for(const v of tri) oppositeObj+=`v ${v.join(' ')}\n`;
+for(let i=0;i<opposite.length;i++) oppositeObj+=`f ${3*i+1} ${3*i+2} ${3*i+3}\n`;
+fs.writeFileSync(path.join(dir,'opposite-parts.obj'),oppositeObj);
+const oppositeReport=run('winding-opposite',['examples/review/opposite-parts.obj','--min-thickness','0','--strict'],1);
+assert.match(oppositeReport,/分量 0.*有符号体积 8/);
+assert.match(oppositeReport,/分量 1.*有符号体积 -1/);
+run('winding-fixed',['examples/review/opposite-parts.obj','--min-thickness','0','--fix','examples/review/opposite-parts-fixed.stl','--strict'],0);
 for(const [name,nozzle,supports,threshold,status] of [
   ['cube-a','0.4','off','0.8',0], ['cube-b','0.8','on','1.2',1], ['cube-c','0.4','on','0.8',0]
 ]) {

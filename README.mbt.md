@@ -18,7 +18,7 @@ MoonBit 的 STL / OBJ / 3MF / PLY 网格工具链。安装、命令行和网页�
 | `parse_stl_ascii(text)` / `parse_stl_binary(data)` | STL 读取 |
 | `parse_obj(text)` | OBJ 顶点、法线、负索引和多边形面；支持空格、制表符、CRLF、行内注释 |
 | `parse_3mf(data)` | ZIP / XML、对象引用、组件变换与单位 |
-| `parse_ply(data)` | ASCII / 小端 / 大端 PLY，按声明跳过未知属性 |
+| `parse_ply(data, lenient_ascii=false)` | ASCII / 小端 / 大端 PLY；默认连续按声明消费正文，不丢弃行尾 token |
 | `write_stl_ascii(mesh)` / `write_stl_binary(mesh)` | STL 导出 |
 | `write_obj(mesh)` | OBJ 导出 |
 | `write_ply_ascii(mesh)` / `write_ply_binary(mesh)` | PLY 导出，统一容差去重 |
@@ -26,11 +26,19 @@ MoonBit 的 STL / OBJ / 3MF / PLY 网格工具链。安装、命令行和网页�
 
 OBJ / PLY 的三角形原样保留，由校验层检查退化性。平面简单凸多边形保留扇形切分；凹多边形用耳切，并保持绕向。自相交和非平面多边形明确报错，不猜测几何。未实现 OBJ 材质渲染以及完整 3MF 颜色、材料与扩展语义。
 
+ASCII PLY 默认严格按声明消费正文：记录可跨行或共用一行，未知元素、标量与变长列表照声明读取后丢弃，拒绝缺失值和声明外的尾随 token。面先声明也可读取，索引验证延后到顶点表完整之后。header 仍按行读取；“严格”描述正文布局规则，不表示完整 PLY 规范验证。仅有点云的文件仍报错。
+
+`parse_ply(data, lenient_ascii=true)` 显式启用异常 ASCII 文件的逐行兼容：一行一条记录，丢弃该行未声明的余项，行内缺少声明值时报错，不跨行补齐。这会有意丢弃数据，调用方应先确认布局；不能用于多条记录共用一行。该选项对二进制输入无影响。`parse_mesh()`、CLI、网页保持默认模式，不做失败后自动回退。普通 `parse_ply(data)` 调用方式保留；依赖旧版隐式忽略行尾数据的调用方需修正文件声明或显式启用兼容模式。
+
 ## 校验与打印前复核
 
 `validate_default(mesh)` 返回三角形数、去重顶点数、边界边、非流形边、退化面、错误声明法线与边计数。退化检查包含顶点合并和三点共线两种情况。
 
-`check_winding_default(mesh)` 检查相邻面的绕向，并返回总体有符号体积。相邻绕向一致不代表整体朝外。总体体积为负时需要复核；这不是逐个连通壳层的内外嵌套分类。
+`check_winding_default(mesh)` 按共享边连通分量检查绕向。`WindingReport.components` 的每项包含本次报告的分量编号 `index`、原始面索引 `faces`、`closed`、`consistent`、`flipped_faces`、`signed_volume`、`orientation` 和包围盒。重排输入面可能改变分量编号；总体 `signed_volume` 仅作兼容汇总，不能让正体积大零件掩盖负体积小零件。
+
+`orientation` 为 `PositiveVolume`、`NegativeVolume` 或 `Indeterminate`；开放、零体积或存在绕向冲突时不判断朝内外。`negative_components()` 返回确定的负体积闭合分量数；`orientation_reliable()` 要求非空、所有分量为正且没有可能嵌套 / 重叠标记。`potentially_nested` 基于包围盒重叠 / 接触的保守筛选，不是精确壳层分类。各分量使用局部原点与补偿求和，降低平移造成的体积相消。
+
+`unify_winding()` 统一可定向分量的相邻绕向，按独立实心零件假设翻转包围盒互不重叠的闭合负体积分量；潜在嵌套壳层保持整体符号。`RepairResult.reoriented_components` 计整体翻转分量数，原 `flipped_faces` 的局部调整语义保留，`changed()` 包含两者。
 
 本次源码新增的统一入口：
 
@@ -38,12 +46,15 @@ OBJ / PLY 的三角形原样保留，由校验层检查退化性。平面简单�
 // mesh 是已解析的网格。0.5 是调用方选择的参考壁厚，单位毫米。
 let review = @stlkit.check_printability(mesh, 0.5)
 println(review.verdict())
+println(review.inward_component_count()) // 确定的负体积闭合分量数
 if review.needs_review() {
   println("请按报告检查模型和加工条件")
 }
 ```
 
-`PrintabilityReport` 包含 `validation`、`winding`、可选的 `thickness` 和 `min_thickness`。`inward()`、`thin_wall()`、`thickness_unavailable()` 用于显示具体问题；`needs_review()` 和 `verdict()` 被 CLI 与网页共用。
+`PrintabilityReport` 包含 `validation`、`winding`、可选的 `thickness` 和 `min_thickness`。`inward_component_count()` 从 `winding.components` 返回确定的负体积闭合分量数，不保存重复计数；兼容方法 `inward()` 等价于该计数大于 0。两者不依赖总体积；负号不直接等于设计错误，内腔仍须人工解释。
+
+`thin_wall()`、`thickness_unavailable()` 表示具体问题；`needs_review()` 和 `verdict()` 被 CLI 与网页共用。`needs_review()` 独立检查分量朝向，任一负体积、朝向未定或可能嵌套 / 重叠均须复核，不依赖厚度是否可用来间接拦截。即使调用方替换了公开报告的 `thickness` 字段，分量问题仍触发复核。负体积分量数为 0 不等于无需复核。
 
 参考阈值为非负有限数，0 不设薄壁阈值。CLI 默认 0.8mm，网页版可调整；它是参考值，不是通用工艺标准。结果为“本次网格检查未发现已覆盖的问题”或“本次检查发现需要复核的问题”，不承诺打印成功。
 
@@ -55,7 +66,7 @@ if review.needs_review() {
 
 `check_thickness(mesh, samples)` / `check_thickness_default(mesh)` 从确定性表面采样点沿内法线打射线，记录命中数、采样最小厚度、命中样本平均值和最小样本位置。默认 1000 次采样，每条射线遍历三角形，时间复杂度约为 O(samples × faces)。
 
-报告是局部采样估计，可能漏掉未采样的薄处；射线起点的微小偏移也影响数值。命中数为 0 表示无法评估，不能解读为实际壁厚 0。统一复核入口在网格开放、退化、相邻绕向异常或总体体积非正时不作可靠壁厚估计。
+报告是局部采样估计，可能漏掉未采样的薄处；射线起点的微小偏移也影响数值。命中数为 0 表示无法评估，不能解读为实际壁厚 0。统一复核入口在网格开放、退化、任一分量朝向非正或未定、可能嵌套 / 重叠时不作可靠壁厚估计。
 
 trimesh 的 `trimesh.proximity.thickness()` 同样提供厚度查询。本项目实现的是 MoonBit 的确定性采样与射线报告，不宣称该能力独有。
 
@@ -63,7 +74,9 @@ trimesh 的 `trimesh.proximity.thickness()` 同样提供厚度查询。本项目
 
 - `Mesh::volume()`：有符号四面体贡献求和后取绝对值；开放或绕向异常时不能作为可信实体体积。
 - `Mesh::surface_area()`、`bounding_box()`：现有三角形的面积与轴对齐包围盒。
-- `oriented_bounding_box()`：PCA 方向的包围盒，不保证最小体积。
+- `oriented_bounding_box()`：PCA 方向的包围盒，不保证最小体积。协方差矩阵由 Jacobi 一次分解为完整正交基，两重或三重特征值均不再分别求向量；重复特征值下方向不唯一，不能保证恢复模型原始边方向。
+- `symmetric_eigendecomposition(m)`：输入至少九项、按行排列的有限实对称 3×3 矩阵，使用上三角；返回 `SymmetricEigen`，`values` 为降序特征值，`vectors` 为对应正交轴。内部先缩放，最多 64 次最大非对角元 Jacobi 旋转；是 Double 数值算法，不保证任意尺度的精确结果。
+- `symmetric_eigenvalues(m)` 保留并复用上述分解。`symmetric_eigenvector(m, lambda)` 选择最接近 lambda 的单个基向量；同一重根反复查询返回同一选择，要取得完整基应使用分解接口。
 - `count_parts_default(mesh)`：按共享边连通数零件，只有点接触不算连通。
 - `ValidationReport::euler_number()`：χ = V − E + F。对闭合可定向曲面，χ = 2k − 2Σg；不能脱离这些前提解释“洞”的数量。
 - `center_mass()`、`moment_inertia()`、`principal_moments()`：密度取 1，需结合闭合性和朝向解释。

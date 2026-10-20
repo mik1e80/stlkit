@@ -11,9 +11,8 @@
 //   2. 协方差矩阵的特征向量就是「顶点分布最开的三个方向」
 //   3. 把顶点投影到这三个方向上，取各自的极值
 //
-// 严格说 PCA 求的不是**最小体积**包围盒（那个要靠旋转卡壳，很难写），
-// 但对「模型实际占多大地方」这个问题，PCA 的结果通常已经很接近了。
-// 这一点在文档里会说明，不装作是精确解。
+// PCA 不保证最小体积；重复特征值下轴向不唯一。
+// 通过一次 Jacobi 分解取得完整正交基，再包围输入顶点。
 
 ///|
 /// 有向包围盒。
@@ -87,28 +86,8 @@ pub fn Mesh::oriented_bounding_box(self : Mesh) -> Obb? {
   cov[7] = yz / n
   cov[8] = zz / n
 
-  // 特征值从大到小，对应的特征向量就是主轴
-  let values = symmetric_eigenvalues(cov)
-  let axes : Array[Vec3] = []
-  // 三个特征值几乎相等 → 点云是**各向同性**的，主轴不唯一。
-  //
-  // 立方体就是典型：它的顶点关于中心完全对称，任何一组正交基都同样「正确」。
-  // 这时候特征向量算出来是什么方向，完全由浮点噪声决定——盒子会歪着包上去，
-  // 算出来的体积明显大于真实体积。
-  //
-  // PCA 本身给不出更好的答案（要精确解得上凸包 + 旋转卡壳）。
-  // 这种情况退回轴对齐：方向虽然不一定最优，但至少是**紧的**
-  let spread = values[0] - values[2]
-  let scale = if values[0] > 0.0 { values[0] } else { 1.0 }
-  if spread / scale < 1.0e-9 {
-    axes.push(Vec3::new(1.0, 0.0, 0.0))
-    axes.push(Vec3::new(0.0, 1.0, 0.0))
-    axes.push(Vec3::new(0.0, 0.0, 1.0))
-  } else {
-    for k = 0; k < 3; k = k + 1 {
-      axes.push(symmetric_eigenvector(cov, values[k]))
-    }
-  }
+  // 一次分解返回完整正交基；重复特征值不能分别取零空间向量。
+  let axes = symmetric_eigendecomposition(cov).vectors
 
   // 把顶点投影到三个轴上，各取极值。
   // 投影的基准取重心——选哪里都行，取重心数值上稳一些

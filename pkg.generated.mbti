@@ -30,7 +30,7 @@ pub fn parse_mesh(Bytes) -> Result[Mesh, String]
 
 pub fn parse_obj(String) -> Result[Mesh, String]
 
-pub fn parse_ply(Bytes) -> Result[Mesh, String]
+pub fn parse_ply(Bytes, lenient_ascii? : Bool) -> Result[Mesh, String]
 
 pub fn parse_stl(Bytes) -> Result[Mesh, String]
 
@@ -49,6 +49,8 @@ pub fn review_scope() -> String
 pub fn stream_stl_ascii(String) -> Result[StreamReport, String]
 
 pub fn stream_stl_binary(Bytes) -> Result[StreamReport, String]
+
+pub fn symmetric_eigendecomposition(FixedArray[Double]) -> SymmetricEigen
 
 pub fn symmetric_eigenvalues(FixedArray[Double]) -> FixedArray[Double]
 
@@ -134,6 +136,7 @@ pub(all) struct PrintabilityReport {
   min_thickness : Double
 }
 pub fn PrintabilityReport::inward(Self) -> Bool
+pub fn PrintabilityReport::inward_component_count(Self) -> Int
 pub fn PrintabilityReport::needs_review(Self) -> Bool
 pub fn PrintabilityReport::thickness_unavailable(Self) -> Bool
 pub fn PrintabilityReport::thin_wall(Self) -> Bool
@@ -164,6 +167,7 @@ pub(all) struct RepairResult {
   added_triangles : Int
   recomputed_normals : Int
   flipped_faces : Int
+  reoriented_components : Int
 }
 pub fn RepairResult::changed(Self) -> Bool
 
@@ -193,6 +197,11 @@ pub(all) struct StreamReport {
   bbox : Aabb?
 }
 pub fn StreamReport::is_watertight(Self) -> Bool
+
+pub(all) struct SymmetricEigen {
+  values : FixedArray[Double]
+  vectors : Array[Vec3]
+}
 
 pub(all) struct ThicknessReport {
   samples : Int
@@ -247,11 +256,35 @@ pub(all) struct WeldResult {
   unique_count : Int
 }
 
+pub(all) struct WindingComponent {
+  index : Int
+  faces : Array[Int]
+  flipped_faces : Int
+  closed : Bool
+  consistent : Bool
+  signed_volume : Double
+  orientation : WindingOrientation
+  bounds : Aabb
+  potentially_nested : Bool
+}
+
+pub(all) enum WindingOrientation {
+  PositiveVolume
+  NegativeVolume
+  Indeterminate
+} derive(Eq)
+pub fn WindingOrientation::equal(Self, Self) -> Bool
+pub fn WindingOrientation::label(Self) -> String
+pub fn WindingOrientation::not_equal(Self, Self) -> Bool
+
 pub(all) struct WindingReport {
   flipped_faces : Int
   consistent : Bool
   signed_volume : Double
+  components : Array[WindingComponent]
 }
+pub fn WindingReport::negative_components(Self) -> Int
+pub fn WindingReport::orientation_reliable(Self) -> Bool
 
 // Type aliases
 

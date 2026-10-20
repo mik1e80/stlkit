@@ -51,3 +51,24 @@ run(["examples/cube.obj", "--supports", "auto"], 1, /on\/off\/unknown/);
 run([fixedPath, "--stream-only"], 0, /并非固定总内存/);
 run(["examples/cube.stl", "--stream-only"], 1, /只支持二进制/);
 run(["examples/cube.stl", "--stream-only", "--strict"], 1, /只接受文件路径/);
+const bigCube = cube.split(/\r?\n/).map(line => line.startsWith('v ')
+  ? 'v ' + line.slice(2).trim().split(/\s+/).map(Number).map(n=>2*n).join(' ') : line).join('\n');
+const smallInward = inward.split(/\r?\n/).map(line => {
+  if(line.startsWith('v ')) { const v=line.slice(2).trim().split(/\s+/).map(Number); v[0]+=5; return 'v '+v.join(' '); }
+  if(line.startsWith('f ')) return 'f '+line.slice(2).trim().split(/\s+/).map(Number).map(n=>n+8).join(' ');
+  return line;
+}).join('\n');
+const mixedPath = path.join(dir,'mixed-parts.obj');
+fs.writeFileSync(mixedPath,bigCube+'\n'+smallInward);
+const mixedReport = run([mixedPath,'--strict'],1,/分量 1.*有符号体积 -1/);
+assert.match(mixedReport,/分量 0.*有符号体积 8/);
+const mixedFixed = path.join(dir,'mixed-fixed.stl');
+run([mixedPath,'--fix',mixedFixed,'--strict'],0,/翻转 1 个负体积分量/);
+run([mixedFixed,'--strict'],0,/未发现已覆盖的问题/);
+
+// PLY 解析的默认严格行为与几何复核分开验证：开放方片可读，但仍须复核。
+const packedPly = run(['examples/ascii-packed.ply'], 0);
+assert.match(packedPly, /三角形\s+2 个/);
+assert.match(packedPly, /表面积\s+1 mm²/);
+run(['examples/ascii-packed.ply', '--strict'], 1, /边界边/);
+run(['examples/ascii-extra-values.ply'], 1, /未声明的多余数据/);

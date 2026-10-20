@@ -114,11 +114,12 @@ fn analyze_inner(
     None => ()
   }
   lines.push("体积|\{round3(mesh.volume())}")
+  lines.push("体积朝向已复核|\{review.winding.orientation_reliable()}")
   lines.push("表面积|\{round3(mesh.surface_area())}")
   // 几块互不相连的几何。大于 1 说明打出来是几个独立的零件
   lines.push("零件|\{@stlkit.count_parts_default(mesh)}")
   // 欧拉示性数和质量属性都只在网格闭合时才有意义，不水密就不报
-  if check.is_watertight() {
+  if check.is_watertight() && review.winding.orientation_reliable() {
     lines.push("欧拉数|\{check.euler_number()}")
     let c = mesh.center_mass()
     lines.push("重心|\{round3(c.x)}, \{round3(c.y)}, \{round3(c.z)}")
@@ -136,7 +137,13 @@ fn analyze_inner(
       }
     None => ()
   }
-  lines.push("整体朝内|\{if review.inward() { 1 } else { 0 }}")
+  lines.push("负体积分量|\{review.inward_component_count()}")
+  lines.push("绕向分量数|\{review.winding.components.length()}")
+  for component in review.winding.components {
+    lines.push(
+      "分量\{component.index}|\{component.faces.length()} 面；有符号体积 \{round3(component.signed_volume)} mm³；\{component.orientation.label()}；闭合 \{component.closed}；绕向一致 \{component.consistent}；可能嵌套或重叠 \{component.potentially_nested}",
+    )
+  }
   lines.push("薄壁|\{if review.thin_wall() { 1 } else { 0 }}")
   lines.push(
     "壁厚未评估|\{if review.thickness_unavailable() { 1 } else { 0 }}",
@@ -219,6 +226,7 @@ pub fn fix_report_with_threshold(
       lines.push("补洞新增|\{result.added_triangles}")
       lines.push("重算法线|\{result.recomputed_normals}")
       lines.push("翻转绕向|\{result.flipped_faces}")
+      lines.push("整体翻转分量|\{result.reoriented_components}")
       lines.push("修复后体积|\{round3(result.mesh.volume())}")
       lines.push("修复后水密|\{after.is_watertight()}")
       lines.push("修复后边界边|\{after.boundary_edge_count}")

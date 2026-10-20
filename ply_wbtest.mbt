@@ -29,10 +29,7 @@ fn cube_ply_parts() -> (Array[(Double, Double, Double)], Array[(Int, Int, Int)])
 
 ///|
 /// 顶点表里找这个点，没有就加进去并返回新编号。
-fn intern_vertex(
-  verts : Array[(Double, Double, Double)],
-  v : Vec3,
-) -> Int {
+fn intern_vertex(verts : Array[(Double, Double, Double)], v : Vec3) -> Int {
   for i, e in verts {
     let (x, y, z) = e
     if x == v.x && y == v.y && z == v.z {
@@ -115,11 +112,7 @@ fn binary_ply(
   verts : Array[(Double, Double, Double)],
   faces : Array[(Int, Int, Int)],
 ) -> Bytes {
-  let kind = if big {
-    "binary_big_endian"
-  } else {
-    "binary_little_endian"
-  }
+  let kind = if big { "binary_big_endian" } else { "binary_little_endian" }
   let mut head = "ply\nformat " + kind + " 1.0\n"
   head = head + "element vertex \{verts.length()}\n"
   head = head + "property float x\nproperty float y\nproperty float z\n"
@@ -256,12 +249,7 @@ test "PLY 的顶点编号从 0 开始，不是从 1" {
 }
 
 ///|
-test "行尾多出没声明的值时，不能把后面的元素带偏" {
-  // 真实例子：trimesh 自带的 `fuze_ascii.ply`，头里声明每个 face 15 个值，
-  // 实际数据每行有 21 个。按 token 流一路读下去的话，第一行多出来的值
-  // 会让后面所有面错位，报一个莫名其妙的「编号不是整数：0.629012」。
-  //
-  // 处理办法是读完一个元素就跳到下一行。这条测试钉住这个行为
+test "未声明的行尾数据在默认模式下报错" {
   let text = "ply\nformat ascii 1.0\n" +
     "element vertex 3\n" +
     "property float x\nproperty float y\nproperty float z\n" +
@@ -270,13 +258,10 @@ test "行尾多出没声明的值时，不能把后面的元素带偏" {
     "end_header\n" +
     "0 0 0\n1 0 0\n0 1 0\n" +
     "3 0 1 2 99 99 99 99\n"
-  let mesh = match parse_ply(@utf8.encode(text)) {
-    Ok(m) => m
-    Err(msg) => fail("行尾多几个值不该导致失败：\{msg}")
+  match parse_ply(@utf8.encode(text)) {
+    Ok(_) => fail("不能默认丢弃未声明的数据")
+    Err(msg) => assert_true(msg.contains("多余"))
   }
-  assert_eq(mesh.triangle_count(), 1)
-  // 面积对得上说明三个顶点没读错位
-  assert_true(close(mesh.surface_area(), 0.5))
 }
 
 ///|
@@ -297,6 +282,129 @@ test "一个元素跨多行也能读" {
   }
   assert_eq(mesh.triangle_count(), 1)
   assert_true(close(mesh.surface_area(), 0.5))
+}
+
+///|
+test "ASCII PLY 所有顶点和面共用一行且不以换行结尾" {
+  let text = "ply\nformat ascii 1.0\n" +
+    "element vertex 4\nproperty float x\nproperty float y\nproperty float z\n" +
+    "element face 2\nproperty list uchar int vertex_indices\nend_header\n" +
+    "0 0 0 1 0 0 1 1 0 0 1 0 3 0 1 2 3 0 2 3"
+  let mesh = match parse_ply(@utf8.encode(text)) {
+    Ok(m) => m
+    Err(msg) => fail("同一行记录不应丢失：\{msg}")
+  }
+  assert_eq(mesh.triangle_count(), 2)
+  assert_true(close(mesh.surface_area(), 1.0))
+  assert_true(close(mesh.triangles[1].c.x, 0.0))
+  assert_true(close(mesh.triangles[1].c.y, 1.0))
+  assert_true(close(mesh.triangles[1].c.z, 0.0))
+}
+
+///|
+test "ASCII PLY 跨行记录后仍能紧接下一条记录" {
+  let text = "ply\nformat ascii 1.0\n" +
+    "element vertex 3\nproperty float x\nproperty float y\nproperty float z\n" +
+    "element face 1\nproperty list uchar int vertex_indices\nend_header\n" +
+    "0\n0 0 1 0\n0 0 1 0 3\n0 1 2\n"
+  let mesh = match parse_mesh(@utf8.encode(text)) {
+    Ok(m) => m
+    Err(msg) => fail("统一入口不应丢弃跨行后的 token：\{msg}")
+  }
+  assert_eq(mesh.triangle_count(), 1)
+  assert_true(close(mesh.surface_area(), 0.5))
+}
+
+///|
+test "ASCII PLY 重排空白不改变立方体几何" {
+  let (verts, faces) = cube_ply_parts()
+  let original = @utf8.decode_lossy(ascii_ply("", "", verts, faces))
+  let marker = "end_header\n"
+  let sections = original.split(marker).collect()
+  let header = sections[0].to_owned() + marker
+  let tokens = ascii_tokens(sections[1])
+  let whitespace = @utf8.decode_lossy(
+    Bytes::from_array([b' ', b'\t', b'\r', b'\n', b'\x0b', b'\x0c']),
+  )
+  for separator in [" ", "\n", "\r\n", whitespace] {
+    let body = tokens.map(t => t.to_owned()).join(separator)
+    let mesh = match parse_mesh(@utf8.encode(header + body + separator)) {
+      Ok(m) => m
+      Err(msg) => fail("重排空白后解析失败：\{msg}")
+    }
+    assert_eq(mesh.triangle_count(), 12)
+    assert_true(close(mesh.volume(), 1.0))
+    assert_true(close(mesh.surface_area(), 6.0))
+  }
+}
+
+///|
+test "ASCII PLY 按声明顺序消费未知元素及标量和变长列表" {
+  let text = "ply\r\nformat\tascii\t1.0\r\n" +
+    "element edge 2\r\nproperty list uchar float vertex_indices\r\nproperty float score\r\n" +
+    "element vertex 4\r\nproperty float z\r\nproperty list uchar float quality\r\n" +
+    "property float x\r\nproperty uchar red\r\nproperty float y\r\n" +
+    "element face 2\r\nproperty uchar tag\r\nproperty list uchar int vertex_indices\r\n" +
+    "property list uchar float uv\r\nend_header\r\n" +
+    "2 99.25 100.5 0.5 0 1.5 " +
+    "0 2 5.5 6.5 0 255 0 0 0 1 128 0 0 1 9 1 64 1 0 0 0 0 1 " +
+    "7 3 0 1 2 2 0.1 0.2 9 3 0 2 3 0"
+  let mesh = match parse_ply(@utf8.encode(text)) {
+    Ok(m) => m
+    Err(msg) => fail("跳过声明属性后不得错位：\{msg}")
+  }
+  assert_eq(mesh.triangle_count(), 2)
+  assert_true(close(mesh.surface_area(), 1.0))
+}
+
+///|
+test "PLY 面先于顶点声明时仍按 header 顺序读取" {
+  let text = "ply\nformat ascii 1.0\n" +
+    "element face 1\nproperty list uchar int vertex_indices\n" +
+    "element vertex 3\nproperty float x\nproperty float y\nproperty float z\n" +
+    "end_header\n3 0 1 2 0 0 0 1 0 0 0 1 0"
+  let mesh = match parse_ply(@utf8.encode(text)) {
+    Ok(m) => m
+    Err(msg) => fail("面索引应在顶点读取完成后验证：\{msg}")
+  }
+  assert_eq(mesh.triangle_count(), 1)
+  assert_true(close(mesh.surface_area(), 0.5))
+}
+
+///|
+test "只有显式宽松模式才允许丢弃每条记录的行尾数据" {
+  let text = "ply\nformat ascii 1.0\n" +
+    "element metadata 2\n" +
+    "element vertex 3\nproperty float x\nproperty float y\nproperty float z\n" +
+    "element face 1\nproperty list uchar int vertex_indices\nend_header\n" +
+    "0 0 0 99\n1 0 0 99\n0 1 0 99\n3 0 1 2 88 77\n"
+  assert_true(parse_ply(@utf8.encode(text)) is Err(_))
+  assert_true(parse_mesh(@utf8.encode(text)) is Err(_))
+  let mesh = match parse_ply(@utf8.encode(text), lenient_ascii=true) {
+    Ok(m) => m
+    Err(msg) =>
+      fail("显式兼容模式应能读取行尾额外数据：\{msg}")
+  }
+  assert_eq(mesh.triangle_count(), 1)
+  assert_true(close(mesh.surface_area(), 0.5))
+}
+
+///|
+test "ASCII PLY 列表截断报错且宽松模式不借用下一行补属性" {
+  let header = "ply\nformat ascii 1.0\n" +
+    "element vertex 3\nproperty float x\nproperty float y\nproperty float z\n" +
+    "element face 1\nproperty list uchar int vertex_indices\nend_header\n"
+  let truncated = @utf8.encode(header + "0 0 0 1 0 0 0 1 0 3 0 1")
+  match parse_ply(truncated) {
+    Ok(_) => fail("列表缺失最后一个索引不得成功")
+    Err(msg) => assert_true(msg.contains("截断"))
+  }
+  let split_record = @utf8.encode(header + "0 0\n0 1 0 0 0 1 0 3 0 1 2")
+  assert_true(parse_ply(split_record) is Ok(_))
+  match parse_ply(split_record, lenient_ascii=true) {
+    Ok(_) => fail("宽松模式不能猜测跨行记录")
+    Err(msg) => assert_true(msg.contains("当前行属性不足"))
+  }
 }
 
 ///|
@@ -627,9 +735,7 @@ test "导出的 PLY 头是合规的" {
   assert_true(text.contains("end_header\n"))
   let bin = write_ply_binary(cube_mesh())
   assert_true(
-    @utf8
-      .decode_lossy(bin[:40])
-      .contains("format binary_little_endian 1.0"),
+    @utf8.decode_lossy(bin[:40]).contains("format binary_little_endian 1.0"),
   )
 }
 

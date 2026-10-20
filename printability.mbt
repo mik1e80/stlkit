@@ -21,7 +21,7 @@ pub fn check_printability(
     !validation.is_watertight() ||
     validation.degenerate_count > 0 ||
     winding.flipped_faces > 0 ||
-    winding.signed_volume <= 0.0 {
+    !winding.orientation_reliable() {
     None
   } else {
     Some(check_thickness(mesh, samples))
@@ -30,8 +30,17 @@ pub fn check_printability(
 }
 
 ///|
+/// 确定为负体积的闭合分量数；负号也可能对应合法内腔，需要复核。
+/// 从分量明细计算，避免与 winding.components 保存重复且可能不一致的计数。
+pub fn PrintabilityReport::inward_component_count(
+  self : PrintabilityReport,
+) -> Int {
+  self.winding.negative_components()
+}
+
+///|
 pub fn PrintabilityReport::inward(self : PrintabilityReport) -> Bool {
-  self.validation.is_watertight() && self.winding.signed_volume < 0.0
+  self.inward_component_count() > 0
 }
 
 ///|
@@ -66,6 +75,7 @@ pub fn PrintabilityReport::needs_review(self : PrintabilityReport) -> Bool {
   self.validation.wrong_normal_count > 0 ||
   self.winding.flipped_faces > 0 ||
   self.inward() ||
+  !self.winding.orientation_reliable() ||
   self.thin_wall() ||
   self.thickness_unavailable()
 }

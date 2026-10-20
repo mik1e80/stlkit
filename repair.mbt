@@ -25,7 +25,7 @@ pub(all) struct RepairOptions {
   fill_holes : Bool
   /// 重算法线
   recompute_normals : Bool
-  /// 统一绕向。把顶点顺序写反的面翻回来，并保证整体朝外
+  /// 统一相邻绕向，并将包围盒互不重叠的独立闭合分量调整为正体积方向。
   unify_winding : Bool
 }
 
@@ -74,8 +74,10 @@ pub(all) struct RepairResult {
   added_triangles : Int
   /// 重算过法线的三角形数量
   recomputed_normals : Int
-  /// 翻转过的面数（绕向被统一到一致）。不含「整体朝里时全体翻转」那一次
+  /// 相邻绕向一致性调整的面数，不含分量整体翻转。
   flipped_faces : Int
+  /// Isolated closed components whose entire direction was reversed.
+  reoriented_components : Int
 }
 
 ///|
@@ -85,7 +87,8 @@ pub fn RepairResult::changed(self : RepairResult) -> Bool {
   self.removed_duplicates > 0 ||
   self.filled_holes > 0 ||
   self.recomputed_normals > 0 ||
-  self.flipped_faces > 0
+  self.flipped_faces > 0 ||
+  self.reoriented_components > 0
 }
 
 ///|
@@ -150,14 +153,17 @@ pub fn repair(mesh : Mesh, options : RepairOptions) -> RepairResult {
   // 的顺序重算法线是**自洽的**（法线和绕向一致），但几何还是错的——
   // 体积求和时它的贡献符号反了。
   let mut flipped_faces = 0
+  let mut reoriented_components = 0
   if options.unify_winding {
     let before = check_winding(Mesh::new(result), options.tolerance)
     flipped_faces = before.flipped_faces
-    // 整体朝里的网格有符号体积是负的，也要整体翻一遍。那一次不计入
-    // flipped_faces——它是「换个方向看」，不是「这个面写错了」
-    if before.flipped_faces > 0 || before.signed_volume < 0.0 {
-      result = unify_winding(Mesh::new(result), options.tolerance).triangles
-    }
+    // 分量整体翻转单独计数；可能嵌套/重叠的壳层保留符号。
+    let (aligned, count) = unify_winding_details(
+      Mesh::new(result),
+      options.tolerance,
+    )
+    result = aligned.triangles
+    reoriented_components = count
   }
 
   // 重算法线。放在最后——删面、补洞、翻转绕向都会改变法线，先算就白算了。
@@ -184,6 +190,7 @@ pub fn repair(mesh : Mesh, options : RepairOptions) -> RepairResult {
     added_triangles,
     recomputed_normals: recomputed,
     flipped_faces,
+    reoriented_components,
   }
 }
 

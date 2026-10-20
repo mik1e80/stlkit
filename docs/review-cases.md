@@ -35,7 +35,13 @@ moon run cmd/main examples/review/sampling-blindspot.obj --samples 3084 --min-th
 
 算法按三角形编号确定性取样，不按面积加权；沿几何法线反向取首个射线命中，结果受面顺序、采样数、几何朝向、浮点精度及起点偏移影响。默认预算 1000；CLI 的 `--samples` 可取 1..100000。提高预算可能发现更多薄处，但不保证达到全局最小壁厚，时间约 O(samples×faces)，目前没有空间加速结构。
 
-统一网格报告仅在非空、边计数闭合、无退化面、相邻绕向一致且总体有符号体积为正时取样。上述条件仍不能排除网格自相交、全部非流形顶点或多个壳层的朝向问题。低层 `check_thickness()` 由调用方负责核对前提；没有命中表示未评估，不表示实际厚度为零。
+统一网格报告仅在非空、边计数闭合、无退化面、所有连通分量绕向一致且均为正体积方向、没有可能嵌套或重叠标记时取样。上述条件仍不能排除网格自相交、全部非流形顶点或精确的壳层关系。低层 `check_thickness()` 由调用方负责核对前提；没有命中表示未评估，不表示实际厚度为零。
+
+## 总体积为正也可能存在反向零件
+
+`examples/review/opposite-parts.obj` 包含相互分离的大立方体和小立方体，分量体积为 +8、−1，总和 +7。运行 `moon run cmd/main examples/review/opposite-parts.obj --min-thickness 0 --strict`，应退出 1，报告两个分量的面索引所属编号、符号及朝向状态，暂停厚度评估。
+
+`node scripts/review-cases.cjs` 还调用实际修复路径，按独立闭合零件假设翻转小立方体，复核体积为 +8、+1。原始报告保存于 `winding-opposite.txt`、`winding-fixed.txt`。内腔或包围盒重叠的壳层不自动翻转；相应保留反例见 `winding_component_wbtest.mbt`。
 
 ## 流式省去完整网格，总存储仍增长
 

@@ -438,7 +438,13 @@ fn report(
     }
     None => ()
   }
-  println("  体积      \{fmt(mesh.volume(), 3)} mm³")
+  if review.winding.orientation_reliable() {
+    println("  体积      \{fmt(mesh.volume(), 3)} mm³")
+  } else {
+    println(
+      "  有符号贡献绝对值 \{fmt(mesh.volume(), 3)} mm³（朝向未通过复核，不作可靠实体体积）",
+    )
+  }
   println("  表面积    \{fmt(mesh.surface_area(), 3)} mm²")
   // 零件数：几块互不相连的几何。单独一项显示，不是「错误」——
   // 分开的零件本身是合法模型，只是要知道
@@ -447,7 +453,7 @@ fn report(
   // 欧拉示性数只在网格水密时才有拓扑含义（2 = 一个实心块，0 = 有一个
   // 穿透的洞……）。不水密的时候它只是「顶点数减边数加面数」，
   // 报出来会让人以为读出了什么，所以不显示
-  if check.is_watertight() {
+  if check.is_watertight() && review.winding.orientation_reliable() {
     println(
       "  欧拉数    \{check.euler_number()}（单个闭合可定向曲面：χ = 2 − 2g）",
     )
@@ -506,6 +512,16 @@ fn report(
 /// 哪里是外面」才知道要修。
 fn print_findings(review : @stlkit.PrintabilityReport, parts : Int) -> Unit {
   println("  \{@stlkit.review_scope()}")
+  for component in review.winding.components {
+    println(
+      "  分量 \{component.index}：\{component.faces.length()} 面；有符号体积 \{fmt(component.signed_volume, 6)} mm³；\{component.orientation.label()}；闭合 \{component.closed}；绕向一致 \{component.consistent}",
+    )
+    if component.potentially_nested {
+      println(
+        "    ⚠ 分量包围盒重叠，未判定内腔或壳层嵌套，不自动改变整体方向",
+      )
+    }
+  }
   let check = review.validation
   if check.boundary_edge_count > 0 {
     println(
@@ -529,7 +545,9 @@ fn print_findings(review : @stlkit.PrintabilityReport, parts : Int) -> Unit {
     )
   }
   if review.inward() {
-    println("  ⚠ 整体有符号体积为负，请复核向内的朝向")
+    println(
+      "  ⚠ 有 \{review.inward_component_count()} 个闭合分量的有符号体积为负，请复核朝向或内腔语义",
+    )
   }
   if review.thin_wall() {
     println(
@@ -562,7 +580,7 @@ fn fix_and_save(
     before.degenerate_count == 0 &&
     before.wrong_normal_count == 0 &&
     winding.flipped_faces == 0 &&
-    winding.signed_volume >= 0.0 {
+    winding.orientation_reliable() {
     println("")
     println("未发现当前自动修复能处理的网格问题。")
     return Ok(
@@ -591,6 +609,11 @@ fn fix_and_save(
   }
   if fixed.recomputed_normals > 0 {
     println("  重算 \{fixed.recomputed_normals} 个三角形的法线")
+  }
+  if fixed.reoriented_components > 0 {
+    println(
+      "  按独立闭合零件假设翻转 \{fixed.reoriented_components} 个负体积分量",
+    )
   }
   if fixed.flipped_faces > 0 {
     // 把体积的变化也打出来 —— 绕向反了是「看不出来的坏」，

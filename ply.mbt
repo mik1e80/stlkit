@@ -76,7 +76,12 @@ pub fn is_ply(data : Bytes) -> Bool {
 
 ///|
 /// 解析 PLY。ASCII 和二进制（小端 / 大端）三种都支持。
-pub fn parse_ply(data : Bytes) -> Result[Mesh, String] {
+/// ASCII 默认连续消费空白分隔 token，不丢弃行尾，拒绝声明外的尾随数据。
+/// lenient_ascii=true 仅用于每条记录占一行、行尾有未声明值的异常 ASCII 文件。
+pub fn parse_ply(
+  data : Bytes,
+  lenient_ascii? : Bool = false,
+) -> Result[Mesh, String] {
   if !is_ply(data) {
     return Err("这不是 PLY 文件（开头不是 ply）")
   }
@@ -89,7 +94,13 @@ pub fn parse_ply(data : Bytes) -> Result[Mesh, String] {
     Err(msg) => return Err(msg)
   }
   let cursor = match
-    PlyCursor::new(data, body_at, header.binary, header.big_endian) {
+    PlyCursor::new(
+      data,
+      body_at,
+      header.binary,
+      header.big_endian,
+      lenient_ascii,
+    ) {
     Ok(c) => c
     Err(msg) => return Err(msg)
   }
@@ -152,12 +163,7 @@ fn parse_header(text : String) -> Result[PlyHeader, String] {
     if done {
       break
     }
-    let tokens : Array[StringView] = []
-    for raw_token in strip_cr(raw).split(" ") {
-      if raw_token.length() > 0 {
-        tokens.push(raw_token)
-      }
-    }
+    let tokens = ascii_tokens(strip_cr(raw))
     match tokens {
       ["end_header", ..] => done = true
       ["format", kind, ..] =>
@@ -276,18 +282,11 @@ priv struct PlyCursor {
   /// 二进制用：原始字节
   data : Bytes
   mut at : Int
-  /// ASCII 用：正文按行切好，每行再切成 token。
-  ///
-  /// **按行存是为了能「读完一个元素就跳到下一行」**。规范里 ASCII 正文只说是
-  /// 空白分隔，没规定一行一个元素；但现实里所有写出器都是一行一个。
-  /// 按行读的好处是：行尾多几个没声明的值时不会被带偏。
-  ///
-  /// 这不是假想的问题——trimesh 自带的 `fuze_ascii.ply` 就是这样：
-  /// 头里声明每个 face 15 个值，实际数据每行有 21 个。不按行跳的话，
-  /// 第一行多出来的 6 个值会把后面 999 个面全部读错位。
+  /// 默认跨行连续消费；保留行边界仅供显式的异常文件兼容模式使用。
   lines : Array[Array[StringView]]
   mut li : Int
   mut ci : Int
+  lenient_ascii : Bool
 }
 
 ///|
@@ -298,9 +297,19 @@ fn PlyCursor::new(
   body_at : Int,
   binary : Bool,
   big_endian : Bool,
+  lenient_ascii : Bool,
 ) -> Result[PlyCursor, String] {
   if binary {
-    Ok({ binary: true, big_endian, data, at: body_at, lines: [], li: 0, ci: 0, })
+    Ok({
+      binary: true,
+      big_endian,
+      data,
+      at: body_at,
+      lines: [],
+      li: 0,
+      ci: 0,
+      lenient_ascii: false,
+    })
   } else {
     let text = @utf8.decode_lossy(data[body_at:])
     Ok({
@@ -311,6 +320,7 @@ fn PlyCursor::new(
       lines: ascii_lines(text),
       li: 0,
       ci: 0,
+      lenient_ascii,
     })
   }
 }
@@ -320,30 +330,50 @@ fn PlyCursor::new(
 fn ascii_lines(text : String) -> Array[Array[StringView]] {
   let out : Array[Array[StringView]] = []
   for raw in text.split("\n") {
-    let line : Array[StringView] = []
-    let s = strip_cr(raw)
-    let n = s.length()
-    let mut i = 0
-    while i < n {
-      while i < n && is_ascii_space(s.code_unit_at(i).to_int()) {
-        i = i + 1
-      }
-      let start = i
-      while i < n && !is_ascii_space(s.code_unit_at(i).to_int()) {
-        i = i + 1
-      }
-      if i > start {
-        line.push(s[start:i])
-      }
-    }
-    out.push(line)
+    out.push(ascii_tokens(raw))
   }
   out
 }
 
 ///|
+fn ascii_tokens(s : StringView) -> Array[StringView] {
+  let tokens : Array[StringView] = []
+  let mut i = 0
+  while i < s.length() {
+    while i < s.length() && is_ascii_space(s.code_unit_at(i).to_int()) {
+      i = i + 1
+    }
+    let start = i
+    while i < s.length() && !is_ascii_space(s.code_unit_at(i).to_int()) {
+      i = i + 1
+    }
+    if i > start {
+      tokens.push(s[start:i])
+    }
+  }
+  tokens
+}
+
+///|
 fn is_ascii_space(c : Int) -> Bool {
-  c == 0x20 || c == 0x09 || c == 0x0D || c == 0x0A
+  c == 0x20 || (c >= 0x09 && c <= 0x0D)
+}
+
+///|
+/// 前进到下一个非空 token，但不消费；严格模式可跨越任意行边界。
+fn PlyCursor::has_ascii_token(self : PlyCursor) -> Bool {
+  while self.li < self.lines.length() && self.ci >= self.lines[self.li].length() {
+    self.li = self.li + 1
+    self.ci = 0
+  }
+  self.li < self.lines.length()
+}
+
+///|
+fn PlyCursor::begin_element(self : PlyCursor) -> Unit {
+  if !self.binary && self.lenient_ascii {
+    ignore(self.has_ascii_token())
+  }
 }
 
 ///|
@@ -375,16 +405,17 @@ fn PlyCursor::next_double(
     self.at = self.at + size
     Ok(raw)
   } else {
-    // 本行的值读完了就翻到下一行接着读（空行直接跳过）。
-    // 这样「一个元素跨多行」的文件也能读——虽然现实中几乎没有
-    while self.li < self.lines.length() &&
-          self.ci >= self.lines[self.li].length() {
-      self.li = self.li + 1
-      self.ci = 0
+    if !self.lenient_ascii {
+      ignore(self.has_ascii_token())
     }
     if self.li >= self.lines.length() {
       return Err(
         "PLY 的数据在读到一半就没了——文件被截断了",
+      )
+    }
+    if self.ci >= self.lines[self.li].length() {
+      return Err(
+        "PLY 宽松模式要求每条记录占一行，当前行属性不足",
       )
     }
     let tok = self.lines[self.li][self.ci]
@@ -396,22 +427,9 @@ fn PlyCursor::next_double(
 }
 
 ///|
-/// 读完一个元素之后，把本行剩下的值丢掉，从下一行接着读。
-///
-/// 为什么需要：头里声明的属性和实际数据对不上时（现实里真有这种文件），
-/// 多出来的值会把后面所有元素带偏。按行跳的话，错的只是「多读的那几个
-/// 被忽略」，而不是整份文件错位。
-///
-/// 只在「本行还有没读的值」时才跳——这样万一是「一个元素跨多行」的写法，
-/// 上一行正好读完的话不会误跳。二进制没有「行」的概念，什么都不做。
-fn PlyCursor::skip_to_next_line(self : PlyCursor) -> Unit {
-  if self.binary {
-    return
-  }
-  if self.li >= self.lines.length() {
-    return
-  }
-  if self.ci < self.lines[self.li].length() {
+/// 只有显式宽松模式才丢弃该记录所在行的尾随值；默认模式不改变游标。
+fn PlyCursor::finish_element(self : PlyCursor) -> Unit {
+  if !self.binary && self.lenient_ascii && self.li < self.lines.length() {
     self.li = self.li + 1
     self.ci = 0
   }
@@ -546,12 +564,16 @@ fn u64_at(data : Bytes, at : Int, big : Bool) -> UInt64 {
 /// 按声明把值读出来**，不然游标会错位，后面全乱。
 fn read_body(cursor : PlyCursor, header : PlyHeader) -> Result[Mesh, String] {
   let vertices : Array[Vec3] = []
+  let polygons : Array[Array[Int]] = []
   let triangles : Array[(Int, Int, Int)] = []
 
   for element in header.elements {
     let is_vertex = element.name == "vertex"
     let is_face = element.name == "face"
     for _i = 0; _i < element.count; _i = _i + 1 {
+      if !element.props.is_empty() {
+        cursor.begin_element()
+      }
       let mut x = 0.0
       let mut y = 0.0
       let mut z = 0.0
@@ -580,7 +602,7 @@ fn read_body(cursor : PlyCursor, header : PlyHeader) -> Result[Mesh, String] {
             if n < 0 {
               return Err("PLY 的列表长度是个负数：\{n}")
             }
-            if name == "vertex_indices" || name == "vertex_index" {
+            if is_face && (name == "vertex_indices" || name == "vertex_index") {
               for _k = 0; _k < n; _k = _k + 1 {
                 let idx = match cursor.next_int(item_ty) {
                   Ok(v) => v
@@ -609,13 +631,22 @@ fn read_body(cursor : PlyCursor, header : PlyHeader) -> Result[Mesh, String] {
         }
         vertices.push(Vec3::new(x, y, z))
       } else if is_face {
-        match append_polygon(vertices, corners, triangles) {
-          Ok(_) => ()
-          Err(msg) => return Err(msg)
-        }
+        polygons.push(corners)
       }
-      // ASCII 下把本行剩下的丢掉，从下一行读下一个元素
-      cursor.skip_to_next_line()
+      if !element.props.is_empty() {
+        cursor.finish_element()
+      }
+    }
+  }
+
+  if !cursor.binary && cursor.has_ascii_token() {
+    return Err("PLY 的正文含有 header 未声明的多余数据")
+  }
+  // 所有元素仍按 header 顺序消费；延后解析面索引，允许 face 在 vertex 之前声明。
+  for corners in polygons {
+    match append_polygon(vertices, corners, triangles) {
+      Ok(_) => ()
+      Err(msg) => return Err(msg)
     }
   }
 
