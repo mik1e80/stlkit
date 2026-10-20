@@ -59,6 +59,11 @@ jobs:
       - name: CLI 参数和退出码回归
         run: node cmd/main/smoke.cjs
 
+      - name: 验证审查案例和报告未过期
+        run: |
+          node scripts/review-cases.cjs
+          git diff --exit-code -- examples/review
+
       # 编译产物可能随平台或工具链版本变化，因此验证运行结果，不比较字节。
       # Pages 部署也会重新构建；本地直接打开网页使用仓库随附的产物。
       - name: 网页版能编译出来

@@ -90,3 +90,8 @@ pub fn Vec3::is_zero(self : Vec3, tolerance : Double) -> Bool {
 pub fn Vec3::scale(self : Vec3, factor : Double) -> Vec3 {
   { x: self.x * factor, y: self.y * factor, z: self.z * factor, }
 }
+
+///|
+fn finite_vertex(v : Vec3) -> Bool {
+  !not_finite(v.x) && !not_finite(v.y) && !not_finite(v.z)
+}

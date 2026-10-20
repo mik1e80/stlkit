@@ -74,10 +74,14 @@ fn find_model_part(
     None => None
   }
   match target {
-    Some(path) => match find_entry(entries, path) {
-      Some(raw) => Ok(@utf8.decode_lossy(Bytes::from_array(raw)))
-      None => Err("3MF 的关系表指向「\{path}」，但包里没有这个部件")
-    }
+    Some(path) =>
+      match find_entry(entries, path) {
+        Some(raw) => Ok(@utf8.decode_lossy(Bytes::from_array(raw)))
+        None =>
+          Err(
+            "3MF 的关系表指向「\{path}」，但包里没有这个部件",
+          )
+      }
     None => {
       // 退路：找 .model 文件
       let models : Array[String] = []
@@ -88,7 +92,9 @@ fn find_model_part(
         }
       }
       if models.length() == 0 {
-        Err("这个 ZIP 里没有 3D 模型部件（找不到 .model 文件），不是 3MF 文件")
+        Err(
+          "这个 ZIP 里没有 3D 模型部件（找不到 .model 文件），不是 3MF 文件",
+        )
       } else if models.length() > 1 {
         Err(
           "这个 3MF 里有 \{models.length()} 个 .model 部件，关系表也没说是哪个，认不出来",
@@ -287,7 +293,9 @@ fn parse_model_xml(xml : String) -> Result[Mesh, String] {
   while !reader.is_eof() {
     let event = reader.read_event() catch {
       err =>
-        return Err("3MF 的模型 XML 解析失败（第 \{reader.line()} 行）：\{err}")
+        return Err(
+          "3MF 的模型 XML 解析失败（第 \{reader.line()} 行）：\{err}",
+        )
     }
     let element = match event.kind {
       @xml.EventKind::Start(e) | @xml.EventKind::Empty(e) => e
@@ -300,7 +308,9 @@ fn parse_model_xml(xml : String) -> Result[Mesh, String] {
           None => prefix_of(name) == ""
         }
         if end_is_core && local_name(name) == "object" {
-          flush_object(objects, cur_id, cur_vertices, cur_triangles, cur_components)
+          flush_object(
+            objects, cur_id, cur_vertices, cur_triangles, cur_components,
+          )
           cur_id = None
           cur_vertices = []
           cur_triangles = []
@@ -334,6 +344,15 @@ fn parse_model_xml(xml : String) -> Result[Mesh, String] {
 
     if tag == "model" {
       // 单位：micron / millimeter / centimeter / inch / foot / meter
+      match element.get("requiredextensions") {
+        Some(required) =>
+          if obj_words(required).length() > 0 {
+            return Err(
+              "3MF 声明了本工具未实现的必需扩展 requiredextensions=\"\{required}\"；不能仅按核心三角网格解释",
+            )
+          }
+        None => ()
+      }
       match element.get("unit") {
         Some(u) =>
           unit_scale = match unit_scale_of(u) {
@@ -401,7 +420,9 @@ fn parse_model_xml(xml : String) -> Result[Mesh, String] {
   flush_object(objects, cur_id, cur_vertices, cur_triangles, cur_components)
 
   if build.length() == 0 {
-    return Err("这个 3MF 的 build 里没有列任何对象，没有东西可以打印")
+    return Err(
+      "这个 3MF 的 build 里没有列任何对象，没有东西可以打印",
+    )
   }
 
   // 按 build 列出的对象拼出最终网格
@@ -431,7 +452,13 @@ fn parse_model_xml(xml : String) -> Result[Mesh, String] {
       "也可能是几何写在扩展元素里的对象（比如 beam lattice，本工具只处理三角网格）",
     )
   }
-  Ok(Mesh::new(scale_mesh(triangles, unit_scale)))
+  let scaled = scale_mesh(triangles, unit_scale)
+  for tri in scaled {
+    if !finite_vertex(tri.a) || !finite_vertex(tri.b) || !finite_vertex(tri.c) {
+      return Err("3MF 单位换算后坐标超出有限范围")
+    }
+  }
+  Ok(Mesh::new(scaled))
 }
 
 ///|
@@ -447,8 +474,7 @@ fn flush_object(
   components : Array[(Int, FixedArray[Double]?)],
 ) -> Unit {
   match id {
-    Some(i) =>
-      objects.set(i, MfObject::{ vertices, triangles, components })
+    Some(i) => objects.set(i, MfObject::{ vertices, triangles, components, })
     None => ()
   }
 }
@@ -486,7 +512,9 @@ fn build_object(
   depth : Int,
 ) -> Result[Array[Triangle], String] {
   if depth > 32 {
-    return Err("3MF 的对象引用套得太深（超过 32 层），可能是循环引用")
+    return Err(
+      "3MF 的对象引用套得太深（超过 32 层），可能是循环引用",
+    )
   }
   let obj = match objects.get(id) {
     Some(o) => o
@@ -506,6 +534,9 @@ fn build_object(
       let a = apply_transform(obj.vertices[i], transform)
       let b = apply_transform(obj.vertices[j], transform)
       let c = apply_transform(obj.vertices[k], transform)
+      if !finite_vertex(a) || !finite_vertex(b) || !finite_vertex(c) {
+        return Err("3MF 对象 id=\{id} 变换后坐标超出有限范围")
+      }
       out.push(Triangle::from_vertices(a, b, c))
     }
   }
@@ -514,6 +545,11 @@ fn build_object(
     let combined = match child_tf {
       Some(t) => compose_transform(t, transform)
       None => transform
+    }
+    for value in combined {
+      if not_finite(value) {
+        return Err("3MF 对象 id=\{child_id} 的嵌套变换溢出")
+      }
     }
     let sub = match build_object(objects, child_id, combined, depth + 1) {
       Ok(v) => v
@@ -589,7 +625,10 @@ fn apply_transform(v : Vec3, m : FixedArray[Double]) -> Vec3 {
 ///
 /// 行向量约定下「先 A 后 B」就是 A×B。4×3 的矩阵要隐式补上第 4 列
 /// （前三行填 0、最后一行填 1）才能相乘。
-fn compose_transform(first : FixedArray[Double], second : FixedArray[Double]) -> FixedArray[Double] {
+fn compose_transform(
+  first : FixedArray[Double],
+  second : FixedArray[Double],
+) -> FixedArray[Double] {
   let out : Array[Double] = []
   for i = 0; i < 4; i = i + 1 {
     for j = 0; j < 3; j = j + 1 {
@@ -605,8 +644,18 @@ fn compose_transform(first : FixedArray[Double], second : FixedArray[Double]) ->
     }
   }
   [
-    out[0], out[1], out[2], out[3], out[4], out[5], out[6], out[7], out[8],
-    out[9], out[10], out[11],
+    out[0],
+    out[1],
+    out[2],
+    out[3],
+    out[4],
+    out[5],
+    out[6],
+    out[7],
+    out[8],
+    out[9],
+    out[10],
+    out[11],
   ]
 }
 
@@ -627,7 +676,8 @@ fn attribute_int(
   match element.get(name) {
     Some(raw) => {
       let value = @string.parse_double(raw) catch {
-        _ => return Err("3MF 的 <\{tag}> 里 \{name}=\"\{raw}\" 不是个整数")
+        _ =>
+          return Err("3MF 的 <\{tag}> 里 \{name}=\"\{raw}\" 不是个整数")
       }
       if value.is_nan() || value.is_inf() || value != value.round() {
         return Err("3MF 的 <\{tag}> 里 \{name}=\"\{raw}\" 不是个整数")
@@ -654,7 +704,9 @@ fn attribute_vec3(element : @xml.XmlElement) -> Result[Vec3, String] {
       _ => return Err("3MF 的 <vertex> 里 \{name}=\"\{raw}\" 不是个数字")
     }
     if value.is_nan() || value.is_inf() {
-      return Err("3MF 的 <vertex> 里 \{name}=\"\{raw}\" 不是个有限的数字")
+      return Err(
+        "3MF 的 <vertex> 里 \{name}=\"\{raw}\" 不是个有限的数字",
+      )
     }
     out.push(value)
   }
@@ -666,18 +718,23 @@ fn attribute_vec3(element : @xml.XmlElement) -> Result[Vec3, String] {
 ///
 /// 12 个数，空格分隔。个数不对就报错——少一个数会让整条装配链错位，
 /// 而错位后的模型看起来「有东西」但体积完全不对，是最难查的那种错。
-fn attribute_transform(element : @xml.XmlElement) -> Result[FixedArray[Double]?, String] {
+fn attribute_transform(
+  element : @xml.XmlElement,
+) -> Result[FixedArray[Double]?, String] {
   let raw = match element.get("transform") {
     Some(v) => v
     None => return Ok(None)
   }
   let out : Array[Double] = []
-  for token in raw.split(" ") {
+  for token in obj_words(raw) {
     if token.length() == 0 {
       continue
     }
     let value = @string.parse_double(token) catch {
       _ => return Err("3MF 的 transform 里『\{token}』不是个数字")
+    }
+    if not_finite(value) {
+      return Err("3MF 的 transform 里『\{token}』不是有限数字")
     }
     out.push(value)
   }
@@ -688,8 +745,18 @@ fn attribute_transform(element : @xml.XmlElement) -> Result[FixedArray[Double]?,
   }
   Ok(
     Some([
-      out[0], out[1], out[2], out[3], out[4], out[5], out[6], out[7], out[8],
-      out[9], out[10], out[11],
+      out[0],
+      out[1],
+      out[2],
+      out[3],
+      out[4],
+      out[5],
+      out[6],
+      out[7],
+      out[8],
+      out[9],
+      out[10],
+      out[11],
     ]),
   )
 }

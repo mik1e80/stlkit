@@ -34,8 +34,13 @@ pub fn parse_stl(data : Bytes) -> Result[Mesh, String] {
       //    比在这里抛一个编码错误更有指向性。
       parse_stl_ascii(@utf8.decode_lossy(data))
     ThreeMF =>
-      Err("这是一个 3MF 文件（ZIP 包），不是 STL——请用 parse_mesh 或 parse_3mf")
-    Ply => Err("这是一个 PLY 文件，不是 STL——请用 parse_mesh 或 parse_ply")
+      Err(
+        "这是一个 3MF 文件（ZIP 包），不是 STL——请用 parse_mesh 或 parse_3mf",
+      )
+    Ply =>
+      Err(
+        "这是一个 PLY 文件，不是 STL——请用 parse_mesh 或 parse_ply",
+      )
     Unknown =>
       Err(
         "认不出这是 ASCII 还是二进制 STL：文件 \{data.length()} 字节，" +
@@ -255,6 +260,13 @@ pub fn parse_stl_binary(data : Bytes) -> Result[Mesh, String] {
   let triangles : Array[Triangle] = []
   for i = 0; i < count; i = i + 1 {
     let base = 84 + i * 50
+    for offset in [0, 12, 24, 36] {
+      if !finite_vertex(read_vec3_f32(data, base + offset)) {
+        return Err(
+          "二进制 STL 第 \{i + 1} 个三角形的坐标或法线不是有限数字",
+        )
+      }
+    }
     triangles.push({
       normal: read_vec3_f32(data, base),
       a: read_vec3_f32(data, base + 12),
@@ -297,9 +309,14 @@ fn parse_vec3(
 ///|
 /// 解析一个坐标。解析器的错误是英文的，这里换成带行号的中文提示。
 fn parse_coord(s : StringView, line_no : Int) -> Result[Double, String] {
-  Ok(@string.parse_double(s)) catch {
-    _ => Err("第 \{line_no} 行：『\{s}』不是一个合法的数字")
+  let value = @string.parse_double(s) catch {
+    _ =>
+      return Err("第 \{line_no} 行：『\{s}』不是一个合法的数字")
   }
+  if not_finite(value) {
+    return Err("第 \{line_no} 行：『\{s}』不是有限数字")
+  }
+  Ok(value)
 }
 
 ///|

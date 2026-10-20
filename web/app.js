@@ -146,10 +146,15 @@ function renderReport(fields) {
   if (fields["主惯量"] !== undefined) {
     statRow(geo, "主惯量", fields["主惯量"], "");
   }
-  if (fields["最薄处"] !== undefined) {
-    statRow(geo, "采样最小厚度", fields["最薄处"], "mm");
+  if (fields["采样最小厚度"] !== undefined) {
+    statRow(geo, "采样最小厚度", fields["采样最小厚度"], "mm");
     statRow(geo, "参考壁厚阈值", fields["壁厚阈值"], "mm");
+    statRow(geo, "射线命中 / 样本数", `${fields["壁厚命中"]}/${fields["壁厚采样"]}`, "");
   }
+  const nozzle = document.getElementById("nozzle").value.trim();
+  const supports = document.getElementById("supports").value || "unknown";
+  statRow(geo, "喷嘴（仅记录）", nozzle === "" ? "未指定" : nozzle, nozzle === "" ? "" : "mm");
+  statRow(geo, "支撑（仅记录）", supports, "");
   box.append(geo);
 
   // 校验结论
@@ -189,6 +194,10 @@ function renderReport(fields) {
   thicknessNote.className = "report-note";
   thicknessNote.textContent = "壁厚为表面采样结果，可能漏掉局部薄处；STL、OBJ、PLY 按毫米解释，请先确认模型单位。";
   box.append(thicknessNote);
+  const scope = document.createElement("p");
+  scope.className = "report-note";
+  scope.textContent = fields["工艺范围"] || "喷嘴和支撑设置仅记录，不参与几何门禁或可打印判断。";
+  box.append(scope);
 
   // 网格不闭合时，体积那个数是不可信的，得说清楚。
   // 体积是靠各面的有符号体积正负抵消算出来的，有破洞就抵消不干净。
@@ -476,3 +485,9 @@ document.getElementById("min-thickness").addEventListener("change", () => {
     previewEl.innerHTML = preview(currentBase64);
   } catch (err) { showError(err.message); }
 });
+
+for (const id of ["nozzle", "supports"]) {
+  document.getElementById(id).addEventListener("change", () => {
+    if (currentBase64) renderReport(currentFields);
+  });
+}

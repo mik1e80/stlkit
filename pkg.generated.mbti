@@ -1,0 +1,258 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "mik1e80/stlkit"
+
+// Values
+pub fn check_printability(Mesh, Double, samples? : Int) -> PrintabilityReport
+
+pub fn check_thickness(Mesh, Int) -> ThicknessReport
+
+pub fn check_thickness_default(Mesh) -> ThicknessReport
+
+pub fn check_winding(Mesh, Double) -> WindingReport
+
+pub fn check_winding_default(Mesh) -> WindingReport
+
+pub fn count_parts(Mesh, Double) -> Int
+
+pub fn count_parts_default(Mesh) -> Int
+
+pub fn default_weld_tolerance() -> Double
+
+pub fn detect_format(Bytes) -> MeshFormat
+
+pub fn is_3mf(Bytes) -> Bool
+
+pub fn is_ply(Bytes) -> Bool
+
+pub fn parse_3mf(Bytes) -> Result[Mesh, String]
+
+pub fn parse_mesh(Bytes) -> Result[Mesh, String]
+
+pub fn parse_obj(String) -> Result[Mesh, String]
+
+pub fn parse_ply(Bytes) -> Result[Mesh, String]
+
+pub fn parse_stl(Bytes) -> Result[Mesh, String]
+
+pub fn parse_stl_ascii(String) -> Result[Mesh, String]
+
+pub fn parse_stl_binary(Bytes) -> Result[Mesh, String]
+
+pub fn ray_triangle(Vec3, Vec3, Vec3, Vec3, Vec3) -> Double?
+
+pub fn render_svg(Mesh, PreviewOptions) -> String
+
+pub fn repair(Mesh, RepairOptions) -> RepairResult
+
+pub fn review_scope() -> String
+
+pub fn stream_stl_ascii(String) -> Result[StreamReport, String]
+
+pub fn stream_stl_binary(Bytes) -> Result[StreamReport, String]
+
+pub fn symmetric_eigenvalues(FixedArray[Double]) -> FixedArray[Double]
+
+pub fn symmetric_eigenvector(FixedArray[Double], Double) -> Vec3
+
+pub fn unify_winding(Mesh, Double) -> Mesh
+
+pub fn validate(Mesh, Double) -> ValidationReport
+
+pub fn validate_default(Mesh) -> ValidationReport
+
+pub fn write_mesh(Mesh, String) -> Result[Bytes, String]
+
+pub fn write_obj(Mesh) -> String
+
+pub fn write_ply(Mesh) -> Bytes
+
+pub fn write_ply_ascii(Mesh) -> String
+
+pub fn write_ply_binary(Mesh) -> Bytes
+
+pub fn write_stl_ascii(Mesh, String) -> String
+
+pub fn write_stl_binary(Mesh) -> Bytes
+
+// Errors
+
+// Types and methods
+pub(all) struct Aabb {
+  min : Vec3
+  max : Vec3
+}
+pub fn Aabb::size(Self) -> Vec3
+
+pub(all) struct Mesh {
+  triangles : Array[Triangle]
+}
+pub fn Mesh::bounding_box(Self) -> Aabb?
+pub fn Mesh::center_mass(Self) -> Vec3
+pub fn Mesh::empty() -> Self
+pub fn Mesh::is_empty(Self) -> Bool
+pub fn Mesh::moment_inertia(Self) -> FixedArray[Double]
+pub fn Mesh::nearest_point(Self, Vec3) -> (Double, Vec3)
+pub fn Mesh::new(Array[Triangle]) -> Self
+pub fn Mesh::oriented_bounding_box(Self) -> Obb?
+pub fn Mesh::principal_moments(Self) -> FixedArray[Double]
+pub fn Mesh::ray_cast(Self, Vec3, Vec3) -> RayHit?
+pub fn Mesh::surface_area(Self) -> Double
+pub fn Mesh::triangle_count(Self) -> Int
+pub fn Mesh::vertices(Self) -> Array[Vec3]
+pub fn Mesh::volume(Self) -> Double
+
+pub(all) enum MeshFormat {
+  Ascii
+  Binary
+  ThreeMF
+  Ply
+  Unknown
+}
+
+pub(all) struct Obb {
+  center : Vec3
+  axes : Array[Vec3]
+  half : Array[Double]
+}
+pub fn Obb::size(Self) -> Vec3
+pub fn Obb::volume(Self) -> Double
+
+pub(all) struct PreviewOptions {
+  width : Int
+  height : Int
+  yaw : Double
+  pitch : Double
+  stroke : String
+  stroke_width : Double
+}
+pub fn PreviewOptions::default() -> Self
+
+pub(all) struct PrintabilityReport {
+  validation : ValidationReport
+  winding : WindingReport
+  thickness : ThicknessReport?
+  min_thickness : Double
+}
+pub fn PrintabilityReport::inward(Self) -> Bool
+pub fn PrintabilityReport::needs_review(Self) -> Bool
+pub fn PrintabilityReport::thickness_unavailable(Self) -> Bool
+pub fn PrintabilityReport::thin_wall(Self) -> Bool
+pub fn PrintabilityReport::verdict(Self) -> String
+
+pub(all) struct RayHit {
+  distance : Double
+  triangle : Int
+  point : Vec3
+}
+
+pub(all) struct RepairOptions {
+  tolerance : Double
+  drop_degenerate : Bool
+  drop_duplicates : Bool
+  fill_holes : Bool
+  recompute_normals : Bool
+  unify_winding : Bool
+}
+pub fn RepairOptions::default() -> Self
+pub fn RepairOptions::normals_only() -> Self
+
+pub(all) struct RepairResult {
+  mesh : Mesh
+  removed_degenerate : Int
+  removed_duplicates : Int
+  filled_holes : Int
+  added_triangles : Int
+  recomputed_normals : Int
+  flipped_faces : Int
+}
+pub fn RepairResult::changed(Self) -> Bool
+
+pub(all) struct ScanStorage {
+  unique_vertices : Int
+  edge_records : Int
+  pending_bytes : Int
+  peak_buffered_bytes : Int
+}
+
+pub(all) struct StlScanner {
+  // private fields
+}
+pub fn StlScanner::feed(Self, Bytes) -> Unit
+pub fn StlScanner::finish(Self) -> Result[StreamReport, String]
+pub fn StlScanner::new() -> Self
+pub fn StlScanner::storage(Self) -> ScanStorage
+
+pub(all) struct StreamReport {
+  triangle_count : Int
+  raw_vertex_count : Int
+  unique_vertex_count : Int
+  boundary_edge_count : Int
+  non_manifold_edge_count : Int
+  volume : Double
+  surface_area : Double
+  bbox : Aabb?
+}
+pub fn StreamReport::is_watertight(Self) -> Bool
+
+pub(all) struct ThicknessReport {
+  samples : Int
+  hits : Int
+  min_thickness : Double
+  min_at : Vec3?
+  mean_thickness : Double
+}
+
+pub(all) struct Triangle {
+  normal : Vec3
+  a : Vec3
+  b : Vec3
+  c : Vec3
+}
+pub fn Triangle::area(Self) -> Double
+pub fn Triangle::computed_normal(Self) -> Vec3
+pub fn Triangle::from_vertices(Vec3, Vec3, Vec3) -> Self
+pub fn Triangle::signed_volume(Self) -> Double
+pub fn Triangle::vertices(Self) -> Array[Vec3]
+
+pub(all) struct ValidationReport {
+  triangle_count : Int
+  raw_vertex_count : Int
+  unique_vertex_count : Int
+  boundary_edge_count : Int
+  non_manifold_edge_count : Int
+  degenerate_count : Int
+  wrong_normal_count : Int
+  unique_edge_count : Int
+}
+pub fn ValidationReport::euler_number(Self) -> Int
+pub fn ValidationReport::is_watertight(Self) -> Bool
+
+pub(all) struct Vec3 {
+  x : Double
+  y : Double
+  z : Double
+}
+pub fn Vec3::cross(Self, Self) -> Self
+pub fn Vec3::dot(Self, Self) -> Double
+pub fn Vec3::is_zero(Self, Double) -> Bool
+pub fn Vec3::length(Self) -> Double
+pub fn Vec3::new(Double, Double, Double) -> Self
+pub fn Vec3::normalize(Self) -> Self
+pub fn Vec3::scale(Self, Double) -> Self
+pub fn Vec3::sub(Self, Self) -> Self
+pub fn Vec3::zero() -> Self
+
+pub(all) struct WeldResult {
+  ids : Array[Int]
+  unique_count : Int
+}
+
+pub(all) struct WindingReport {
+  flipped_faces : Int
+  consistent : Bool
+  signed_volume : Double
+}
+
+// Type aliases
+
+// Traits

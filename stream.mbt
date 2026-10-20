@@ -85,6 +85,9 @@ pub fn stream_stl_binary(data : Bytes) -> Result[StreamReport, String] {
     let a = read_vec3_f32(data, base + 12)
     let b = read_vec3_f32(data, base + 24)
     let c = read_vec3_f32(data, base + 36)
+    if !finite_vertex(a) || !finite_vertex(b) || !finite_vertex(c) {
+      return Err("二进制 STL 第 \{i + 1} 个三角形包含非有限坐标")
+    }
 
     // 体积：三角形与原点构成的四面体的有符号体积，累加
     volume = volume + a.dot(b.cross(c)) / 6.0
@@ -361,6 +364,8 @@ pub(all) struct StlScanner {
   priv edges : Array[UInt64]
   /// 读到的总字节数，用来核对文件长度
   priv mut consumed : UInt64
+  priv mut failure : String?
+  priv mut peak_buffered_bytes : Int
 }
 
 ///|
@@ -385,6 +390,8 @@ pub fn StlScanner::new() -> StlScanner {
     weld: Map([]),
     edges: [],
     consumed: 0UL,
+    failure: None,
+    peak_buffered_bytes: 0,
   }
 }
 
@@ -394,11 +401,34 @@ pub fn StlScanner::new() -> StlScanner {
 /// 块的大小随意，不要求对齐到 50 字节——零头会在内部攒着，
 /// 和下一块拼起来。调用方按 64 KB 之类的尺寸读就行。
 pub fn StlScanner::feed(self : StlScanner, chunk : Bytes) -> Unit {
+  if self.failure is Some(_) {
+    return
+  }
   self.consumed = self.consumed + chunk.length().to_uint64()
   for i = 0; i < chunk.length(); i = i + 1 {
     self.tail.push(chunk[i])
   }
+  self.peak_buffered_bytes = self.peak_buffered_bytes.max(self.tail.length())
   self.drain()
+}
+
+///|
+/// Logical retained-record counts, not allocator capacity or process RSS.
+pub(all) struct ScanStorage {
+  unique_vertices : Int
+  edge_records : Int
+  pending_bytes : Int
+  peak_buffered_bytes : Int
+}
+
+///|
+pub fn StlScanner::storage(self : StlScanner) -> ScanStorage {
+  {
+    unique_vertices: self.weld.length(),
+    edge_records: self.edges.length(),
+    pending_bytes: self.tail.length(),
+    peak_buffered_bytes: self.peak_buffered_bytes,
+  }
 }
 
 ///|
@@ -441,10 +471,19 @@ fn StlScanner::drain(self : StlScanner) -> Unit {
 ///|
 /// 处理一个 50 字节的三角形记录。
 fn StlScanner::absorb(self : StlScanner, rec : Bytes) -> Unit {
+  if self.failure is Some(_) {
+    return
+  }
   // 前 12 字节是法线，跳过——统计用不上
   let a = read_vec3_f32(rec, 12)
   let b = read_vec3_f32(rec, 24)
   let c = read_vec3_f32(rec, 36)
+  if !finite_vertex(a) || !finite_vertex(b) || !finite_vertex(c) {
+    self.failure = Some(
+      "二进制 STL 第 \{self.done + 1} 个三角形包含非有限坐标",
+    )
+    return
+  }
 
   self.volume = self.volume + a.dot(b.cross(c)) / 6.0
   self.area = self.area + b.sub(a).cross(c.sub(a)).length() / 2.0
@@ -470,6 +509,9 @@ fn StlScanner::absorb(self : StlScanner, rec : Bytes) -> Unit {
 ///|
 /// 结束扫描，出报告。
 pub fn StlScanner::finish(self : StlScanner) -> Result[StreamReport, String] {
+  if self.failure is Some(message) {
+    return Err(message)
+  }
   if !self.started {
     return Err(
       "文件太短，连 84 字节的文件头都没读全（只读到 \{self.consumed} 字节）",

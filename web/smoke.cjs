@@ -55,12 +55,19 @@ async function load(text) {
 }
 (async () => {
   assert.equal(report(cube)["需复核"], "false");
+  assert.match(report(cube)["结论"], /不构成可打印结论/);
+  assert.match(report(cube)["工艺范围"], /喷嘴、支撑/);
+  assert.equal(report(cube)["采样最小厚度"], "1");
   assert.equal(report(inward)["整体朝内"], "1");
   assert.equal(report(inward)["需复核"], "true");
   assert.equal(report(thin)["薄壁"], "1");
   assert.equal(report(thin, 0.05)["需复核"], "false");
   assert.equal(report(thin, 0)["薄壁"], "0");
   await load(thin);
+  const beforeSettings = report(thin)["需复核"];
+  document.getElementById("supports").value = "on";
+  document.getElementById("supports").events.get("change")();
+  assert.equal(report(thin)["需复核"], beforeSettings, "支撑只记录，不能使几何检查通过");
   let rendered = descendants(document.getElementById("report"));
   assert(rendered.some(e => e.className === "verdict verdict-bad"));
   assert(!rendered.some(e => e.id === "fix"), "薄壁不能通过补洞或法线修复");
@@ -81,5 +88,8 @@ async function load(text) {
   document.getElementById("min-thickness").value = "";
   await load(cube);
   assert(descendants(document.getElementById("report")).some(e => e.textContent.includes("请填写参考壁厚")));
+  await load("v nan 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n");
+  assert(!descendants(document.getElementById("report")).some(e => e.className.startsWith("verdict")));
+  assert.match(context.analyze_error(Buffer.from("v nan 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n").toString("base64")), /有限数字/);
   console.log("网页回归通过：朝内、薄壁、阈值调整、修复结论和非法输入。");
 })().catch(error => { console.error(error); process.exitCode = 1; });

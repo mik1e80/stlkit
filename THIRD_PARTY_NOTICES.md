@@ -69,3 +69,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 | `Milky2018/xml` | 解 XML（3MF 用） | Apache-2.0 |
 | `moonbitlang/x` | 读文件、设退出码（命令行用） | Apache-2.0 |
 | `moonbitlang/async` | 分块读文件（只有 `--bench` 用） | Apache-2.0 |
+
+分块读取现也用于 `--stream-only`。网页分发的 MoonBit core、fzip、XML 完整许可，以及本项目许可和此来源说明，保存在 `web/licenses/` 并随 Pages 部署。`examples/review/` 的模型及报告由本项目生成，未引入外部样例。`scripts/review-cases.cjs` 记录确定性构造方法和实际 CLI 输出。
+
+
+## 浏览器分发补充
+
+网页包含 MoonBit core 编译代码；完整上游许可及附带声明保存在 web/licenses/moonbit-core.LICENSE 和 web/licenses/moonbit-core.NOTICE，构建时随站点复制，保留其中第三方来源及免责声明。网页界面和示例模型由本项目编写。

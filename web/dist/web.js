@@ -1287,36 +1287,35 @@
   }
   const _M0FP27hustcer4fzip4crct = t$3;
   const _M0MP27hustcer4fzip12UnzipOptions7defaultN6recordS2604 = new _M0TP27hustcer4fzip12UnzipOptions(false);
-  const _M0FP27mik1e806stlkit18write__stl__binaryN6headerS1273 = "stlkit - 由 MoonBit 生成";
-  const _M0FP27mik1e806stlkit22normalize__entry__nameN7_2abindS1594 = "\\";
-  const _M0FP27mik1e806stlkit22normalize__entry__nameN7_2abindS1595 = "\\";
-  const _M0FP27mik1e806stlkit22normalize__entry__nameN7_2abindS1596 = "/";
-  const _M0FP27mik1e806stlkit11local__nameN7_2abindS1617 = ":";
-  const _M0FP27mik1e806stlkit21normalize__part__pathN7_2abindS1618 = "/";
-  const _M0FP27mik1e806stlkit19rels__model__targetN7_2abindS1620 = "/3dmodel";
-  const _M0FP27mik1e806stlkit17find__model__partN7_2abindS1656 = ".model";
-  const _M0FP27mik1e806stlkit20attribute__transformN7_2abindS1705 = " ";
-  const _M0FP27mik1e806stlkit20detect__core__prefixN7_2abindS1783 = "3dmanufacturing/core";
-  const _M0FP27mik1e806stlkit20detect__core__prefixN7_2abindS1784 = "xmlns:";
-  const _M0FP27mik1e806stlkit10prefix__ofN7_2abindS1789 = ":";
-  const _M0FP27mik1e806stlkit17parse__stl__asciiN7_2abindS2277 = "\n";
-  const _M0FP27mik1e806stlkit17parse__stl__asciiN7_2abindS2196 = " ";
-  const _M0FP27mik1e806stlkit16parse__face__refN7_2abindS2320 = "/";
-  const _M0FP27mik1e806stlkit10parse__objN7_2abindS2477 = "\n";
-  const _M0FP27mik1e806stlkit10parse__objN7_2abindS2423 = "#";
-  const _M0FP27mik1e806stlkit13parse__headerN7_2abindS2714 = "\n";
-  const _M0FP27mik1e806stlkit13parse__headerN7_2abindS2563 = " ";
-  const _M0FP27mik1e806stlkit12ascii__linesN7_2abindS2890 = "\n";
-  const _M0FP27mik1e806stlkit11fill__holesN7_2abindS2959 = ">";
-  const _M0FP27mik1e806stlkit11render__svgN7_2abindS3104 = "";
-  const _M0MP27mik1e806stlkit4Vec34zeroN6recordS3333 = new _M0TP27mik1e806stlkit4Vec3(0, 0, 0);
-  const _M0FP27mik1e806stlkit15ply__type__sizeN6constrS3363 = 8;
-  const _M0FP27mik1e806stlkit15ply__type__sizeN6constrS3364 = 4;
-  const _M0FP27mik1e806stlkit15ply__type__sizeN6constrS3365 = 2;
-  const _M0FP27mik1e806stlkit15ply__type__sizeN6constrS3366 = 1;
-  const _M0MP27mik1e806stlkit14PreviewOptions7defaultN6recordS3374 = new _M0TP27mik1e806stlkit14PreviewOptions(480, 480, 35, 30, "#1f2430", 0.6);
-  const _M0FP37mik1e806stlkit3web24analyze__with__thresholdN7_2abindS118 = "\n";
-  const _M0FP37mik1e806stlkit3web28fix__report__with__thresholdN7_2abindS163 = "\n";
+  const _M0FP27mik1e806stlkit18write__stl__binaryN6headerS1283 = "stlkit - 由 MoonBit 生成";
+  const _M0FP27mik1e806stlkit22normalize__entry__nameN7_2abindS1604 = "\\";
+  const _M0FP27mik1e806stlkit22normalize__entry__nameN7_2abindS1605 = "\\";
+  const _M0FP27mik1e806stlkit22normalize__entry__nameN7_2abindS1606 = "/";
+  const _M0FP27mik1e806stlkit11local__nameN7_2abindS1627 = ":";
+  const _M0FP27mik1e806stlkit21normalize__part__pathN7_2abindS1628 = "/";
+  const _M0FP27mik1e806stlkit19rels__model__targetN7_2abindS1630 = "/3dmodel";
+  const _M0FP27mik1e806stlkit17find__model__partN7_2abindS1666 = ".model";
+  const _M0FP27mik1e806stlkit20detect__core__prefixN7_2abindS1797 = "3dmanufacturing/core";
+  const _M0FP27mik1e806stlkit20detect__core__prefixN7_2abindS1798 = "xmlns:";
+  const _M0FP27mik1e806stlkit10prefix__ofN7_2abindS1803 = ":";
+  const _M0FP27mik1e806stlkit17parse__stl__asciiN7_2abindS2317 = "\n";
+  const _M0FP27mik1e806stlkit17parse__stl__asciiN7_2abindS2236 = " ";
+  const _M0FP27mik1e806stlkit16parse__face__refN7_2abindS2361 = "/";
+  const _M0FP27mik1e806stlkit10parse__objN7_2abindS2518 = "\n";
+  const _M0FP27mik1e806stlkit10parse__objN7_2abindS2464 = "#";
+  const _M0FP27mik1e806stlkit13parse__headerN7_2abindS2755 = "\n";
+  const _M0FP27mik1e806stlkit13parse__headerN7_2abindS2604 = " ";
+  const _M0FP27mik1e806stlkit12ascii__linesN7_2abindS2931 = "\n";
+  const _M0FP27mik1e806stlkit11fill__holesN7_2abindS3000 = ">";
+  const _M0FP27mik1e806stlkit11render__svgN7_2abindS3151 = "";
+  const _M0MP27mik1e806stlkit4Vec34zeroN6recordS3380 = new _M0TP27mik1e806stlkit4Vec3(0, 0, 0);
+  const _M0FP27mik1e806stlkit15ply__type__sizeN6constrS3411 = 8;
+  const _M0FP27mik1e806stlkit15ply__type__sizeN6constrS3412 = 4;
+  const _M0FP27mik1e806stlkit15ply__type__sizeN6constrS3413 = 2;
+  const _M0FP27mik1e806stlkit15ply__type__sizeN6constrS3414 = 1;
+  const _M0MP27mik1e806stlkit14PreviewOptions7defaultN6recordS3422 = new _M0TP27mik1e806stlkit14PreviewOptions(480, 480, 35, 30, "#1f2430", 0.6);
+  const _M0FP37mik1e806stlkit3web24analyze__with__thresholdN7_2abindS119 = "\n";
+  const _M0FP37mik1e806stlkit3web28fix__report__with__thresholdN7_2abindS164 = "\n";
   const t$4 = $make_array_len_and_init(256, 0);
   let _tmp$7 = 0;
   while (true) {
@@ -1631,41 +1630,42 @@
   const _M0MP29Milky20183xml6Reader23parse__internal__subsetN6constrS2459 = 62;
   const _M0MP29Milky20183xml6Reader10read__textN6constrS2460 = 10;
   const _M0MP29Milky20183xml6Reader10read__textN6constrS2461 = new _M0DTP29Milky20183xml9EventKind4Text("");
-  const _M0FP27mik1e806stlkit17find__model__partN6constrS3334 = new _M0DTPC16result6ResultGssE3Err("这个 ZIP 里没有 3D 模型部件（找不到 .model 文件），不是 3MF 文件");
+  const _M0FP27mik1e806stlkit17find__model__partN6constrS3381 = new _M0DTPC16result6ResultGssE3Err("这个 ZIP 里没有 3D 模型部件（找不到 .model 文件），不是 3MF 文件");
   const _M0FPC28internal7strconv17check__underscoreN25_2atransition__table__222S230 = [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 4, 5, 5, 5, 5, 5, 0, 1, 2, 5];
   const _M0FPC28internal7strconv15parse__inf__nanN25_2atransition__table__304S312 = [14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 3, 4, 14, 14, 14, 14, 14, 14, 14, 7, 14, 14, 14, 14, 5, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 6, 14, 14, 14, 0, 14, 14, 14, 14, 14, 14, 14, 14, 14, 8, 14, 14, 14, 14, 14, 1, 14, 14, 9, 14, 14, 14, 14, 14, 14, 14, 14, 10, 14, 14, 14, 14, 14, 14, 11, 14, 14, 14, 14, 14, 14, 14, 14, 14, 12, 14, 14, 14, 14, 14, 14, 14, 14, 13, 14, 1, 14, 14, 14, 14, 14, 14, 14];
-  const _M0FP27mik1e806stlkit13build__objectN6constrS3335 = new _M0DTPC16result6ResultGRPB5ArrayGRP27mik1e806stlkit8TriangleEsE3Err("3MF 的对象引用套得太深（超过 32 层），可能是循环引用");
-  const _M0FP27mik1e806stlkit15unit__scale__ofN6constrS3337 = new _M0DTPC16result6ResultGdsE2Ok(0.001);
-  const _M0FP27mik1e806stlkit15unit__scale__ofN6constrS3338 = new _M0DTPC16result6ResultGdsE2Ok(1);
-  const _M0FP27mik1e806stlkit15unit__scale__ofN6constrS3339 = new _M0DTPC16result6ResultGdsE2Ok(10);
-  const _M0FP27mik1e806stlkit15unit__scale__ofN6constrS3340 = new _M0DTPC16result6ResultGdsE2Ok(25.4);
-  const _M0FP27mik1e806stlkit15unit__scale__ofN6constrS3341 = new _M0DTPC16result6ResultGdsE2Ok(304.8);
-  const _M0FP27mik1e806stlkit15unit__scale__ofN6constrS3342 = new _M0DTPC16result6ResultGdsE2Ok(1000);
-  const _M0FP27mik1e806stlkit20detect__core__prefixN6constrS3336 = "";
-  const _M0FP27mik1e806stlkit17parse__model__xmlN6constrS3343 = new _M0DTPC16result6ResultGRP27mik1e806stlkit4MeshsE3Err("这个 3MF 的 build 里没有列任何对象，没有东西可以打印");
-  const _M0FP27mik1e806stlkit17parse__model__xmlN6constrS3344 = new _M0DTPC16result6ResultGRP27mik1e806stlkit4MeshsE3Err("这个 3MF 的 build 引用的对象里没有三角形——可能是空对象，也可能是几何写在扩展元素里的对象（比如 beam lattice，本工具只处理三角网格）");
-  const _M0FP27mik1e806stlkit17parse__stl__asciiN6constrS3350 = new _M0DTPC16result6ResultGRP27mik1e806stlkit4MeshsE3Err("这个 ASCII STL 里一个三角形都没有，可能不是 STL 文件");
-  const _M0FP27mik1e806stlkit18parse__stl__binaryN6constrS3351 = new _M0DTPC16result6ResultGRP27mik1e806stlkit4MeshsE3Err("这个二进制 STL 里一个三角形都没有");
-  const _M0FP27mik1e806stlkit10parse__stlN6constrS3352 = new _M0DTPC16result6ResultGRP27mik1e806stlkit4MeshsE3Err("这是一个 3MF 文件（ZIP 包），不是 STL——请用 parse_mesh 或 parse_3mf");
-  const _M0FP27mik1e806stlkit10parse__stlN6constrS3353 = new _M0DTPC16result6ResultGRP27mik1e806stlkit4MeshsE3Err("这是一个 PLY 文件，不是 STL——请用 parse_mesh 或 parse_ply");
-  const _M0FP27mik1e806stlkit20triangulate__polygonN6constrS3354 = new _M0DTPC16result6ResultGRPB5ArrayGUiiiEEsE3Err("一个面至少要有三个顶点");
-  const _M0FP27mik1e806stlkit20triangulate__polygonN5tupleS3355 = { _0: 0, _1: 1, _2: 2 };
-  const _M0FP27mik1e806stlkit20triangulate__polygonN6constrS3356 = new _M0DTPC16result6ResultGRPB5ArrayGUiiiEEsE3Err("多边形没有可用的有限面积");
-  const _M0FP27mik1e806stlkit20triangulate__polygonN6constrS3357 = new _M0DTPC16result6ResultGRPB5ArrayGUiiiEEsE3Err("多边形零面积或自相交，无法三角化");
-  const _M0FP27mik1e806stlkit20triangulate__polygonN6constrS3358 = new _M0DTPC16result6ResultGRPB5ArrayGUiiiEEsE3Err("仅支持平面多边形；这个面的顶点不共面");
-  const _M0FP27mik1e806stlkit20triangulate__polygonN6constrS3359 = new _M0DTPC16result6ResultGRPB5ArrayGUiiiEEsE3Err("多边形有自相交或重复边，无法三角化");
-  const _M0FP27mik1e806stlkit20triangulate__polygonN6constrS3360 = new _M0DTPC16result6ResultGRPB5ArrayGUiiiEEsE3Err("多边形无法安全三角化，请先修正这个面");
-  const _M0FP27mik1e806stlkit10parse__objN6constrS3361 = new _M0DTPC16result6ResultGRP27mik1e806stlkit4MeshsE3Err("这个 OBJ 里一个面都没有，可能不是 OBJ 文件");
-  const _M0MP27mik1e806stlkit9PlyCursor12next__doubleN6constrS3370 = new _M0DTPC16result6ResultGdsE3Err("PLY 的数据在读到一半就没了——文件被截断了");
-  const _M0MP27mik1e806stlkit9PlyCursor12next__doubleN6constrS3371 = new _M0DTPC16result6ResultGdsE3Err("PLY 的数据在读到一半就没了——文件被截断了");
-  const _M0FP27mik1e806stlkit10read__bodyN6constrS3372 = new _M0DTPC16result6ResultGRP27mik1e806stlkit4MeshsE3Err("这个 PLY 里一个三角形都没有（可能只有点云，没有面）");
-  const _M0FP27mik1e806stlkit13parse__headerN6constrS3367 = new _M0DTPC16result6ResultGRP27mik1e806stlkit9PlyHeadersE3Err("PLY 的 property 出现在 element 之前");
-  const _M0FP27mik1e806stlkit13parse__headerN6constrS3368 = new _M0DTPC16result6ResultGRP27mik1e806stlkit9PlyHeadersE3Err("PLY 的 property 出现在 element 之前");
-  const _M0FP27mik1e806stlkit13parse__headerN6constrS3369 = new _M0DTPC16result6ResultGRP27mik1e806stlkit9PlyHeadersE3Err("PLY 头里没有声明任何 element");
-  const _M0FP27mik1e806stlkit17find__header__endN6constrS3362 = new _M0DTPC16result6ResultGisE3Err("PLY 文件里找不到 end_header，头不完整");
-  const _M0FP27mik1e806stlkit10parse__plyN6constrS3373 = new _M0DTPC16result6ResultGRP27mik1e806stlkit4MeshsE3Err("这不是 PLY 文件（开头不是 ply）");
-  const _M0FP37mik1e806stlkit3web6decodeN6constrS189 = new _M0DTPC16result6ResultGzsE3Err("没有收到文件内容");
-  const _M0FP37mik1e806stlkit3web6decodeN6constrS190 = new _M0DTPC16result6ResultGzsE3Err("文件内容解码失败，可能上传时出错了");
+  const _M0FP27mik1e806stlkit13build__objectN6constrS3382 = new _M0DTPC16result6ResultGRPB5ArrayGRP27mik1e806stlkit8TriangleEsE3Err("3MF 的对象引用套得太深（超过 32 层），可能是循环引用");
+  const _M0FP27mik1e806stlkit15unit__scale__ofN6constrS3384 = new _M0DTPC16result6ResultGdsE2Ok(0.001);
+  const _M0FP27mik1e806stlkit15unit__scale__ofN6constrS3385 = new _M0DTPC16result6ResultGdsE2Ok(1);
+  const _M0FP27mik1e806stlkit15unit__scale__ofN6constrS3386 = new _M0DTPC16result6ResultGdsE2Ok(10);
+  const _M0FP27mik1e806stlkit15unit__scale__ofN6constrS3387 = new _M0DTPC16result6ResultGdsE2Ok(25.4);
+  const _M0FP27mik1e806stlkit15unit__scale__ofN6constrS3388 = new _M0DTPC16result6ResultGdsE2Ok(304.8);
+  const _M0FP27mik1e806stlkit15unit__scale__ofN6constrS3389 = new _M0DTPC16result6ResultGdsE2Ok(1000);
+  const _M0FP27mik1e806stlkit20detect__core__prefixN6constrS3383 = "";
+  const _M0FP27mik1e806stlkit17parse__model__xmlN6constrS3390 = new _M0DTPC16result6ResultGRP27mik1e806stlkit4MeshsE3Err("这个 3MF 的 build 里没有列任何对象，没有东西可以打印");
+  const _M0FP27mik1e806stlkit17parse__model__xmlN6constrS3391 = new _M0DTPC16result6ResultGRP27mik1e806stlkit4MeshsE3Err("这个 3MF 的 build 引用的对象里没有三角形——可能是空对象，也可能是几何写在扩展元素里的对象（比如 beam lattice，本工具只处理三角网格）");
+  const _M0FP27mik1e806stlkit17parse__model__xmlN6constrS3392 = new _M0DTPC16result6ResultGRP27mik1e806stlkit4MeshsE3Err("3MF 单位换算后坐标超出有限范围");
+  const _M0FP27mik1e806stlkit17parse__stl__asciiN6constrS3398 = new _M0DTPC16result6ResultGRP27mik1e806stlkit4MeshsE3Err("这个 ASCII STL 里一个三角形都没有，可能不是 STL 文件");
+  const _M0FP27mik1e806stlkit18parse__stl__binaryN6constrS3399 = new _M0DTPC16result6ResultGRP27mik1e806stlkit4MeshsE3Err("这个二进制 STL 里一个三角形都没有");
+  const _M0FP27mik1e806stlkit10parse__stlN6constrS3400 = new _M0DTPC16result6ResultGRP27mik1e806stlkit4MeshsE3Err("这是一个 3MF 文件（ZIP 包），不是 STL——请用 parse_mesh 或 parse_3mf");
+  const _M0FP27mik1e806stlkit10parse__stlN6constrS3401 = new _M0DTPC16result6ResultGRP27mik1e806stlkit4MeshsE3Err("这是一个 PLY 文件，不是 STL——请用 parse_mesh 或 parse_ply");
+  const _M0FP27mik1e806stlkit20triangulate__polygonN6constrS3402 = new _M0DTPC16result6ResultGRPB5ArrayGUiiiEEsE3Err("一个面至少要有三个顶点");
+  const _M0FP27mik1e806stlkit20triangulate__polygonN5tupleS3403 = { _0: 0, _1: 1, _2: 2 };
+  const _M0FP27mik1e806stlkit20triangulate__polygonN6constrS3404 = new _M0DTPC16result6ResultGRPB5ArrayGUiiiEEsE3Err("多边形没有可用的有限面积");
+  const _M0FP27mik1e806stlkit20triangulate__polygonN6constrS3405 = new _M0DTPC16result6ResultGRPB5ArrayGUiiiEEsE3Err("多边形零面积或自相交，无法三角化");
+  const _M0FP27mik1e806stlkit20triangulate__polygonN6constrS3406 = new _M0DTPC16result6ResultGRPB5ArrayGUiiiEEsE3Err("仅支持平面多边形；这个面的顶点不共面");
+  const _M0FP27mik1e806stlkit20triangulate__polygonN6constrS3407 = new _M0DTPC16result6ResultGRPB5ArrayGUiiiEEsE3Err("多边形有自相交或重复边，无法三角化");
+  const _M0FP27mik1e806stlkit20triangulate__polygonN6constrS3408 = new _M0DTPC16result6ResultGRPB5ArrayGUiiiEEsE3Err("多边形无法安全三角化，请先修正这个面");
+  const _M0FP27mik1e806stlkit10parse__objN6constrS3409 = new _M0DTPC16result6ResultGRP27mik1e806stlkit4MeshsE3Err("这个 OBJ 里一个面都没有，可能不是 OBJ 文件");
+  const _M0MP27mik1e806stlkit9PlyCursor12next__doubleN6constrS3418 = new _M0DTPC16result6ResultGdsE3Err("PLY 的数据在读到一半就没了——文件被截断了");
+  const _M0MP27mik1e806stlkit9PlyCursor12next__doubleN6constrS3419 = new _M0DTPC16result6ResultGdsE3Err("PLY 的数据在读到一半就没了——文件被截断了");
+  const _M0FP27mik1e806stlkit10read__bodyN6constrS3420 = new _M0DTPC16result6ResultGRP27mik1e806stlkit4MeshsE3Err("这个 PLY 里一个三角形都没有（可能只有点云，没有面）");
+  const _M0FP27mik1e806stlkit13parse__headerN6constrS3415 = new _M0DTPC16result6ResultGRP27mik1e806stlkit9PlyHeadersE3Err("PLY 的 property 出现在 element 之前");
+  const _M0FP27mik1e806stlkit13parse__headerN6constrS3416 = new _M0DTPC16result6ResultGRP27mik1e806stlkit9PlyHeadersE3Err("PLY 的 property 出现在 element 之前");
+  const _M0FP27mik1e806stlkit13parse__headerN6constrS3417 = new _M0DTPC16result6ResultGRP27mik1e806stlkit9PlyHeadersE3Err("PLY 头里没有声明任何 element");
+  const _M0FP27mik1e806stlkit17find__header__endN6constrS3410 = new _M0DTPC16result6ResultGisE3Err("PLY 文件里找不到 end_header，头不完整");
+  const _M0FP27mik1e806stlkit10parse__plyN6constrS3421 = new _M0DTPC16result6ResultGRP27mik1e806stlkit4MeshsE3Err("这不是 PLY 文件（开头不是 ply）");
+  const _M0FP37mik1e806stlkit3web6decodeN6constrS190 = new _M0DTPC16result6ResultGzsE3Err("没有收到文件内容");
+  const _M0FP37mik1e806stlkit3web6decodeN6constrS191 = new _M0DTPC16result6ResultGzsE3Err("文件内容解码失败，可能上传时出错了");
   function _M0MPB6Logger13write__objectGRP29Milky20183xml12XmlErrorKindE(self, obj) {
     _M0IP29Milky20183xml12XmlErrorKindPB4Show6output(obj, self);
   }
@@ -15837,49 +15837,49 @@
     }
     return _M0FP27hustcer4fzip19unzip__sync_2einner(data, opts);
   }
-  function _M0IP27mik1e806stlkit11PositionKeyPB2Eq5equal(_x_1309, _x_1310) {
-    return _M0IP27mik1e806stlkit13CoordinateKeyPB2Eq5equal(_x_1309.x, _x_1310.x) && _M0IP27mik1e806stlkit13CoordinateKeyPB2Eq5equal(_x_1309.y, _x_1310.y) && _M0IP27mik1e806stlkit13CoordinateKeyPB2Eq5equal(_x_1309.z, _x_1310.z);
+  function _M0IP27mik1e806stlkit11PositionKeyPB2Eq5equal(_x_1319, _x_1320) {
+    return _M0IP27mik1e806stlkit13CoordinateKeyPB2Eq5equal(_x_1319.x, _x_1320.x) && _M0IP27mik1e806stlkit13CoordinateKeyPB2Eq5equal(_x_1319.y, _x_1320.y) && _M0IP27mik1e806stlkit13CoordinateKeyPB2Eq5equal(_x_1319.z, _x_1320.z);
   }
-  function _M0IP27mik1e806stlkit11PositionKeyPB4Hash13hash__combine(_x_1305, _x_1306) {
-    _M0IP27mik1e806stlkit13CoordinateKeyPB4Hash13hash__combine(_x_1305.x, _x_1306);
-    _M0IP27mik1e806stlkit13CoordinateKeyPB4Hash13hash__combine(_x_1305.y, _x_1306);
-    _M0IP27mik1e806stlkit13CoordinateKeyPB4Hash13hash__combine(_x_1305.z, _x_1306);
+  function _M0IP27mik1e806stlkit11PositionKeyPB4Hash13hash__combine(_x_1315, _x_1316) {
+    _M0IP27mik1e806stlkit13CoordinateKeyPB4Hash13hash__combine(_x_1315.x, _x_1316);
+    _M0IP27mik1e806stlkit13CoordinateKeyPB4Hash13hash__combine(_x_1315.y, _x_1316);
+    _M0IP27mik1e806stlkit13CoordinateKeyPB4Hash13hash__combine(_x_1315.z, _x_1316);
   }
-  function _M0IP27mik1e806stlkit13CoordinateKeyPB2Eq5equal(_x_1293, _x_1294) {
-    if (_x_1293.$tag === 0) {
-      const _Grid = _x_1293;
-      const _$42$x0_1295 = _Grid._0;
-      if (_x_1294.$tag === 0) {
-        const _Grid$2 = _x_1294;
-        const _$42$y0_1296 = _Grid$2._0;
-        return _$42$x0_1295 === _$42$y0_1296;
+  function _M0IP27mik1e806stlkit13CoordinateKeyPB2Eq5equal(_x_1303, _x_1304) {
+    if (_x_1303.$tag === 0) {
+      const _Grid = _x_1303;
+      const _$42$x0_1305 = _Grid._0;
+      if (_x_1304.$tag === 0) {
+        const _Grid$2 = _x_1304;
+        const _$42$y0_1306 = _Grid$2._0;
+        return _$42$x0_1305 === _$42$y0_1306;
       } else {
         return false;
       }
     } else {
-      const _Exact = _x_1293;
-      const _$42$x0_1297 = _Exact._0;
-      if (_x_1294.$tag === 1) {
-        const _Exact$2 = _x_1294;
-        const _$42$y0_1298 = _Exact$2._0;
-        return _$42$x0_1297 === _$42$y0_1298;
+      const _Exact = _x_1303;
+      const _$42$x0_1307 = _Exact._0;
+      if (_x_1304.$tag === 1) {
+        const _Exact$2 = _x_1304;
+        const _$42$y0_1308 = _Exact$2._0;
+        return _$42$x0_1307 === _$42$y0_1308;
       } else {
         return false;
       }
     }
   }
-  function _M0IP27mik1e806stlkit13CoordinateKeyPB4Hash13hash__combine(_x_1285, _x_1286) {
-    if (_x_1285.$tag === 0) {
-      const _Grid = _x_1285;
-      const _$42$arg_1287 = _Grid._0;
-      _M0MPB6Hasher12combine__int(_x_1286, 0);
-      _M0IPC16double6DoublePB4Hash13hash__combine(_$42$arg_1287, _x_1286);
+  function _M0IP27mik1e806stlkit13CoordinateKeyPB4Hash13hash__combine(_x_1295, _x_1296) {
+    if (_x_1295.$tag === 0) {
+      const _Grid = _x_1295;
+      const _$42$arg_1297 = _Grid._0;
+      _M0MPB6Hasher12combine__int(_x_1296, 0);
+      _M0IPC16double6DoublePB4Hash13hash__combine(_$42$arg_1297, _x_1296);
       return;
     } else {
-      const _Exact = _x_1285;
-      const _$42$arg_1288 = _Exact._0;
-      _M0MPB6Hasher12combine__int(_x_1286, 1);
-      _M0IPC16double6DoublePB4Hash13hash__combine(_$42$arg_1288, _x_1286);
+      const _Exact = _x_1295;
+      const _$42$arg_1298 = _Exact._0;
+      _M0MPB6Hasher12combine__int(_x_1296, 1);
+      _M0IPC16double6DoublePB4Hash13hash__combine(_$42$arg_1298, _x_1296);
       return;
     }
   }
@@ -15914,7 +15914,7 @@
   }
   function _M0FP27mik1e806stlkit18write__stl__binary(mesh) {
     const buf = [];
-    const header_bytes = _M0FPC28encoding4utf814encode_2einner(new _M0TPC16string10StringView(_M0FP27mik1e806stlkit18write__stl__binaryN6headerS1273, 0, _M0FP27mik1e806stlkit18write__stl__binaryN6headerS1273.length), false);
+    const header_bytes = _M0FPC28encoding4utf814encode_2einner(new _M0TPC16string10StringView(_M0FP27mik1e806stlkit18write__stl__binaryN6headerS1283, 0, _M0FP27mik1e806stlkit18write__stl__binaryN6headerS1283.length), false);
     const header_len = header_bytes.length > 80 ? 80 : header_bytes.length;
     let _tmp$22 = 0;
     while (true) {
@@ -16334,6 +16334,12 @@
   function _M0MP27mik1e806stlkit4Vec35scale(self, factor) {
     return new _M0TP27mik1e806stlkit4Vec3(self.x * factor, self.y * factor, self.z * factor);
   }
+  function _M0FP27mik1e806stlkit11not__finite(v) {
+    return v !== v || (v > _M0FPB18double__max__value || v < _M0FPB18double__min__value);
+  }
+  function _M0FP27mik1e806stlkit14finite__vertex(v) {
+    return !_M0FP27mik1e806stlkit11not__finite(v.x) && (!_M0FP27mik1e806stlkit11not__finite(v.y) && !_M0FP27mik1e806stlkit11not__finite(v.z));
+  }
   function _M0FP27mik1e806stlkit9edge__key(a, b) {
     return a < b ? { _0: a, _1: b } : { _0: b, _1: a };
   }
@@ -16650,7 +16656,7 @@
   }
   function _M0FP27mik1e806stlkit22normalize__entry__name(name) {
     const lower = _M0MPC16string6String9to__lower(name);
-    return _M0MPC16string6String8contains(lower, new _M0TPC16string10StringView(_M0FP27mik1e806stlkit22normalize__entry__nameN7_2abindS1594, 0, _M0FP27mik1e806stlkit22normalize__entry__nameN7_2abindS1594.length)) ? _M0MPC16string6String12replace__all(lower, new _M0TPC16string10StringView(_M0FP27mik1e806stlkit22normalize__entry__nameN7_2abindS1595, 0, _M0FP27mik1e806stlkit22normalize__entry__nameN7_2abindS1595.length), new _M0TPC16string10StringView(_M0FP27mik1e806stlkit22normalize__entry__nameN7_2abindS1596, 0, _M0FP27mik1e806stlkit22normalize__entry__nameN7_2abindS1596.length)) : lower;
+    return _M0MPC16string6String8contains(lower, new _M0TPC16string10StringView(_M0FP27mik1e806stlkit22normalize__entry__nameN7_2abindS1604, 0, _M0FP27mik1e806stlkit22normalize__entry__nameN7_2abindS1604.length)) ? _M0MPC16string6String12replace__all(lower, new _M0TPC16string10StringView(_M0FP27mik1e806stlkit22normalize__entry__nameN7_2abindS1605, 0, _M0FP27mik1e806stlkit22normalize__entry__nameN7_2abindS1605.length), new _M0TPC16string10StringView(_M0FP27mik1e806stlkit22normalize__entry__nameN7_2abindS1606, 0, _M0FP27mik1e806stlkit22normalize__entry__nameN7_2abindS1606.length)) : lower;
   }
   function _M0FP27mik1e806stlkit11find__entry(entries, name) {
     const want = _M0FP27mik1e806stlkit22normalize__entry__name(name);
@@ -16675,7 +16681,7 @@
   }
   function _M0FP27mik1e806stlkit11local__name(name) {
     let last = new _M0TPC16string10StringView(name, 0, name.length);
-    const _it = _M0MPC16string6String5split(name, new _M0TPC16string10StringView(_M0FP27mik1e806stlkit11local__nameN7_2abindS1617, 0, _M0FP27mik1e806stlkit11local__nameN7_2abindS1617.length));
+    const _it = _M0MPC16string6String5split(name, new _M0TPC16string10StringView(_M0FP27mik1e806stlkit11local__nameN7_2abindS1627, 0, _M0FP27mik1e806stlkit11local__nameN7_2abindS1627.length));
     while (true) {
       const _bind$3 = _M0MPB4Iter4nextGRPC16string10StringViewE(_it);
       if (_bind$3 === undefined) {
@@ -16690,7 +16696,7 @@
     return _M0MPC16string10StringView9to__owned(last);
   }
   function _M0FP27mik1e806stlkit21normalize__part__path(path) {
-    return _M0MPC16string6String11has__prefix(path, new _M0TPC16string10StringView(_M0FP27mik1e806stlkit21normalize__part__pathN7_2abindS1618, 0, _M0FP27mik1e806stlkit21normalize__part__pathN7_2abindS1618.length)) ? _M0MPC16string10StringView9to__owned(_M0MPC16string6String21clamped__view_2einner(path, 1, undefined)) : path;
+    return _M0MPC16string6String11has__prefix(path, new _M0TPC16string10StringView(_M0FP27mik1e806stlkit21normalize__part__pathN7_2abindS1628, 0, _M0FP27mik1e806stlkit21normalize__part__pathN7_2abindS1628.length)) ? _M0MPC16string10StringView9to__owned(_M0MPC16string6String21clamped__view_2einner(path, 1, undefined)) : path;
   }
   function _M0FP27mik1e806stlkit19rels__model__target(xml) {
     const reader = _M0MP29Milky20183xml6Reader12from__string(xml);
@@ -16750,7 +16756,7 @@
           const _Some = _bind$5;
           kind = _Some;
         }
-        if (!_M0MPC16string6String11has__suffix(kind, new _M0TPC16string10StringView(_M0FP27mik1e806stlkit19rels__model__targetN7_2abindS1620, 0, _M0FP27mik1e806stlkit19rels__model__targetN7_2abindS1620.length))) {
+        if (!_M0MPC16string6String11has__suffix(kind, new _M0TPC16string10StringView(_M0FP27mik1e806stlkit19rels__model__targetN7_2abindS1630, 0, _M0FP27mik1e806stlkit19rels__model__targetN7_2abindS1630.length))) {
           continue;
         }
         const _bind$6 = _M0MP29Milky20183xml10XmlElement3get(element, "Target");
@@ -16787,7 +16793,7 @@
         if (_ < _bind$4) {
           const entry = entries[_];
           const _name = entry._0;
-          if (_M0MPC16string6String11has__suffix(_M0MPC16string6String9to__lower(_name), new _M0TPC16string10StringView(_M0FP27mik1e806stlkit17find__model__partN7_2abindS1656, 0, _M0FP27mik1e806stlkit17find__model__partN7_2abindS1656.length))) {
+          if (_M0MPC16string6String11has__suffix(_M0MPC16string6String9to__lower(_name), new _M0TPC16string10StringView(_M0FP27mik1e806stlkit17find__model__partN7_2abindS1666, 0, _M0FP27mik1e806stlkit17find__model__partN7_2abindS1666.length))) {
             _M0MPC15array5Array4pushGsE(models, _name);
           }
           _tmp$22 = _ + 1 | 0;
@@ -16797,7 +16803,7 @@
         }
       }
       if (models.length === 0) {
-        return _M0FP27mik1e806stlkit17find__model__partN6constrS3334;
+        return _M0FP27mik1e806stlkit17find__model__partN6constrS3381;
       } else {
         if (models.length > 1) {
           const _string_builder = _M0MPB13StringBuilder21StringBuilder_2einner(81);
@@ -16890,6 +16896,61 @@
       return new _M0DTPC16result6ResultGisE2Ok(_M0MPC16double6Double7to__int(value));
     }
   }
+  function _M0FP27mik1e806stlkit16is__ascii__space(c) {
+    return c === 32 || (c === 9 || (c === 13 || c === 10));
+  }
+  function _M0FP27mik1e806stlkit10obj__words(line) {
+    const words = [];
+    let i = 0;
+    while (true) {
+      if (i < (line.end - line.start | 0)) {
+        while (true) {
+          let _tmp$22;
+          if (i < (line.end - line.start | 0)) {
+            const _bind$3 = i;
+            if (_bind$3 < 0 || _bind$3 >= (line.end - line.start | 0)) {
+              $panic();
+            }
+            _tmp$22 = _M0FP27mik1e806stlkit16is__ascii__space(line.str.charCodeAt(line.start + _bind$3 | 0));
+          } else {
+            _tmp$22 = false;
+          }
+          if (_tmp$22) {
+            i = i + 1 | 0;
+            continue;
+          } else {
+            break;
+          }
+        }
+        const start = i;
+        while (true) {
+          let _tmp$22;
+          if (i < (line.end - line.start | 0)) {
+            const _bind$3 = i;
+            if (_bind$3 < 0 || _bind$3 >= (line.end - line.start | 0)) {
+              $panic();
+            }
+            _tmp$22 = !_M0FP27mik1e806stlkit16is__ascii__space(line.str.charCodeAt(line.start + _bind$3 | 0));
+          } else {
+            _tmp$22 = false;
+          }
+          if (_tmp$22) {
+            i = i + 1 | 0;
+            continue;
+          } else {
+            break;
+          }
+        }
+        if (i > start) {
+          _M0MPC15array5Array4pushGsE(words, _M0MPC16string10StringView21clamped__view_2einner(line, start, i));
+        }
+        continue;
+      } else {
+        break;
+      }
+    }
+    return words;
+  }
   function _M0FP27mik1e806stlkit20attribute__transform(element) {
     const _bind$3 = _M0MP29Milky20183xml10XmlElement3get(element, "transform");
     let raw;
@@ -16900,40 +16961,52 @@
       raw = _Some;
     }
     const out = [];
-    const _it = _M0MPC16string6String5split(raw, new _M0TPC16string10StringView(_M0FP27mik1e806stlkit20attribute__transformN7_2abindS1705, 0, _M0FP27mik1e806stlkit20attribute__transformN7_2abindS1705.length));
+    const _bind$4 = _M0FP27mik1e806stlkit10obj__words(new _M0TPC16string10StringView(raw, 0, raw.length));
+    const _bind$5 = _bind$4.length;
+    let _tmp$22 = 0;
     while (true) {
-      const _bind$4 = _M0MPB4Iter4nextGRPC16string10StringViewE(_it);
-      if (_bind$4 === undefined) {
-        break;
-      } else {
-        const _Some = _bind$4;
-        const _token = _Some;
-        if ((_token.end - _token.start | 0) === 0) {
-          continue;
-        }
-        let value;
-        let _try_err;
+      const _ = _tmp$22;
+      if (_ < _bind$5) {
+        const token = _bind$4[_];
         _L: {
-          _L$2: {
-            const _bind$5 = _M0FPC28internal7strconv13parse__double(_token);
-            if (_bind$5.$tag === 1) {
-              const _ok = _bind$5;
-              value = _ok._0;
-            } else {
-              const _err = _bind$5;
-              _try_err = _err._0;
-              break _L$2;
-            }
+          if ((token.end - token.start | 0) === 0) {
             break _L;
           }
-          const _string_builder = _M0MPB13StringBuilder21StringBuilder_2einner(42);
-          _M0IPB13StringBuilderPB6Logger13write__string(_string_builder, "3MF 的 transform 里『");
-          _M0MPB13StringBuilder13write__objectGRPC16string10StringViewE(_string_builder, _token);
-          _M0IPB13StringBuilderPB6Logger13write__string(_string_builder, "』不是个数字");
-          return new _M0DTPC16result6ResultGOAdsE3Err(_string_builder.val);
+          let value;
+          let _try_err;
+          _L$2: {
+            _L$3: {
+              const _bind$6 = _M0FPC28internal7strconv13parse__double(token);
+              if (_bind$6.$tag === 1) {
+                const _ok = _bind$6;
+                value = _ok._0;
+              } else {
+                const _err = _bind$6;
+                _try_err = _err._0;
+                break _L$3;
+              }
+              break _L$2;
+            }
+            const _string_builder = _M0MPB13StringBuilder21StringBuilder_2einner(42);
+            _M0IPB13StringBuilderPB6Logger13write__string(_string_builder, "3MF 的 transform 里『");
+            _M0MPB13StringBuilder13write__objectGRPC16string10StringViewE(_string_builder, token);
+            _M0IPB13StringBuilderPB6Logger13write__string(_string_builder, "』不是个数字");
+            return new _M0DTPC16result6ResultGOAdsE3Err(_string_builder.val);
+          }
+          if (_M0FP27mik1e806stlkit11not__finite(value)) {
+            const _string_builder = _M0MPB13StringBuilder21StringBuilder_2einner(45);
+            _M0IPB13StringBuilderPB6Logger13write__string(_string_builder, "3MF 的 transform 里『");
+            _M0MPB13StringBuilder13write__objectGRPC16string10StringViewE(_string_builder, token);
+            _M0IPB13StringBuilderPB6Logger13write__string(_string_builder, "』不是有限数字");
+            return new _M0DTPC16result6ResultGOAdsE3Err(_string_builder.val);
+          }
+          _M0MPC15array5Array4pushGdE(out, value);
+          break _L;
         }
-        _M0MPC15array5Array4pushGdE(out, value);
+        _tmp$22 = _ + 1 | 0;
         continue;
+      } else {
+        break;
       }
     }
     if (out.length !== 12) {
@@ -17056,11 +17129,11 @@
     return [_M0MPC15array5Array2atGdE(out, 0), _M0MPC15array5Array2atGdE(out, 1), _M0MPC15array5Array2atGdE(out, 2), _M0MPC15array5Array2atGdE(out, 3), _M0MPC15array5Array2atGdE(out, 4), _M0MPC15array5Array2atGdE(out, 5), _M0MPC15array5Array2atGdE(out, 6), _M0MPC15array5Array2atGdE(out, 7), _M0MPC15array5Array2atGdE(out, 8), _M0MPC15array5Array2atGdE(out, 9), _M0MPC15array5Array2atGdE(out, 10), _M0MPC15array5Array2atGdE(out, 11)];
   }
   function _M0MP27mik1e806stlkit8Triangle14from__vertices(a, b, c) {
-    return new _M0TP27mik1e806stlkit8Triangle(_M0MP27mik1e806stlkit4Vec34zeroN6recordS3333, a, b, c);
+    return new _M0TP27mik1e806stlkit8Triangle(_M0MP27mik1e806stlkit4Vec34zeroN6recordS3380, a, b, c);
   }
   function _M0FP27mik1e806stlkit13build__object(objects, id, transform, depth) {
     if (depth > 32) {
-      return _M0FP27mik1e806stlkit13build__objectN6constrS3335;
+      return _M0FP27mik1e806stlkit13build__objectN6constrS3382;
     }
     const _bind$3 = _M0MPB3Map3getGiRP27mik1e806stlkit8MfObjectE(objects, id);
     let obj;
@@ -17107,6 +17180,13 @@
           const a = _M0FP27mik1e806stlkit16apply__transform(_M0MPC15array5Array2atGRP27mik1e806stlkit4Vec3E(obj.vertices, _i), transform);
           const b = _M0FP27mik1e806stlkit16apply__transform(_M0MPC15array5Array2atGRP27mik1e806stlkit4Vec3E(obj.vertices, _j), transform);
           const c = _M0FP27mik1e806stlkit16apply__transform(_M0MPC15array5Array2atGRP27mik1e806stlkit4Vec3E(obj.vertices, _k), transform);
+          if (!_M0FP27mik1e806stlkit14finite__vertex(a) || (!_M0FP27mik1e806stlkit14finite__vertex(b) || !_M0FP27mik1e806stlkit14finite__vertex(c))) {
+            const _string_builder = _M0MPB13StringBuilder21StringBuilder_2einner(48);
+            _M0IPB13StringBuilderPB6Logger13write__string(_string_builder, "3MF 对象 id=");
+            _M0MPB13StringBuilder13write__objectGiE(_string_builder, id);
+            _M0IPB13StringBuilderPB6Logger13write__string(_string_builder, " 变换后坐标超出有限范围");
+            return new _M0DTPC16result6ResultGRPB5ArrayGRP27mik1e806stlkit8TriangleEsE3Err(_string_builder.val);
+          }
           _M0MPC15array5Array4pushGsE(out, _M0MP27mik1e806stlkit8Triangle14from__vertices(a, b, c));
           _tmp$22 = _ + 1 | 0;
           continue;
@@ -17132,24 +17212,43 @@
           const _t = _Some;
           combined = _M0FP27mik1e806stlkit18compose__transform(_t, transform);
         }
-        const _bind$6 = _M0FP27mik1e806stlkit13build__object(objects, _child_id, combined, depth + 1 | 0);
-        let sub;
-        if (_bind$6.$tag === 1) {
-          const _Ok = _bind$6;
-          sub = _Ok._0;
-        } else {
-          const _Err = _bind$6;
-          const _msg = _Err._0;
-          return new _M0DTPC16result6ResultGRPB5ArrayGRP27mik1e806stlkit8TriangleEsE3Err(_msg);
-        }
-        const _bind$7 = sub.length;
+        const _bind$6 = combined.length;
         let _tmp$23 = 0;
         while (true) {
           const _$2 = _tmp$23;
-          if (_$2 < _bind$7) {
+          if (_$2 < _bind$6) {
+            const value = combined[_$2];
+            if (_M0FP27mik1e806stlkit11not__finite(value)) {
+              const _string_builder = _M0MPB13StringBuilder21StringBuilder_2einner(36);
+              _M0IPB13StringBuilderPB6Logger13write__string(_string_builder, "3MF 对象 id=");
+              _M0MPB13StringBuilder13write__objectGiE(_string_builder, _child_id);
+              _M0IPB13StringBuilderPB6Logger13write__string(_string_builder, " 的嵌套变换溢出");
+              return new _M0DTPC16result6ResultGRPB5ArrayGRP27mik1e806stlkit8TriangleEsE3Err(_string_builder.val);
+            }
+            _tmp$23 = _$2 + 1 | 0;
+            continue;
+          } else {
+            break;
+          }
+        }
+        const _bind$7 = _M0FP27mik1e806stlkit13build__object(objects, _child_id, combined, depth + 1 | 0);
+        let sub;
+        if (_bind$7.$tag === 1) {
+          const _Ok = _bind$7;
+          sub = _Ok._0;
+        } else {
+          const _Err = _bind$7;
+          const _msg = _Err._0;
+          return new _M0DTPC16result6ResultGRPB5ArrayGRP27mik1e806stlkit8TriangleEsE3Err(_msg);
+        }
+        const _bind$8 = sub.length;
+        let _tmp$24 = 0;
+        while (true) {
+          const _$2 = _tmp$24;
+          if (_$2 < _bind$8) {
             const tri = sub[_$2];
             _M0MPC15array5Array4pushGsE(out, tri);
-            _tmp$23 = _$2 + 1 | 0;
+            _tmp$24 = _$2 + 1 | 0;
             continue;
           } else {
             break;
@@ -17172,13 +17271,13 @@
       if (_ < _bind$4) {
         const attr = _bind$3[_];
         _L: {
-          if (!_M0MPC16string6String8contains(attr.value, new _M0TPC16string10StringView(_M0FP27mik1e806stlkit20detect__core__prefixN7_2abindS1783, 0, _M0FP27mik1e806stlkit20detect__core__prefixN7_2abindS1783.length))) {
+          if (!_M0MPC16string6String8contains(attr.value, new _M0TPC16string10StringView(_M0FP27mik1e806stlkit20detect__core__prefixN7_2abindS1797, 0, _M0FP27mik1e806stlkit20detect__core__prefixN7_2abindS1797.length))) {
             break _L;
           }
           if (attr.name === "xmlns") {
-            return _M0FP27mik1e806stlkit20detect__core__prefixN6constrS3336;
+            return _M0FP27mik1e806stlkit20detect__core__prefixN6constrS3383;
           }
-          if (_M0MPC16string6String11has__prefix(attr.name, new _M0TPC16string10StringView(_M0FP27mik1e806stlkit20detect__core__prefixN7_2abindS1784, 0, _M0FP27mik1e806stlkit20detect__core__prefixN7_2abindS1784.length))) {
+          if (_M0MPC16string6String11has__prefix(attr.name, new _M0TPC16string10StringView(_M0FP27mik1e806stlkit20detect__core__prefixN7_2abindS1798, 0, _M0FP27mik1e806stlkit20detect__core__prefixN7_2abindS1798.length))) {
             return _M0MPC16string10StringView9to__owned(_M0MPC16string6String21clamped__view_2einner(attr.name, 6, undefined));
           }
           break _L;
@@ -17205,7 +17304,7 @@
     return [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0];
   }
   function _M0FP27mik1e806stlkit10prefix__of(name) {
-    const _bind$3 = _M0MPC16string6String4find(name, new _M0TPC16string10StringView(_M0FP27mik1e806stlkit10prefix__ofN7_2abindS1789, 0, _M0FP27mik1e806stlkit10prefix__ofN7_2abindS1789.length));
+    const _bind$3 = _M0MPC16string6String4find(name, new _M0TPC16string10StringView(_M0FP27mik1e806stlkit10prefix__ofN7_2abindS1803, 0, _M0FP27mik1e806stlkit10prefix__ofN7_2abindS1803.length));
     if (_bind$3 === undefined) {
       return "";
     } else {
@@ -17237,22 +17336,22 @@
   function _M0FP27mik1e806stlkit15unit__scale__of(unit) {
     switch (unit) {
       case "micron": {
-        return _M0FP27mik1e806stlkit15unit__scale__ofN6constrS3337;
+        return _M0FP27mik1e806stlkit15unit__scale__ofN6constrS3384;
       }
       case "millimeter": {
-        return _M0FP27mik1e806stlkit15unit__scale__ofN6constrS3338;
+        return _M0FP27mik1e806stlkit15unit__scale__ofN6constrS3385;
       }
       case "centimeter": {
-        return _M0FP27mik1e806stlkit15unit__scale__ofN6constrS3339;
+        return _M0FP27mik1e806stlkit15unit__scale__ofN6constrS3386;
       }
       case "inch": {
-        return _M0FP27mik1e806stlkit15unit__scale__ofN6constrS3340;
+        return _M0FP27mik1e806stlkit15unit__scale__ofN6constrS3387;
       }
       case "foot": {
-        return _M0FP27mik1e806stlkit15unit__scale__ofN6constrS3341;
+        return _M0FP27mik1e806stlkit15unit__scale__ofN6constrS3388;
       }
       case "meter": {
-        return _M0FP27mik1e806stlkit15unit__scale__ofN6constrS3342;
+        return _M0FP27mik1e806stlkit15unit__scale__ofN6constrS3389;
       }
       default: {
         const _string_builder = _M0MPB13StringBuilder21StringBuilder_2einner(46);
@@ -17356,18 +17455,31 @@
           continue;
         }
         if (tag === "model") {
-          const _bind$7 = _M0MP29Milky20183xml10XmlElement3get(element, "unit");
+          const _bind$7 = _M0MP29Milky20183xml10XmlElement3get(element, "requiredextensions");
           if (_bind$7 === undefined) {
           } else {
             const _Some = _bind$7;
+            const _required = _Some;
+            if (_M0FP27mik1e806stlkit10obj__words(new _M0TPC16string10StringView(_required, 0, _required.length)).length > 0) {
+              const _string_builder = _M0MPB13StringBuilder21StringBuilder_2einner(107);
+              _M0IPB13StringBuilderPB6Logger13write__string(_string_builder, "3MF 声明了本工具未实现的必需扩展 requiredextensions=\"");
+              _M0MPB13StringBuilder13write__objectGsE(_string_builder, _required);
+              _M0IPB13StringBuilderPB6Logger13write__string(_string_builder, "\"；不能仅按核心三角网格解释");
+              return new _M0DTPC16result6ResultGRP27mik1e806stlkit4MeshsE3Err(_string_builder.val);
+            }
+          }
+          const _bind$8 = _M0MP29Milky20183xml10XmlElement3get(element, "unit");
+          if (_bind$8 === undefined) {
+          } else {
+            const _Some = _bind$8;
             const _u = _Some;
-            const _bind$8 = _M0FP27mik1e806stlkit15unit__scale__of(_u);
+            const _bind$9 = _M0FP27mik1e806stlkit15unit__scale__of(_u);
             let _tmp$22;
-            if (_bind$8.$tag === 1) {
-              const _Ok = _bind$8;
+            if (_bind$9.$tag === 1) {
+              const _Ok = _bind$9;
               _tmp$22 = _Ok._0;
             } else {
-              const _Err = _bind$8;
+              const _Err = _bind$9;
               const _msg = _Err._0;
               return new _M0DTPC16result6ResultGRP27mik1e806stlkit4MeshsE3Err(_msg);
             }
@@ -17495,7 +17607,7 @@
     }
     _M0FP27mik1e806stlkit13flush__object(objects, cur_id, cur_vertices, cur_triangles, cur_components);
     if (build.length === 0) {
-      return _M0FP27mik1e806stlkit17parse__model__xmlN6constrS3343;
+      return _M0FP27mik1e806stlkit17parse__model__xmlN6constrS3390;
     }
     const triangles = [];
     const _bind$4 = build.length;
@@ -17543,9 +17655,25 @@
       }
     }
     if (triangles.length === 0) {
-      return _M0FP27mik1e806stlkit17parse__model__xmlN6constrS3344;
+      return _M0FP27mik1e806stlkit17parse__model__xmlN6constrS3391;
     }
-    return new _M0DTPC16result6ResultGRP27mik1e806stlkit4MeshsE2Ok(_M0MP27mik1e806stlkit4Mesh3new(_M0FP27mik1e806stlkit11scale__mesh(triangles, unit_scale)));
+    const scaled = _M0FP27mik1e806stlkit11scale__mesh(triangles, unit_scale);
+    const _bind$5 = scaled.length;
+    let _tmp$23 = 0;
+    while (true) {
+      const _ = _tmp$23;
+      if (_ < _bind$5) {
+        const tri = scaled[_];
+        if (!_M0FP27mik1e806stlkit14finite__vertex(tri.a) || (!_M0FP27mik1e806stlkit14finite__vertex(tri.b) || !_M0FP27mik1e806stlkit14finite__vertex(tri.c))) {
+          return _M0FP27mik1e806stlkit17parse__model__xmlN6constrS3392;
+        }
+        _tmp$23 = _ + 1 | 0;
+        continue;
+      } else {
+        break;
+      }
+    }
+    return new _M0DTPC16result6ResultGRP27mik1e806stlkit4MeshsE2Ok(_M0MP27mik1e806stlkit4Mesh3new(scaled));
   }
   function _M0FP27mik1e806stlkit10parse__3mf(data) {
     let entries;
@@ -17593,8 +17721,8 @@
     if (_bind$3.length === 0) {
       return undefined;
     } else {
-      let min = _M0MP27mik1e806stlkit4Vec34zeroN6recordS3333;
-      let max = _M0MP27mik1e806stlkit4Vec34zeroN6recordS3333;
+      let min = _M0MP27mik1e806stlkit4Vec34zeroN6recordS3380;
+      let max = _M0MP27mik1e806stlkit4Vec34zeroN6recordS3380;
       let first = true;
       const _bind$4 = self.triangles;
       const _bind$5 = _bind$4.length;
@@ -17758,9 +17886,6 @@
     }
     return new _M0TP27mik1e806stlkit15ThicknessReport(samples, hits, min_d, min_at, total / (hits + 0));
   }
-  function _M0FP27mik1e806stlkit25check__thickness__default(mesh) {
-    return _M0FP27mik1e806stlkit16check__thickness(mesh, 1000);
-  }
   function _M0FP27mik1e806stlkit13read__u32__le(data, offset) {
     const b0 = (offset >>> 0 < data.length ? data[offset] : $oob()) & 255;
     const _tmp$22 = offset + 1 | 0;
@@ -17779,27 +17904,39 @@
     return _M0MP27mik1e806stlkit4Vec33new(_M0FP27mik1e806stlkit13read__f32__le(data, offset), _M0FP27mik1e806stlkit13read__f32__le(data, offset + 4 | 0), _M0FP27mik1e806stlkit13read__f32__le(data, offset + 8 | 0));
   }
   function _M0FP27mik1e806stlkit12parse__coord(s, line_no) {
+    let value;
     let _try_err;
     _L: {
-      const _bind$3 = _M0FPC28internal7strconv13parse__double(s);
-      let _tmp$22;
-      if (_bind$3.$tag === 1) {
-        const _ok = _bind$3;
-        _tmp$22 = _ok._0;
-      } else {
-        const _err = _bind$3;
-        _try_err = _err._0;
+      _L$2: {
+        const _bind$3 = _M0FPC28internal7strconv13parse__double(s);
+        if (_bind$3.$tag === 1) {
+          const _ok = _bind$3;
+          value = _ok._0;
+        } else {
+          const _err = _bind$3;
+          _try_err = _err._0;
+          break _L$2;
+        }
         break _L;
       }
-      return new _M0DTPC16result6ResultGdsE2Ok(_tmp$22);
+      const _string_builder = _M0MPB13StringBuilder21StringBuilder_2einner(44);
+      _M0IPB13StringBuilderPB6Logger13write__string(_string_builder, "第 ");
+      _M0MPB13StringBuilder13write__objectGiE(_string_builder, line_no);
+      _M0IPB13StringBuilderPB6Logger13write__string(_string_builder, " 行：『");
+      _M0MPB13StringBuilder13write__objectGRPC16string10StringViewE(_string_builder, s);
+      _M0IPB13StringBuilderPB6Logger13write__string(_string_builder, "』不是一个合法的数字");
+      return new _M0DTPC16result6ResultGdsE3Err(_string_builder.val);
     }
-    const _string_builder = _M0MPB13StringBuilder21StringBuilder_2einner(44);
-    _M0IPB13StringBuilderPB6Logger13write__string(_string_builder, "第 ");
-    _M0MPB13StringBuilder13write__objectGiE(_string_builder, line_no);
-    _M0IPB13StringBuilderPB6Logger13write__string(_string_builder, " 行：『");
-    _M0MPB13StringBuilder13write__objectGRPC16string10StringViewE(_string_builder, s);
-    _M0IPB13StringBuilderPB6Logger13write__string(_string_builder, "』不是一个合法的数字");
-    return new _M0DTPC16result6ResultGdsE3Err(_string_builder.val);
+    if (_M0FP27mik1e806stlkit11not__finite(value)) {
+      const _string_builder = _M0MPB13StringBuilder21StringBuilder_2einner(35);
+      _M0IPB13StringBuilderPB6Logger13write__string(_string_builder, "第 ");
+      _M0MPB13StringBuilder13write__objectGiE(_string_builder, line_no);
+      _M0IPB13StringBuilderPB6Logger13write__string(_string_builder, " 行：『");
+      _M0MPB13StringBuilder13write__objectGRPC16string10StringViewE(_string_builder, s);
+      _M0IPB13StringBuilderPB6Logger13write__string(_string_builder, "』不是有限数字");
+      return new _M0DTPC16result6ResultGdsE3Err(_string_builder.val);
+    }
+    return new _M0DTPC16result6ResultGdsE2Ok(value);
   }
   function _M0FP27mik1e806stlkit11parse__vec3(x, y, z, line_no) {
     const _bind$3 = _M0FP27mik1e806stlkit12parse__coord(x, line_no);
@@ -17965,10 +18102,10 @@
   }
   function _M0FP27mik1e806stlkit17parse__stl__ascii(text) {
     const triangles = [];
-    let normal = _M0MP27mik1e806stlkit4Vec34zeroN6recordS3333;
+    let normal = _M0MP27mik1e806stlkit4Vec34zeroN6recordS3380;
     const pending = [];
     let line_no = 0;
-    const _it = _M0MPC16string6String5split(text, new _M0TPC16string10StringView(_M0FP27mik1e806stlkit17parse__stl__asciiN7_2abindS2277, 0, _M0FP27mik1e806stlkit17parse__stl__asciiN7_2abindS2277.length));
+    const _it = _M0MPC16string6String5split(text, new _M0TPC16string10StringView(_M0FP27mik1e806stlkit17parse__stl__asciiN7_2abindS2317, 0, _M0FP27mik1e806stlkit17parse__stl__asciiN7_2abindS2317.length));
     while (true) {
       const _bind$3 = _M0MPB4Iter4nextGRPC16string10StringViewE(_it);
       if (_bind$3 === undefined) {
@@ -17978,7 +18115,7 @@
         const _raw_line = _Some;
         line_no = line_no + 1 | 0;
         const tokens = [];
-        const _it$2 = _M0MPC16string10StringView5split(_raw_line, new _M0TPC16string10StringView(_M0FP27mik1e806stlkit17parse__stl__asciiN7_2abindS2196, 0, _M0FP27mik1e806stlkit17parse__stl__asciiN7_2abindS2196.length));
+        const _it$2 = _M0MPC16string10StringView5split(_raw_line, new _M0TPC16string10StringView(_M0FP27mik1e806stlkit17parse__stl__asciiN7_2abindS2236, 0, _M0FP27mik1e806stlkit17parse__stl__asciiN7_2abindS2236.length));
         while (true) {
           const _bind$4 = _M0MPB4Iter4nextGRPC16string10StringViewE(_it$2);
           if (_bind$4 === undefined) {
@@ -18193,7 +18330,7 @@
       }
     }
     if (triangles.length === 0) {
-      return _M0FP27mik1e806stlkit17parse__stl__asciiN6constrS3350;
+      return _M0FP27mik1e806stlkit17parse__stl__asciiN6constrS3398;
     }
     return new _M0DTPC16result6ResultGRP27mik1e806stlkit4MeshsE2Ok(_M0MP27mik1e806stlkit4Mesh3new(triangles));
   }
@@ -18229,6 +18366,26 @@
       const i = _tmp$22;
       if (i < count) {
         const base = 84 + (Math.imul(i, 50) | 0) | 0;
+        const _bind$3 = [0, 12, 24, 36];
+        const _bind$4 = _bind$3.length;
+        let _tmp$23 = 0;
+        while (true) {
+          const _ = _tmp$23;
+          if (_ < _bind$4) {
+            const offset = _bind$3[_];
+            if (!_M0FP27mik1e806stlkit14finite__vertex(_M0FP27mik1e806stlkit15read__vec3__f32(data, base + offset | 0))) {
+              const _string_builder = _M0MPB13StringBuilder21StringBuilder_2einner(67);
+              _M0IPB13StringBuilderPB6Logger13write__string(_string_builder, "二进制 STL 第 ");
+              _M0MPB13StringBuilder13write__objectGiE(_string_builder, i + 1 | 0);
+              _M0IPB13StringBuilderPB6Logger13write__string(_string_builder, " 个三角形的坐标或法线不是有限数字");
+              return new _M0DTPC16result6ResultGRP27mik1e806stlkit4MeshsE3Err(_string_builder.val);
+            }
+            _tmp$23 = _ + 1 | 0;
+            continue;
+          } else {
+            break;
+          }
+        }
         _M0MPC15array5Array4pushGsE(triangles, new _M0TP27mik1e806stlkit8Triangle(_M0FP27mik1e806stlkit15read__vec3__f32(data, base), _M0FP27mik1e806stlkit15read__vec3__f32(data, base + 12 | 0), _M0FP27mik1e806stlkit15read__vec3__f32(data, base + 24 | 0), _M0FP27mik1e806stlkit15read__vec3__f32(data, base + 36 | 0)));
         _tmp$22 = i + 1 | 0;
         continue;
@@ -18237,7 +18394,7 @@
       }
     }
     if (triangles.length === 0) {
-      return _M0FP27mik1e806stlkit18parse__stl__binaryN6constrS3351;
+      return _M0FP27mik1e806stlkit18parse__stl__binaryN6constrS3399;
     }
     return new _M0DTPC16result6ResultGRP27mik1e806stlkit4MeshsE2Ok(_M0MP27mik1e806stlkit4Mesh3new(triangles));
   }
@@ -18251,10 +18408,10 @@
         return _M0FP27mik1e806stlkit17parse__stl__ascii(_M0FPC28encoding4utf821decode__lossy_2einner(new _M0TPC15bytes9BytesView(data, 0, data.length), false));
       }
       case 2: {
-        return _M0FP27mik1e806stlkit10parse__stlN6constrS3352;
+        return _M0FP27mik1e806stlkit10parse__stlN6constrS3400;
       }
       case 3: {
-        return _M0FP27mik1e806stlkit10parse__stlN6constrS3353;
+        return _M0FP27mik1e806stlkit10parse__stlN6constrS3401;
       }
       default: {
         const _string_builder = _M0MPB13StringBuilder21StringBuilder_2einner(61);
@@ -18264,61 +18421,6 @@
         return new _M0DTPC16result6ResultGRP27mik1e806stlkit4MeshsE3Err(`${_string_builder.val}既不是合法的二进制 STL（长度对不上三角形数量），开头也不像文本`);
       }
     }
-  }
-  function _M0FP27mik1e806stlkit16is__ascii__space(c) {
-    return c === 32 || (c === 9 || (c === 13 || c === 10));
-  }
-  function _M0FP27mik1e806stlkit10obj__words(line) {
-    const words = [];
-    let i = 0;
-    while (true) {
-      if (i < (line.end - line.start | 0)) {
-        while (true) {
-          let _tmp$22;
-          if (i < (line.end - line.start | 0)) {
-            const _bind$3 = i;
-            if (_bind$3 < 0 || _bind$3 >= (line.end - line.start | 0)) {
-              $panic();
-            }
-            _tmp$22 = _M0FP27mik1e806stlkit16is__ascii__space(line.str.charCodeAt(line.start + _bind$3 | 0));
-          } else {
-            _tmp$22 = false;
-          }
-          if (_tmp$22) {
-            i = i + 1 | 0;
-            continue;
-          } else {
-            break;
-          }
-        }
-        const start = i;
-        while (true) {
-          let _tmp$22;
-          if (i < (line.end - line.start | 0)) {
-            const _bind$3 = i;
-            if (_bind$3 < 0 || _bind$3 >= (line.end - line.start | 0)) {
-              $panic();
-            }
-            _tmp$22 = !_M0FP27mik1e806stlkit16is__ascii__space(line.str.charCodeAt(line.start + _bind$3 | 0));
-          } else {
-            _tmp$22 = false;
-          }
-          if (_tmp$22) {
-            i = i + 1 | 0;
-            continue;
-          } else {
-            break;
-          }
-        }
-        if (i > start) {
-          _M0MPC15array5Array4pushGsE(words, _M0MPC16string10StringView21clamped__view_2einner(line, start, i));
-        }
-        continue;
-      } else {
-        break;
-      }
-    }
-    return words;
   }
   function _M0FP27mik1e806stlkit10parse__int(token, line_no, what) {
     let _try_err;
@@ -18386,7 +18488,7 @@
   }
   function _M0FP27mik1e806stlkit16parse__face__ref(vref, vertices, normals, line_no) {
     const parts = [];
-    const _it = _M0MPC16string10StringView5split(vref, new _M0TPC16string10StringView(_M0FP27mik1e806stlkit16parse__face__refN7_2abindS2320, 0, _M0FP27mik1e806stlkit16parse__face__refN7_2abindS2320.length));
+    const _it = _M0MPC16string10StringView5split(vref, new _M0TPC16string10StringView(_M0FP27mik1e806stlkit16parse__face__refN7_2abindS2361, 0, _M0FP27mik1e806stlkit16parse__face__refN7_2abindS2361.length));
     while (true) {
       const _bind$3 = _M0MPB4Iter4nextGRPC16string10StringViewE(_it);
       if (_bind$3 === undefined) {
@@ -18422,7 +18524,7 @@
     if (parts.length >= 3) {
       const _n = parts[2];
       if ((_n.end - _n.start | 0) === 0) {
-        normal = _M0MP27mik1e806stlkit4Vec34zeroN6recordS3333;
+        normal = _M0MP27mik1e806stlkit4Vec34zeroN6recordS3380;
       } else {
         const _bind$4 = _M0FP27mik1e806stlkit6lookupGRP27mik1e806stlkit4Vec3E(_n, normals, line_no, "法线");
         if (_bind$4.$tag === 1) {
@@ -18435,7 +18537,7 @@
         }
       }
     } else {
-      normal = _M0MP27mik1e806stlkit4Vec34zeroN6recordS3333;
+      normal = _M0MP27mik1e806stlkit4Vec34zeroN6recordS3380;
     }
     return new _M0DTPC16result6ResultGURP27mik1e806stlkit4Vec3RP27mik1e806stlkit4Vec3EsE2Ok({ _0: vertex, _1: normal });
   }
@@ -18455,10 +18557,10 @@
   function _M0FP27mik1e806stlkit20triangulate__polygon(vertices) {
     const n = vertices.length;
     if (n < 3) {
-      return _M0FP27mik1e806stlkit20triangulate__polygonN6constrS3354;
+      return _M0FP27mik1e806stlkit20triangulate__polygonN6constrS3402;
     }
     if (n === 3) {
-      return new _M0DTPC16result6ResultGRPB5ArrayGUiiiEEsE2Ok([_M0FP27mik1e806stlkit20triangulate__polygonN5tupleS3355]);
+      return new _M0DTPC16result6ResultGRPB5ArrayGUiiiEEsE2Ok([_M0FP27mik1e806stlkit20triangulate__polygonN5tupleS3403]);
     }
     const origin = _M0MPC15array5Array2atGRP27mik1e806stlkit4Vec3E(vertices, 0);
     let scale = 0;
@@ -18491,7 +18593,7 @@
       _tmp$23 = _tmp$24;
     }
     if (_tmp$23) {
-      return _M0FP27mik1e806stlkit20triangulate__polygonN6constrS3356;
+      return _M0FP27mik1e806stlkit20triangulate__polygonN6constrS3404;
     }
     const normalized = [];
     const _bind$4 = vertices.length;
@@ -18527,7 +18629,7 @@
     }
     const normal = _M0MP27mik1e806stlkit4Vec33new(nx, ny, nz);
     if (_M0MP27mik1e806stlkit4Vec36length(normal) === 0) {
-      return _M0FP27mik1e806stlkit20triangulate__polygonN6constrS3357;
+      return _M0FP27mik1e806stlkit20triangulate__polygonN6constrS3405;
     }
     const unit = _M0MP27mik1e806stlkit4Vec39normalize(normal);
     const _bind$5 = normalized.length;
@@ -18537,7 +18639,7 @@
       if (_ < _bind$5) {
         const p = normalized[_];
         if (Math.abs(p.x * unit.x + p.y * unit.y + p.z * unit.z) > 1e-008) {
-          return _M0FP27mik1e806stlkit20triangulate__polygonN6constrS3358;
+          return _M0FP27mik1e806stlkit20triangulate__polygonN6constrS3406;
         }
         _tmp$26 = _ + 1 | 0;
         continue;
@@ -18577,7 +18679,7 @@
                 break _L;
               }
               if (_M0FP27mik1e806stlkit21polygon__edges__cross(a, b, _M0MPC15array5Array2atGRP27mik1e806stlkit4Vec3E(points, j), _M0MPC15array5Array2atGRP27mik1e806stlkit4Vec3E(points, (j + 1 | 0) % n | 0))) {
-                return _M0FP27mik1e806stlkit20triangulate__polygonN6constrS3359;
+                return _M0FP27mik1e806stlkit20triangulate__polygonN6constrS3407;
               }
               break _L;
             }
@@ -18687,7 +18789,7 @@
         }
         const _bind$7 = ear;
         if (_bind$7 === undefined) {
-          return _M0FP27mik1e806stlkit20triangulate__polygonN6constrS3360;
+          return _M0FP27mik1e806stlkit20triangulate__polygonN6constrS3408;
         } else {
           const _Some = _bind$7;
           const _i = _Some;
@@ -18790,7 +18892,7 @@
         if (_tmp$24) {
           normal = _M0MPC15array5Array2atGRP27mik1e806stlkit4Vec3E(face_normals, _a);
         } else {
-          normal = _M0MP27mik1e806stlkit4Vec34zeroN6recordS3333;
+          normal = _M0MP27mik1e806stlkit4Vec34zeroN6recordS3380;
         }
         _M0MPC15array5Array4pushGsE(result, new _M0TP27mik1e806stlkit8Triangle(normal, _M0MPC15array5Array2atGRP27mik1e806stlkit4Vec3E(face_vertices, _a), _M0MPC15array5Array2atGRP27mik1e806stlkit4Vec3E(face_vertices, _b$2), _M0MPC15array5Array2atGRP27mik1e806stlkit4Vec3E(face_vertices, _c)));
         _tmp$23 = _ + 1 | 0;
@@ -18802,11 +18904,11 @@
     return new _M0DTPC16result6ResultGRPB5ArrayGRP27mik1e806stlkit8TriangleEsE2Ok(result);
   }
   function _M0FP27mik1e806stlkit10parse__obj(text) {
-    const vertices = [_M0MP27mik1e806stlkit4Vec34zeroN6recordS3333];
-    const normals = [_M0MP27mik1e806stlkit4Vec34zeroN6recordS3333];
+    const vertices = [_M0MP27mik1e806stlkit4Vec34zeroN6recordS3380];
+    const normals = [_M0MP27mik1e806stlkit4Vec34zeroN6recordS3380];
     const triangles = [];
     let line_no = 0;
-    const _it = _M0MPC16string6String5split(text, new _M0TPC16string10StringView(_M0FP27mik1e806stlkit10parse__objN7_2abindS2477, 0, _M0FP27mik1e806stlkit10parse__objN7_2abindS2477.length));
+    const _it = _M0MPC16string6String5split(text, new _M0TPC16string10StringView(_M0FP27mik1e806stlkit10parse__objN7_2abindS2518, 0, _M0FP27mik1e806stlkit10parse__objN7_2abindS2518.length));
     while (true) {
       const _bind$3 = _M0MPB4Iter4nextGRPC16string10StringViewE(_it);
       if (_bind$3 === undefined) {
@@ -18825,7 +18927,7 @@
             const raw_token = _bind$4[_];
             const token = _M0FP27mik1e806stlkit9strip__cr(raw_token);
             if ((token.end - token.start | 0) > 0) {
-              if (_M0MPC16string10StringView11has__prefix(token, new _M0TPC16string10StringView(_M0FP27mik1e806stlkit10parse__objN7_2abindS2423, 0, _M0FP27mik1e806stlkit10parse__objN7_2abindS2423.length))) {
+              if (_M0MPC16string10StringView11has__prefix(token, new _M0TPC16string10StringView(_M0FP27mik1e806stlkit10parse__objN7_2abindS2464, 0, _M0FP27mik1e806stlkit10parse__objN7_2abindS2464.length))) {
                 break;
               }
               _M0MPC15array5Array4pushGsE(tokens, token);
@@ -18931,7 +19033,7 @@
       }
     }
     if (triangles.length === 0) {
-      return _M0FP27mik1e806stlkit10parse__objN6constrS3361;
+      return _M0FP27mik1e806stlkit10parse__objN6constrS3409;
     }
     return new _M0DTPC16result6ResultGRP27mik1e806stlkit4MeshsE2Ok(_M0MP27mik1e806stlkit4Mesh3new(triangles));
   }
@@ -18989,7 +19091,7 @@
         break;
       }
     }
-    return _M0FP27mik1e806stlkit17find__header__endN6constrS3362;
+    return _M0FP27mik1e806stlkit17find__header__endN6constrS3410;
   }
   function _M0FP27mik1e806stlkit12parse__count(s) {
     let value;
@@ -19397,13 +19499,13 @@
                 }
               }
             }
-            return _M0FP27mik1e806stlkit15ply__type__sizeN6constrS3366;
+            return _M0FP27mik1e806stlkit15ply__type__sizeN6constrS3414;
           }
-          return _M0FP27mik1e806stlkit15ply__type__sizeN6constrS3365;
+          return _M0FP27mik1e806stlkit15ply__type__sizeN6constrS3413;
         }
-        return _M0FP27mik1e806stlkit15ply__type__sizeN6constrS3364;
+        return _M0FP27mik1e806stlkit15ply__type__sizeN6constrS3412;
       }
-      return _M0FP27mik1e806stlkit15ply__type__sizeN6constrS3363;
+      return _M0FP27mik1e806stlkit15ply__type__sizeN6constrS3411;
     }
     return undefined;
   }
@@ -19413,7 +19515,7 @@
     let big_endian = false;
     let cur = undefined;
     let done = false;
-    const _it = _M0MPC16string6String5split(text, new _M0TPC16string10StringView(_M0FP27mik1e806stlkit13parse__headerN7_2abindS2714, 0, _M0FP27mik1e806stlkit13parse__headerN7_2abindS2714.length));
+    const _it = _M0MPC16string6String5split(text, new _M0TPC16string10StringView(_M0FP27mik1e806stlkit13parse__headerN7_2abindS2755, 0, _M0FP27mik1e806stlkit13parse__headerN7_2abindS2755.length));
     while (true) {
       const _bind$3 = _M0MPB4Iter4nextGRPC16string10StringViewE(_it);
       if (_bind$3 === undefined) {
@@ -19425,7 +19527,7 @@
           break;
         }
         const tokens = [];
-        const _it$2 = _M0MPC16string10StringView5split(_M0FP27mik1e806stlkit9strip__cr(_raw), new _M0TPC16string10StringView(_M0FP27mik1e806stlkit13parse__headerN7_2abindS2563, 0, _M0FP27mik1e806stlkit13parse__headerN7_2abindS2563.length));
+        const _it$2 = _M0MPC16string10StringView5split(_M0FP27mik1e806stlkit9strip__cr(_raw), new _M0TPC16string10StringView(_M0FP27mik1e806stlkit13parse__headerN7_2abindS2604, 0, _M0FP27mik1e806stlkit13parse__headerN7_2abindS2604.length));
         while (true) {
           const _bind$4 = _M0MPB4Iter4nextGRPC16string10StringViewE(_it$2);
           if (_bind$4 === undefined) {
@@ -19849,7 +19951,7 @@
                                       const _bind$4 = cur;
                                       let e;
                                       if (_bind$4 === undefined) {
-                                        return _M0FP27mik1e806stlkit13parse__headerN6constrS3367;
+                                        return _M0FP27mik1e806stlkit13parse__headerN6constrS3415;
                                       } else {
                                         const _Some$2 = _bind$4;
                                         e = _Some$2;
@@ -19908,7 +20010,7 @@
                                                 const _bind$4 = cur;
                                                 let e;
                                                 if (_bind$4 === undefined) {
-                                                  return _M0FP27mik1e806stlkit13parse__headerN6constrS3368;
+                                                  return _M0FP27mik1e806stlkit13parse__headerN6constrS3416;
                                                 } else {
                                                   const _Some$2 = _bind$4;
                                                   e = _Some$2;
@@ -19961,7 +20063,7 @@
       _M0MPC15array5Array4pushGsE(elements, _e);
     }
     if (elements.length === 0) {
-      return _M0FP27mik1e806stlkit13parse__headerN6constrS3369;
+      return _M0FP27mik1e806stlkit13parse__headerN6constrS3417;
     }
     return new _M0DTPC16result6ResultGRP27mik1e806stlkit9PlyHeadersE2Ok(new _M0TP27mik1e806stlkit9PlyHeader(binary, big_endian, elements));
   }
@@ -20032,9 +20134,6 @@
       }
     }
     return new _M0DTPC16result6ResultGusE2Ok(undefined);
-  }
-  function _M0FP27mik1e806stlkit11not__finite(v) {
-    return v !== v || (v > _M0FPB18double__max__value || v < _M0FPB18double__min__value);
   }
   function _M0FP27mik1e806stlkit17ply__type__signed(t$19) {
     if ((t$19.end - t$19.start | 0) === 4) {
@@ -20325,7 +20424,7 @@
         size = _Some;
       }
       if ((self.at + size | 0) > self.data.length) {
-        return _M0MP27mik1e806stlkit9PlyCursor12next__doubleN6constrS3370;
+        return _M0MP27mik1e806stlkit9PlyCursor12next__doubleN6constrS3418;
       }
       const raw = _M0FP27mik1e806stlkit17read__ply__number(self.data, self.at, ty, self.big_endian);
       self.at = self.at + size | 0;
@@ -20341,7 +20440,7 @@
         }
       }
       if (self.li >= self.lines.length) {
-        return _M0MP27mik1e806stlkit9PlyCursor12next__doubleN6constrS3371;
+        return _M0MP27mik1e806stlkit9PlyCursor12next__doubleN6constrS3419;
       }
       const tok = _M0MPC15array5Array2atGRP27mik1e806stlkit4Vec3E(_M0MPC15array5Array2atGRPB5ArrayGRPC16string10StringViewEE(self.lines, self.li), self.ci);
       self.ci = self.ci + 1 | 0;
@@ -20558,7 +20657,7 @@
       }
     }
     if (triangles.length === 0) {
-      return _M0FP27mik1e806stlkit10read__bodyN6constrS3372;
+      return _M0FP27mik1e806stlkit10read__bodyN6constrS3420;
     }
     const out = [];
     const _bind$5 = triangles.length;
@@ -20581,7 +20680,7 @@
   }
   function _M0FP27mik1e806stlkit12ascii__lines(text) {
     const out = [];
-    const _it = _M0MPC16string6String5split(text, new _M0TPC16string10StringView(_M0FP27mik1e806stlkit12ascii__linesN7_2abindS2890, 0, _M0FP27mik1e806stlkit12ascii__linesN7_2abindS2890.length));
+    const _it = _M0MPC16string6String5split(text, new _M0TPC16string10StringView(_M0FP27mik1e806stlkit12ascii__linesN7_2abindS2931, 0, _M0FP27mik1e806stlkit12ascii__linesN7_2abindS2931.length));
     while (true) {
       const _bind$3 = _M0MPB4Iter4nextGRPC16string10StringViewE(_it);
       if (_bind$3 === undefined) {
@@ -20656,7 +20755,7 @@
   }
   function _M0FP27mik1e806stlkit10parse__ply(data) {
     if (!_M0FP27mik1e806stlkit7is__ply(data)) {
-      return _M0FP27mik1e806stlkit10parse__plyN6constrS3373;
+      return _M0FP27mik1e806stlkit10parse__plyN6constrS3421;
     }
     const _bind$3 = _M0FP27mik1e806stlkit17find__header__end(data);
     let body_at;
@@ -20803,7 +20902,7 @@
         break;
       }
     }
-    return _M0MP27mik1e806stlkit4Vec34zeroN6recordS3333;
+    return _M0MP27mik1e806stlkit4Vec34zeroN6recordS3380;
   }
   function _M0FP27mik1e806stlkit11fill__holes(triangles, ids, tolerance) {
     const _bind$3 = [];
@@ -20866,7 +20965,7 @@
           continue;
         }
         const parts = [];
-        const _it$2 = _M0MPC16string6String5split(_key, new _M0TPC16string10StringView(_M0FP27mik1e806stlkit11fill__holesN7_2abindS2959, 0, _M0FP27mik1e806stlkit11fill__holesN7_2abindS2959.length));
+        const _it$2 = _M0MPC16string6String5split(_key, new _M0TPC16string10StringView(_M0FP27mik1e806stlkit11fill__holesN7_2abindS3000, 0, _M0FP27mik1e806stlkit11fill__holesN7_2abindS3000.length));
         while (true) {
           const _bind$6 = _M0MPB4Iter4nextGRPC16string10StringViewE(_it$2);
           if (_bind$6 === undefined) {
@@ -21020,7 +21119,7 @@
             const v0 = _M0FP27mik1e806stlkit10vertex__of(triangles, ids, _M0MPC15array5Array2atGiE(ring, 0));
             const v1 = _M0FP27mik1e806stlkit10vertex__of(triangles, ids, _M0MPC15array5Array2atGiE(ring, 1));
             const v2 = _M0FP27mik1e806stlkit10vertex__of(triangles, ids, _M0MPC15array5Array2atGiE(ring, 2));
-            _M0MPC15array5Array4pushGsE(result, new _M0TP27mik1e806stlkit8Triangle(_M0MP27mik1e806stlkit4Vec34zeroN6recordS3333, v0, v2, v1));
+            _M0MPC15array5Array4pushGsE(result, new _M0TP27mik1e806stlkit8Triangle(_M0MP27mik1e806stlkit4Vec34zeroN6recordS3380, v0, v2, v1));
             break _L;
           }
           let cx = 0;
@@ -21052,7 +21151,7 @@
               const b = _M0MPC15array5Array2atGiE(ring, (i + 1 | 0) % ring.length | 0);
               const va = _M0FP27mik1e806stlkit10vertex__of(triangles, ids, a);
               const vb = _M0FP27mik1e806stlkit10vertex__of(triangles, ids, b);
-              _M0MPC15array5Array4pushGsE(result, new _M0TP27mik1e806stlkit8Triangle(_M0MP27mik1e806stlkit4Vec34zeroN6recordS3333, center, vb, va));
+              _M0MPC15array5Array4pushGsE(result, new _M0TP27mik1e806stlkit8Triangle(_M0MP27mik1e806stlkit4Vec34zeroN6recordS3380, center, vb, va));
               _tmp$27 = i + 1 | 0;
               continue;
             } else {
@@ -21162,11 +21261,21 @@
     const _p = self.triangles;
     return _p.length === 0;
   }
-  function _M0FP27mik1e806stlkit19check__printability(mesh, min_thickness) {
+  function _M0FP27mik1e806stlkit27check__printability_2einner(mesh, min_thickness, samples) {
     const validation = _M0FP27mik1e806stlkit17validate__default(mesh);
     const winding = _M0FP27mik1e806stlkit23check__winding__default(mesh);
-    const thickness = _M0MP27mik1e806stlkit4Mesh9is__empty(mesh) || (!(validation.boundary_edge_count === 0 && validation.non_manifold_edge_count === 0) || (validation.degenerate_count > 0 || (winding.flipped_faces > 0 || winding.signed_volume <= 0))) ? undefined : _M0FP27mik1e806stlkit25check__thickness__default(mesh);
+    const thickness = _M0MP27mik1e806stlkit4Mesh9is__empty(mesh) || (!(validation.boundary_edge_count === 0 && validation.non_manifold_edge_count === 0) || (validation.degenerate_count > 0 || (winding.flipped_faces > 0 || winding.signed_volume <= 0))) ? undefined : _M0FP27mik1e806stlkit16check__thickness(mesh, samples);
     return new _M0TP27mik1e806stlkit18PrintabilityReport(validation, winding, thickness, min_thickness);
+  }
+  function _M0FP27mik1e806stlkit19check__printability(mesh, min_thickness, samples$46$opt) {
+    let samples;
+    if (samples$46$opt === undefined) {
+      samples = 1000;
+    } else {
+      const _Some = samples$46$opt;
+      samples = _Some;
+    }
+    return _M0FP27mik1e806stlkit27check__printability_2einner(mesh, min_thickness, samples);
   }
   function _M0MP27mik1e806stlkit18PrintabilityReport6inward(self) {
     const _p = self.validation;
@@ -21231,7 +21340,7 @@
     }
   }
   function _M0MP27mik1e806stlkit18PrintabilityReport7verdict(self) {
-    return _M0MP27mik1e806stlkit18PrintabilityReport13needs__review(self) ? "本次检查发现需要复核的问题；请按报告修正模型或确认加工条件。" : "本次网格检查未发现已覆盖的问题；仍需确认单位、材料、设备和切片设置。";
+    return _M0MP27mik1e806stlkit18PrintabilityReport13needs__review(self) ? "本次网格检查发现需要复核的问题；不构成可打印结论。" : "本次网格检查未发现已覆盖的问题；不构成可打印结论，仍需确认单位、材料、设备和切片设置。";
   }
   function _M0MP27mik1e806stlkit4Mesh8vertices(self) {
     const result = [];
@@ -21288,7 +21397,7 @@
     const _bind$3 = _M0MP27mik1e806stlkit4Mesh13bounding__box(mesh);
     let center;
     if (_bind$3 === undefined) {
-      center = _M0MP27mik1e806stlkit4Vec34zeroN6recordS3333;
+      center = _M0MP27mik1e806stlkit4Vec34zeroN6recordS3380;
     } else {
       const _Some = _bind$3;
       const _box = _Some;
@@ -21442,7 +21551,7 @@
     _M0IPB13StringBuilderPB6Logger13write__string(_string_builder$2, "height=\"");
     _M0MPB13StringBuilder13write__objectGiE(_string_builder$2, options.height);
     _M0IPB13StringBuilderPB6Logger13write__string(_string_builder$2, "\">");
-    return `<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 ${_tmp$25}${_string_builder$2.val}<rect width=\"100%\" height=\"100%\" fill=\"#f6f7f9\"/>${_M0MPC15array5Array4joinGsE(body, new _M0TPC16string10StringView(_M0FP27mik1e806stlkit11render__svgN7_2abindS3104, 0, _M0FP27mik1e806stlkit11render__svgN7_2abindS3104.length))}</svg>`;
+    return `<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 ${_tmp$25}${_string_builder$2.val}<rect width=\"100%\" height=\"100%\" fill=\"#f6f7f9\"/>${_M0MPC15array5Array4joinGsE(body, new _M0TPC16string10StringView(_M0FP27mik1e806stlkit11render__svgN7_2abindS3151, 0, _M0FP27mik1e806stlkit11render__svgN7_2abindS3151.length))}</svg>`;
   }
   function _M0MP27mik1e806stlkit3Obb4size(self) {
     return _M0MP27mik1e806stlkit4Vec33new(_M0MPC15array5Array2atGdE(self.half, 0) * 2, _M0MPC15array5Array2atGdE(self.half, 1) * 2, _M0MPC15array5Array2atGdE(self.half, 2) * 2);
@@ -21540,7 +21649,7 @@
   function _M0FP27mik1e806stlkit22symmetric__eigenvector(m, lambda) {
     const rows = [_M0MP27mik1e806stlkit4Vec33new((0 >>> 0 < m.length ? m[0] : $oob()) - lambda, 1 >>> 0 < m.length ? m[1] : $oob(), 2 >>> 0 < m.length ? m[2] : $oob()), _M0MP27mik1e806stlkit4Vec33new(3 >>> 0 < m.length ? m[3] : $oob(), (4 >>> 0 < m.length ? m[4] : $oob()) - lambda, 5 >>> 0 < m.length ? m[5] : $oob()), _M0MP27mik1e806stlkit4Vec33new(6 >>> 0 < m.length ? m[6] : $oob(), 7 >>> 0 < m.length ? m[7] : $oob(), (8 >>> 0 < m.length ? m[8] : $oob()) - lambda)];
     const candidates = [_M0MP27mik1e806stlkit4Vec35cross(_M0MPC15array5Array2atGRP27mik1e806stlkit4Vec3E(rows, 0), _M0MPC15array5Array2atGRP27mik1e806stlkit4Vec3E(rows, 1)), _M0MP27mik1e806stlkit4Vec35cross(_M0MPC15array5Array2atGRP27mik1e806stlkit4Vec3E(rows, 1), _M0MPC15array5Array2atGRP27mik1e806stlkit4Vec3E(rows, 2)), _M0MP27mik1e806stlkit4Vec35cross(_M0MPC15array5Array2atGRP27mik1e806stlkit4Vec3E(rows, 2), _M0MPC15array5Array2atGRP27mik1e806stlkit4Vec3E(rows, 0))];
-    let best = _M0MP27mik1e806stlkit4Vec34zeroN6recordS3333;
+    let best = _M0MP27mik1e806stlkit4Vec34zeroN6recordS3380;
     let best_len = -1;
     const _bind$3 = candidates.length;
     let _tmp$22 = 0;
@@ -21867,7 +21976,7 @@
       }
     }
     if (volume === 0) {
-      return _M0MP27mik1e806stlkit4Vec34zeroN6recordS3333;
+      return _M0MP27mik1e806stlkit4Vec34zeroN6recordS3380;
     }
     return _M0MP27mik1e806stlkit4Vec33new(mx / volume, my / volume, mz / volume);
   }
@@ -21943,7 +22052,7 @@
   }
   function _M0FP37mik1e806stlkit3web6decode(file_base64) {
     if (file_base64.length === 0) {
-      return _M0FP37mik1e806stlkit3web6decodeN6constrS189;
+      return _M0FP37mik1e806stlkit3web6decodeN6constrS190;
     }
     let _try_err;
     _L: {
@@ -21959,7 +22068,7 @@
       }
       return new _M0DTPC16result6ResultGzsE2Ok(_tmp$22);
     }
-    return _M0FP37mik1e806stlkit3web6decodeN6constrS190;
+    return _M0FP37mik1e806stlkit3web6decodeN6constrS191;
   }
   function _M0FP37mik1e806stlkit3web12format__name(data) {
     const _bind$3 = _M0FP27mik1e806stlkit14detect__format(data);
@@ -22006,7 +22115,7 @@
       const _msg = _Err._0;
       return new _M0DTPC16result6ResultGRPB5ArrayGsEsE3Err(_msg);
     }
-    const review = _M0FP27mik1e806stlkit19check__printability(mesh, min_thickness);
+    const review = _M0FP27mik1e806stlkit19check__printability(mesh, min_thickness, undefined);
     const check = review.validation;
     const lines = [];
     const _string_builder = _M0MPB13StringBuilder21StringBuilder_2einner(7);
@@ -22097,8 +22206,8 @@
       const _Some = _bind$7;
       const _thick = _Some;
       if (_thick.hits > 0) {
-        const _string_builder$8 = _M0MPB13StringBuilder21StringBuilder_2einner(10);
-        _M0IPB13StringBuilderPB6Logger13write__string(_string_builder$8, "最薄处|");
+        const _string_builder$8 = _M0MPB13StringBuilder21StringBuilder_2einner(19);
+        _M0IPB13StringBuilderPB6Logger13write__string(_string_builder$8, "采样最小厚度|");
         _M0MPB13StringBuilder13write__objectGsE(_string_builder$8, _M0FP37mik1e806stlkit3web6round3(_thick.min_thickness));
         _M0MPC15array5Array4pushGsE(lines, _string_builder$8.val);
         const _string_builder$9 = _M0MPB13StringBuilder21StringBuilder_2einner(13);
@@ -22135,31 +22244,35 @@
     _M0IPB13StringBuilderPB6Logger13write__string(_string_builder$13, "结论|");
     _M0MPB13StringBuilder13write__objectGsE(_string_builder$13, _M0MP27mik1e806stlkit18PrintabilityReport7verdict(review));
     _M0MPC15array5Array4pushGsE(lines, _string_builder$13.val);
-    const _string_builder$14 = _M0MPB13StringBuilder21StringBuilder_2einner(7);
-    _M0IPB13StringBuilderPB6Logger13write__string(_string_builder$14, "水密|");
-    _M0MPB13StringBuilder13write__objectGbE(_string_builder$14, check.boundary_edge_count === 0 && check.non_manifold_edge_count === 0);
+    const _string_builder$14 = _M0MPB13StringBuilder21StringBuilder_2einner(13);
+    _M0IPB13StringBuilderPB6Logger13write__string(_string_builder$14, "工艺范围|");
+    _M0MPB13StringBuilder13write__objectGsE(_string_builder$14, "工艺未评估：喷嘴、支撑、材料、摆放方向和切片参数；射线样本不保证全局最小壁厚。");
     _M0MPC15array5Array4pushGsE(lines, _string_builder$14.val);
-    const _string_builder$15 = _M0MPB13StringBuilder21StringBuilder_2einner(10);
-    _M0IPB13StringBuilderPB6Logger13write__string(_string_builder$15, "边界边|");
-    _M0MPB13StringBuilder13write__objectGiE(_string_builder$15, check.boundary_edge_count);
+    const _string_builder$15 = _M0MPB13StringBuilder21StringBuilder_2einner(7);
+    _M0IPB13StringBuilderPB6Logger13write__string(_string_builder$15, "水密|");
+    _M0MPB13StringBuilder13write__objectGbE(_string_builder$15, check.boundary_edge_count === 0 && check.non_manifold_edge_count === 0);
     _M0MPC15array5Array4pushGsE(lines, _string_builder$15.val);
-    const _string_builder$16 = _M0MPB13StringBuilder21StringBuilder_2einner(13);
-    _M0IPB13StringBuilderPB6Logger13write__string(_string_builder$16, "非流形边|");
-    _M0MPB13StringBuilder13write__objectGiE(_string_builder$16, check.non_manifold_edge_count);
+    const _string_builder$16 = _M0MPB13StringBuilder21StringBuilder_2einner(10);
+    _M0IPB13StringBuilderPB6Logger13write__string(_string_builder$16, "边界边|");
+    _M0MPB13StringBuilder13write__objectGiE(_string_builder$16, check.boundary_edge_count);
     _M0MPC15array5Array4pushGsE(lines, _string_builder$16.val);
-    const _string_builder$17 = _M0MPB13StringBuilder21StringBuilder_2einner(10);
-    _M0IPB13StringBuilderPB6Logger13write__string(_string_builder$17, "退化面|");
-    _M0MPB13StringBuilder13write__objectGiE(_string_builder$17, check.degenerate_count);
+    const _string_builder$17 = _M0MPB13StringBuilder21StringBuilder_2einner(13);
+    _M0IPB13StringBuilderPB6Logger13write__string(_string_builder$17, "非流形边|");
+    _M0MPB13StringBuilder13write__objectGiE(_string_builder$17, check.non_manifold_edge_count);
     _M0MPC15array5Array4pushGsE(lines, _string_builder$17.val);
-    const _string_builder$18 = _M0MPB13StringBuilder21StringBuilder_2einner(13);
-    _M0IPB13StringBuilderPB6Logger13write__string(_string_builder$18, "错误法线|");
-    _M0MPB13StringBuilder13write__objectGiE(_string_builder$18, check.wrong_normal_count);
+    const _string_builder$18 = _M0MPB13StringBuilder21StringBuilder_2einner(10);
+    _M0IPB13StringBuilderPB6Logger13write__string(_string_builder$18, "退化面|");
+    _M0MPB13StringBuilder13write__objectGiE(_string_builder$18, check.degenerate_count);
     _M0MPC15array5Array4pushGsE(lines, _string_builder$18.val);
-    const winding = review.winding;
     const _string_builder$19 = _M0MPB13StringBuilder21StringBuilder_2einner(13);
-    _M0IPB13StringBuilderPB6Logger13write__string(_string_builder$19, "绕向反了|");
-    _M0MPB13StringBuilder13write__objectGiE(_string_builder$19, winding.flipped_faces);
+    _M0IPB13StringBuilderPB6Logger13write__string(_string_builder$19, "错误法线|");
+    _M0MPB13StringBuilder13write__objectGiE(_string_builder$19, check.wrong_normal_count);
     _M0MPC15array5Array4pushGsE(lines, _string_builder$19.val);
+    const winding = review.winding;
+    const _string_builder$20 = _M0MPB13StringBuilder21StringBuilder_2einner(13);
+    _M0IPB13StringBuilderPB6Logger13write__string(_string_builder$20, "绕向反了|");
+    _M0MPB13StringBuilder13write__objectGiE(_string_builder$20, winding.flipped_faces);
+    _M0MPC15array5Array4pushGsE(lines, _string_builder$20.val);
     return new _M0DTPC16result6ResultGRPB5ArrayGsEsE2Ok(lines);
   }
   function _M0FP37mik1e806stlkit3web24analyze__with__threshold(file_base64, min_thickness) {
@@ -22167,7 +22280,7 @@
     if (_bind$3.$tag === 1) {
       const _Ok = _bind$3;
       const _lines = _Ok._0;
-      return _M0MPC15array5Array4joinGsE(_lines, new _M0TPC16string10StringView(_M0FP37mik1e806stlkit3web24analyze__with__thresholdN7_2abindS118, 0, _M0FP37mik1e806stlkit3web24analyze__with__thresholdN7_2abindS118.length));
+      return _M0MPC15array5Array4joinGsE(_lines, new _M0TPC16string10StringView(_M0FP37mik1e806stlkit3web24analyze__with__thresholdN7_2abindS119, 0, _M0FP37mik1e806stlkit3web24analyze__with__thresholdN7_2abindS119.length));
     } else {
       return "";
     }
@@ -22197,7 +22310,7 @@
     }
   }
   function _M0FP37mik1e806stlkit3web16preview__options() {
-    const _bind$3 = _M0MP27mik1e806stlkit14PreviewOptions7defaultN6recordS3374;
+    const _bind$3 = _M0MP27mik1e806stlkit14PreviewOptions7defaultN6recordS3422;
     return new _M0TP27mik1e806stlkit14PreviewOptions(640, 480, _bind$3.yaw, _bind$3.pitch, _bind$3.stroke, _bind$3.stroke_width);
   }
   function _M0FP37mik1e806stlkit3web7preview(file_base64) {
@@ -22230,7 +22343,7 @@
     } else {
       const _Ok = _bind$3;
       const _result = _Ok._0;
-      const review = _M0FP27mik1e806stlkit19check__printability(_result.mesh, min_thickness);
+      const review = _M0FP27mik1e806stlkit19check__printability(_result.mesh, min_thickness, undefined);
       const after = review.validation;
       const lines = [];
       const _string_builder = _M0MPB13StringBuilder21StringBuilder_2einner(19);
@@ -22282,7 +22395,7 @@
       const _p = _result.mesh;
       _M0MPB13StringBuilder13write__objectGiE(_string_builder$12, _p.triangles.length);
       _M0MPC15array5Array4pushGsE(lines, _string_builder$12.val);
-      return _M0MPC15array5Array4joinGsE(lines, new _M0TPC16string10StringView(_M0FP37mik1e806stlkit3web28fix__report__with__thresholdN7_2abindS163, 0, _M0FP37mik1e806stlkit3web28fix__report__with__thresholdN7_2abindS163.length));
+      return _M0MPC15array5Array4joinGsE(lines, new _M0TPC16string10StringView(_M0FP37mik1e806stlkit3web28fix__report__with__thresholdN7_2abindS164, 0, _M0FP37mik1e806stlkit3web28fix__report__with__thresholdN7_2abindS164.length));
     }
   }
   function _M0FP37mik1e806stlkit3web11fix__report(file_base64) {

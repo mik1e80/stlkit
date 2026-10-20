@@ -130,7 +130,7 @@ fn analyze_inner(
   match review.thickness {
     Some(thick) =>
       if thick.hits > 0 {
-        lines.push("最薄处|\{round3(thick.min_thickness)}")
+        lines.push("采样最小厚度|\{round3(thick.min_thickness)}")
         lines.push("壁厚采样|\{thick.samples}")
         lines.push("壁厚命中|\{thick.hits}")
       }
@@ -144,6 +144,7 @@ fn analyze_inner(
   lines.push("壁厚阈值|\{min_thickness}")
   lines.push("需复核|\{review.needs_review()}")
   lines.push("结论|\{review.verdict()}")
+  lines.push("工艺范围|\{@stlkit.review_scope()}")
   lines.push("水密|\{check.is_watertight()}")
   lines.push("边界边|\{check.boundary_edge_count}")
   lines.push("非流形边|\{check.non_manifold_edge_count}")

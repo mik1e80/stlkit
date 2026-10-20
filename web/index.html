@@ -43,6 +43,13 @@
         <div class="report" id="report">
           <p class="empty">还没有文件。</p>
         </div>
+        <label class="threshold-setting" for="nozzle">喷嘴直径（mm，仅记录）
+          <input id="nozzle" type="number" min="0.01" step="0.1" placeholder="未指定" />
+        </label>
+        <label class="threshold-setting" for="supports">支撑设置（仅记录）
+          <select id="supports"><option value="unknown">未指定</option><option value="off">关闭</option><option value="on">开启</option></select>
+          <small>本工具不计算支撑或喷嘴适配；修改这些设置不会改变几何检查结果。</small>
+        </label>
       </section>
     </main>
 
@@ -57,5 +64,5 @@
     <!-- MoonBit 编译出来的分析函数（挂成全局的 analyze / analyze_error / preview） -->
     <script src="dist/web.js"></script>
     <script src="app.js"></script>
-  </body>
+  <footer style="padding:16px;text-align:center"><a href="licenses/moonbit-core.NOTICE">MoonBit core 声明</a> · <a href="licenses/project.LICENSE">项目许可</a> · <a href="licenses/THIRD_PARTY_NOTICES.md">来源说明</a> · <a href="licenses/fzip.LICENSE">fzip 许可</a> · <a href="licenses/xml.LICENSE">XML 许可</a></footer></body>
 </html>

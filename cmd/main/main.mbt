@@ -25,6 +25,18 @@ fn command() -> @argparse.Command {
     ],
     options=[
       @argparse.OptionArg(
+        "nozzle",
+        about="喷嘴直径（毫米），仅记录，不参与工艺判定",
+      ),
+      @argparse.OptionArg(
+        "supports",
+        about="支撑设置 on/off/unknown，仅记录，不计算支撑需求",
+      ),
+      @argparse.OptionArg(
+        "samples",
+        about="壁厚射线样本数，1..100000，默认1000",
+      ),
+      @argparse.OptionArg(
         "min-thickness",
         about="参考最小壁厚（毫米），默认0.8；0不设阈值",
       ),
@@ -38,6 +50,10 @@ fn command() -> @argparse.Command {
       ),
     ],
     flags=[
+      @argparse.FlagArg(
+        "stream-only",
+        about="只分块统计二进制 STL；顶点和边记录仍增长",
+      ),
       @argparse.FlagArg(
         "strict",
         about="模型有问题时以退出码 1 结束（给 CI 用）",
@@ -102,7 +118,9 @@ fn fmt_bytes(n : Int64) -> String {
 ///
 /// 走 `moonbitlang/async/fs` 是因为 `moonbitlang/x/fs` 只有
 /// `read_file_to_bytes`（一次读完），没有带偏移量的读取。
-async fn scan_chunked(path : String) -> Result[@stlkit.StreamReport, String] {
+async fn scan_chunked_storage(
+  path : String,
+) -> Result[(@stlkit.StreamReport, @stlkit.ScanStorage), String] {
   let file = @asyncfs.open(path, mode=@asyncfs.Mode::ReadOnly) catch {
     err => return Err("打不开文件「\{path}」：\{err}")
   }
@@ -142,7 +160,42 @@ async fn scan_chunked(path : String) -> Result[@stlkit.StreamReport, String] {
   let _ = file.close()
   match failure {
     Some(msg) => Err(msg)
-    None => scanner.finish()
+    None =>
+      match scanner.finish() {
+        Ok(report) => Ok((report, scanner.storage()))
+        Err(msg) => Err(msg)
+      }
+  }
+}
+
+///|
+async fn scan_chunked(path : String) -> Result[@stlkit.StreamReport, String] {
+  match scan_chunked_storage(path) {
+    Ok((report, _)) => Ok(report)
+    Err(msg) => Err(msg)
+  }
+}
+
+///|
+async fn stream_only(path : String) -> Result[Bool, String] {
+  match scan_chunked_storage(path) {
+    Err(msg) => Err("分块入口只支持二进制 STL：\{msg}")
+    Ok((report, storage)) => {
+      println("二进制 STL 分块统计；不构造完整 Mesh")
+      println(
+        "三角形 \{report.triangle_count}；顶点表 \{storage.unique_vertices} 项；边记录 \{storage.edge_records} 项",
+      )
+      println(
+        "扫描器单次缓冲峰值 \{storage.peak_buffered_bytes} 字节；残留 \{storage.pending_bytes} 字节（不是进程内存实测）",
+      )
+      println(
+        "总存储 O(V+F+chunk)：保存全部三角形边记录，排序前包含重复边；并非固定总内存。",
+      )
+      println(
+        "此入口未检查绕向、壁厚或工艺，不能产生可打印结论。",
+      )
+      Ok(false)
+    }
   }
 }
 
@@ -337,6 +390,7 @@ fn report(
   svg_path : String,
   fix_path : String,
   min_thickness : Double,
+  samples : Int,
 ) -> Result[Bool, String] {
   let data = @fs.read_file_to_bytes(path) catch {
     @fs.IOError(msg) => return Err("读不了文件「\{path}」：\{msg}")
@@ -354,11 +408,12 @@ fn report(
     Ok(mesh) => mesh
     Err(msg) => return Err(msg)
   }
-  let review = @stlkit.check_printability(mesh, min_thickness)
+  let review = @stlkit.check_printability(mesh, min_thickness, samples~)
   let check = review.validation
 
   println(path)
   println("  格式      \{format_name}")
+  println("  参考阈值  \{min_thickness} mm；样本预算 \{samples}")
   println("  三角形    \{mesh.triangle_count()} 个")
   println(
     "  顶点      \{check.raw_vertex_count} 个（去重后 \{check.unique_vertex_count} 个）",
@@ -421,7 +476,14 @@ fn report(
   print_findings(review, parts)
 
   if fix_path != "" {
-    return fix_and_save(mesh, check, review.winding, fix_path, min_thickness)
+    return fix_and_save(
+      mesh,
+      check,
+      review.winding,
+      fix_path,
+      min_thickness,
+      samples,
+    )
   }
 
   if svg_path != "" {
@@ -443,6 +505,7 @@ fn report(
 /// 看到「有 3 条边界边」的人不知道这意味着什么，看到「切片软件分不清
 /// 哪里是外面」才知道要修。
 fn print_findings(review : @stlkit.PrintabilityReport, parts : Int) -> Unit {
+  println("  \{@stlkit.review_scope()}")
   let check = review.validation
   if check.boundary_edge_count > 0 {
     println(
@@ -493,6 +556,7 @@ fn fix_and_save(
   winding : @stlkit.WindingReport,
   fix_path : String,
   min_thickness : Double,
+  samples : Int,
 ) -> Result[Bool, String] {
   if before.is_watertight() &&
     before.degenerate_count == 0 &&
@@ -500,12 +564,18 @@ fn fix_and_save(
     winding.flipped_faces == 0 &&
     winding.signed_volume >= 0.0 {
     println("")
-    println("这个网格没有问题，不用修。")
-    return Ok(@stlkit.check_printability(mesh, min_thickness).needs_review())
+    println("未发现当前自动修复能处理的网格问题。")
+    return Ok(
+      @stlkit.check_printability(mesh, min_thickness, samples~).needs_review(),
+    )
   }
 
   let fixed = @stlkit.repair(mesh, @stlkit.RepairOptions::default())
-  let after_review = @stlkit.check_printability(fixed.mesh, min_thickness)
+  let after_review = @stlkit.check_printability(
+    fixed.mesh,
+    min_thickness,
+    samples~,
+  )
   let after = after_review.validation
 
   println("")
@@ -561,6 +631,39 @@ fn fix_and_save(
 ///|
 /// 常规检查路径。
 fn run(matches : @argparse.Matches, path : String) -> Result[Bool, String] {
+  let nozzle = match matches.values.get("nozzle") {
+    Some([raw, ..]) => {
+      let value = @string.parse_double(raw) catch {
+        _ => return Err("--nozzle 必须是正的有限数字")
+      }
+      if value.is_nan() || value.is_inf() || value <= 0.0 {
+        return Err("--nozzle 必须是正的有限数字")
+      }
+      value.to_string() + " mm"
+    }
+    _ => "未指定"
+  }
+  let supports = match matches.values.get("supports") {
+    Some([raw, ..]) =>
+      if raw == "on" || raw == "off" || raw == "unknown" {
+        raw
+      } else {
+        return Err("--supports 只接受 on/off/unknown")
+      }
+    _ => "unknown"
+  }
+  let samples = match matches.values.get("samples") {
+    Some([raw, ..]) => {
+      let value = @string.parse_int(raw) catch {
+        _ => return Err("--samples 必须是 1..100000 的整数")
+      }
+      if value < 1 || value > 100000 {
+        return Err("--samples 必须是 1..100000 的整数")
+      }
+      value
+    }
+    _ => 1000
+  }
   let svg_path = match matches.values.get("svg") {
     Some([first, ..]) => first
     _ => ""
@@ -581,7 +684,11 @@ fn run(matches : @argparse.Matches, path : String) -> Result[Bool, String] {
     }
     _ => 0.8
   }
-  let has_problem = match report(path, svg_path, fix_path, min_thickness) {
+  println(
+    "场景记录：喷嘴 \{nozzle}；支撑 \{supports}（仅记录，不参与通过/失败判定）",
+  )
+  let has_problem = match
+    report(path, svg_path, fix_path, min_thickness, samples) {
     Ok(v) => v
     Err(msg) => return Err(msg)
   }
@@ -611,6 +718,16 @@ async fn main {
     if matches.flags.get("help") == Some(true) || path == "" {
       println(help_text(cmd))
       Ok(false)
+    } else if matches.flags.get("stream-only") == Some(true) {
+      if matches.flags.get("bench") == Some(true) ||
+        matches.flags.get("strict") == Some(true) ||
+        matches.values.length() > 1 {
+        Err(
+          "--stream-only 只接受文件路径，不与几何检查或基准参数组合",
+        )
+      } else {
+        stream_only(path)
+      }
     } else if matches.flags.get("bench") == Some(true) {
       bench(path)
     } else {

@@ -4,6 +4,8 @@
 
 **在线试用：<https://mik1e80.github.io/stlkit/>**
 
+[检查边界与原始案例报告](docs/review-cases.md) · [统一后的申报说明](docs/submission.md)
+
 库、命令行和网页使用同一份 MoonBit 核心代码。网页在浏览器本地处理文件，不上传模型。
 
 ## 本次修订
@@ -47,6 +49,8 @@ moon run cmd/main model.stl --min-thickness 0.5 --strict
 
 `--min-thickness` 的单位是毫米，默认参考值为 0.8；应按材料和设备调整，设为 0 可关闭薄壁阈值提醒。`--strict` 在发现需复核问题时退出 1；普通模式可正常输出问题报告。参数或文件错误也退出 1。
 
+`--samples 1000` 指定射线预算（CLI 范围 1..100000）。`--nozzle 0.4 --supports off` 只记录场景，不推导壁厚阈值，不计算喷嘴适配或支撑需求。所有报告明确标记工艺未评估，退出 0 不构成可打印结论。
+
 网页版支持拖入模型、调整参考壁厚、查看报告与预览、下载修复结果。也可双击本地 `web/index.html`；仓库附带编译好的 `web/dist/web.js`。
 
 已发布的库可通过 `moon add mik1e80/stlkit` 安装。库接口和本次源码新增的 `check_printability()` 见 [README.mbt.md](README.mbt.md)。
@@ -64,11 +68,12 @@ moon run cmd/main model.stl --min-thickness 0.5 --strict
 
 ```bash
 moon run cmd/main model.stl --bench
+moon run cmd/main examples/review/cubes-64.stl --stream-only
 ```
 
 基准入口会比较全量、整块流式和分块流式结果，并记录耗时。**它会运行全量解析，不是仅流式的低内存命令。** 分块入口 `StlScanner::feed()` / `finish()` 可供调用方独立使用。
 
-读取缓冲区为 256KB，但顶点表和边表仍随规模增长，因此总内存不是常数。CLI 显示的“数据量估算”按主要数据字段计算，不是进程内存实测，也不包含对象头、哈希桶、分配器与运行时开销。此前的内存百分比不作为本次修订的性能承诺。
+`--stream-only` 只做二进制 STL 分块统计，不执行全量解析、壁厚或修复。读取缓冲区为 256 KiB，但顶点去重表和全部三角形边记录仍增长，总存储 O(V+R+chunk)，非退化输入 R=3F，不是固定总内存。`StlScanner::storage()` 提供逻辑记录计数及单次缓冲峰值，不是 RSS；排序、容器容量及运行时还有额外存储。此前的固定内存节省比例已撤回。
 
 ## 验证与开发
 
@@ -81,13 +86,14 @@ moon test --target native
 node cmd/main/smoke.cjs
 bash web/build.sh
 node web/smoke.cjs
+node scripts/review-cases.cjs
 ```
 
 回归测试覆盖正常模型、损坏输入、坐标碰撞、大坐标、共线退化面、凹多边形、多个独立破洞及报告边界。网页检查执行实际 MoonBit 编译产物，使用最小 DOM 验证报告与修复逻辑；不代替浏览器布局检查。
 
 [CI](.github/workflows/ci.yml) 执行检查、构建、测试、网页构建与报告回归。[Pages 工作流](.github/workflows/pages.yml) 重新构建并检查网页产物后部署。
 
-23 个随附模型中，17 个 3MF 文件来自官方样例库；读取成功只证明已支持的几何路径可处理这些文件，不表示覆盖完整 3MF 规范或所有扩展。
+17 个第三方 3MF 文件来自官方样例库；其余案例由项目自建。读取成功只证明已支持的几何路径可处理这些文件，不表示覆盖完整 3MF 规范或所有扩展。
 
 ## 文档与来源
 
@@ -99,3 +105,12 @@ node web/smoke.cjs
 参考 trimesh 的 API 与模块设计。trimesh 也提供壁厚查询；本项目的区别在于 MoonBit 实现、三后端和库 / CLI / 网页的使用方式，详见对比文档。
 
 本项目采用 [Apache-2.0](LICENSE)。随附 3MF 样例采用 BSD-2-Clause；版权、许可条款与免责声明完整保存在 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+
+
+## 输入边界补充（2026-10-17）
+
+ASCII STL / OBJ 的坐标和被读取的法线必须有限；二进制 STL 全量读取同样拒绝非有限坐标与法线。二进制流式路径不读取法线，但拒绝非有限顶点；分块扫描遇错后保留错误，finish() 返回 Err。
+
+3MF 拒绝非有限变换、嵌套变换或坐标计算溢出，以及单位换算后的坐标溢出。当前不实现扩展语义：非空 requiredextensions 一律明确拒绝；可选扩展仍可忽略。因此成功读取核心三角网格不表示完整支持所有 3MF 扩展。
+
+`moon run cmd/main examples/nonfinite-rejected.obj --strict` 应拒绝输入并以 1 退出，不生成检查通过结论。内存构造的 3MF、二进制 STL 与分块反例见 input_boundary_wbtest.mbt。变更与兼容约定见 [CHANGELOG.md](CHANGELOG.md)。

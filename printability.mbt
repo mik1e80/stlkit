@@ -13,6 +13,7 @@ pub(all) struct PrintabilityReport {
 pub fn check_printability(
   mesh : Mesh,
   min_thickness : Double,
+  samples? : Int = DEFAULT_THICKNESS_SAMPLES,
 ) -> PrintabilityReport {
   let validation = validate_default(mesh)
   let winding = check_winding_default(mesh)
@@ -23,7 +24,7 @@ pub fn check_printability(
     winding.signed_volume <= 0.0 {
     None
   } else {
-    Some(check_thickness_default(mesh))
+    Some(check_thickness(mesh, samples))
   }
   { validation, winding, thickness, min_thickness, }
 }
@@ -72,8 +73,13 @@ pub fn PrintabilityReport::needs_review(self : PrintabilityReport) -> Bool {
 ///|
 pub fn PrintabilityReport::verdict(self : PrintabilityReport) -> String {
   if self.needs_review() {
-    "本次检查发现需要复核的问题；请按报告修正模型或确认加工条件。"
+    "本次网格检查发现需要复核的问题；不构成可打印结论。"
   } else {
-    "本次网格检查未发现已覆盖的问题；仍需确认单位、材料、设备和切片设置。"
+    "本次网格检查未发现已覆盖的问题；不构成可打印结论，仍需确认单位、材料、设备和切片设置。"
   }
+}
+
+///|
+pub fn review_scope() -> String {
+  "工艺未评估：喷嘴、支撑、材料、摆放方向和切片参数；射线样本不保证全局最小壁厚。"
 }

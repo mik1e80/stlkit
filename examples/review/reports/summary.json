@@ -1,0 +1,60 @@
+{
+  "model_lf_text_sha256": "334238ef5ba333f27f958fb403637ac56382c396b03b596f96b762ce773eb97c",
+  "scenarios": [
+    {
+      "name": "cube-a",
+      "input": "examples/cube.obj",
+      "nozzle_mm": 0.4,
+      "supports": "off",
+      "reference_threshold_mm": 0.8,
+      "exit_code": 0,
+      "command": "moon run cmd/main examples/cube.obj --nozzle 0.4 --supports off --min-thickness 0.8 --strict"
+    },
+    {
+      "name": "cube-b",
+      "input": "examples/cube.obj",
+      "nozzle_mm": 0.8,
+      "supports": "on",
+      "reference_threshold_mm": 1.2,
+      "exit_code": 1,
+      "command": "moon run cmd/main examples/cube.obj --nozzle 0.8 --supports on --min-thickness 1.2 --strict"
+    },
+    {
+      "name": "cube-c",
+      "input": "examples/cube.obj",
+      "nozzle_mm": 0.4,
+      "supports": "on",
+      "reference_threshold_mm": 0.8,
+      "exit_code": 0,
+      "command": "moon run cmd/main examples/cube.obj --nozzle 0.4 --supports on --min-thickness 0.8 --strict"
+    }
+  ],
+  "sampling": {
+    "triangles": 3084,
+    "budget_1000_reported_mm": 1,
+    "budget_all_reported_mm": 0.05,
+    "analytic_plate_thickness_mm": 0.05,
+    "arranged_to_expose_deterministic_miss": true
+  },
+  "storage": [
+    {
+      "cubes": 1,
+      "triangles": 12,
+      "unique_vertices": 8,
+      "edge_records": 36
+    },
+    {
+      "cubes": 16,
+      "triangles": 192,
+      "unique_vertices": 128,
+      "edge_records": 576
+    },
+    {
+      "cubes": 64,
+      "triangles": 768,
+      "unique_vertices": 512,
+      "edge_records": 2304
+    }
+  ],
+  "scope": "Nozzle/supports are recorded context only; sample minima are not global minima; storage counts are not process RSS."
+}
