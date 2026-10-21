@@ -60,6 +60,9 @@ async function load(text) {
     bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) });
 }
 (async () => {
+  const missingZ = fs.readFileSync(path.join(__dirname, '../examples/missing-z.ply'));
+  assert.equal(context.analyze(missingZ.toString('base64')), '');
+  assert.match(context.analyze_error(missingZ.toString('base64')), /vertex 缺少 z/);
   const longStl = fs.readFileSync(path.join(__dirname, '../examples/long-header.stl'), 'utf8');
   const keywordsObj = fs.readFileSync(path.join(__dirname, '../examples/obj-stl-keywords.obj'), 'utf8');
   assert.equal(report(longStl)['格式'], 'ASCII STL');

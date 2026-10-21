@@ -206,3 +206,27 @@ fs.writeFileSync(collisionPath, 'keep existing file');
 run([inwardPath, '--fix', collisionPath, '--svg', collisionPath], 1, /不同的输出路径/);
 assert.equal(fs.readFileSync(collisionPath, 'utf8'), 'keep existing file');
 console.log('CLI 修复与 SVG 组合回归通过：最终网格、参数顺序、无需改动、严格模式和写入失败。');
+
+// 同一输出的不同路径写法须在写入前拒绝，不能仅比较原始字符串。
+const relativeCollision = path.relative(root, collisionPath);
+fs.mkdirSync(path.join(dir, 'subdir'));
+const aliasPairs = [
+  [collisionPath, `${dir}/./collision.stl`],
+  [collisionPath, `${dir}/subdir/../collision.stl`],
+  [collisionPath, relativeCollision],
+  [relativeCollision, `./${relativeCollision}`],
+  [collisionPath, `${dir}//collision.stl`],
+];
+if (process.platform === 'win32') {
+  aliasPairs.push([collisionPath, collisionPath.toUpperCase()]);
+  aliasPairs.push([collisionPath, collisionPath.replaceAll('\\', '/')]);
+}
+for (const [fix, svg] of aliasPairs) {
+  run([inwardPath, '--fix', fix, '--svg', svg], 1, /规范化后相同/);
+  assert.equal(fs.readFileSync(collisionPath, 'utf8'), 'keep existing file');
+}
+const missingCollision = path.join(dir, 'new-collision.stl');
+run([inwardPath, '--fix', missingCollision, '--svg', `${dir}/./new-collision.stl`], 1, /规范化后相同/);
+assert(!fs.existsSync(missingCollision));
+run(['examples/missing-z.ply'], 1, /vertex 缺少 z/);
+console.log('CLI 路径规范化及 PLY 缺失坐标回归通过。');

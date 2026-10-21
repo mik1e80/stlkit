@@ -47,8 +47,11 @@ jobs:
       - name: 构建
         run: moon build
 
-      - name: 测试
-        run: moon test
+      - name: Wasm 后端测试
+        run: moon test --target wasm
+
+      - name: Wasm-GC 后端测试
+        run: moon test --target wasm-gc
 
       - name: JS 后端测试
         run: moon test --target js

@@ -392,8 +392,15 @@ fn report(
   min_thickness : Double,
   samples : Int,
 ) -> Result[Bool, String] {
-  if fix_path != "" && fix_path == svg_path {
-    return Err("--fix 与 --svg 必须使用不同的输出路径")
+  if fix_path != "" && svg_path != "" {
+    // 使用宿主平台规则解析绝对路径，处理 .、..、重复分隔符与 Windows 大小写。
+    let fix_output = @path.Path(fix_path).resolve()
+    let svg_output = @path.Path(svg_path).resolve()
+    if svg_output.relative(base=fix_output).to_string() == "" {
+      return Err(
+        "--fix 与 --svg 必须使用不同的输出路径（规范化后相同）",
+      )
+    }
   }
   let data = @fs.read_file_to_bytes(path) catch {
     @fs.IOError(msg) => return Err("读不了文件「\{path}」：\{msg}")

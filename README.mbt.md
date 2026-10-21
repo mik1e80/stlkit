@@ -1,6 +1,6 @@
 # stlkit：接口与实现
 
-MoonBit 的 STL / OBJ / 3MF / PLY 网格工具链。本次修订版本为 **0.1.1**；安装、命令行和网页版入口见 [README.md](README.md)。Mooncakes 使用 `moon add mik1e80/stlkit@0.1.1`，源码固定到 [v0.1.1](https://github.com/mik1e80/stlkit/tree/v0.1.1)。0.1.0 不包含本轮修复，复核范围及迁移说明见 [0.1.1 发布说明](docs/releases/0.1.1.md)。
+MoonBit 的 STL / OBJ / 3MF / PLY 网格工具链。本次修订版本为 **0.1.2**；安装、命令行和网页版入口见 [README.md](README.md)。Mooncakes 使用 `moon add mik1e80/stlkit@0.1.2`，源码固定到 [v0.1.2](https://github.com/mik1e80/stlkit/tree/v0.1.2)。0.1.0 / 0.1.1 不包含本轮坐标 schema 与路径规范化修复，复核范围及迁移说明见 [0.1.2 发布说明](docs/releases/0.1.2.md)。
 
 ## 数据与单位
 
@@ -31,6 +31,8 @@ ASCII PLY 默认严格按声明消费正文：记录可跨行或共用一行，�
 `parse_ply(data, lenient_ascii=true)` 显式启用异常 ASCII 文件的逐行兼容：一行一条记录，丢弃该行未声明的余项，行内缺少声明值时报错，不跨行补齐。这会有意丢弃数据，调用方应先确认布局；不能用于多条记录共用一行。该选项对二进制输入无影响。`parse_mesh()`、CLI、网页保持默认模式，不做失败后自动回退。普通 `parse_ply(data)` 调用方式保留；依赖旧版隐式忽略行尾数据的调用方需修正文件声明或显式启用兼容模式。
 
 ### 格式探测与解析
+
+PLY 的每个 `vertex` 元素（含 count=0 的声明）必须分别包含且只包含一个标量 `x`、`y`、`z`。在构建正文游标前拒绝缺失、list 型或重复坐标属性，不从默认零值推断未声明的坐标。三种编码和显式逐行兼容模式采用同一 schema 规则；坐标重排、真实零值及未知属性仍可读取。回归见 `ply_schema_wbtest.mbt` 和自建的 `examples/missing-z.ply`。
 
 `detect_format(data)` 返回 `Ascii`（ASCII STL）、`Binary`（二进制 STL）、`Obj`、`ThreeMF`、`Ply` 或 `Unknown`。它依据内容提供解析路由提示，不使用文件后缀，也不证明文件有效或完整符合规范。
 
@@ -131,7 +133,7 @@ STL 输入契约：`parse_stl_binary()`、`stream_stl_binary()` 和 `StlScanner:
 
 CLI 和网页修复后都再次运行统一复核入口。水密性改善不等于其他风险已消除。
 
-CLI 支持 `--fix fixed.stl --svg fixed.svg` 组合：保存最终网格后，由同一个最终网格导出 SVG。没有可修复改动时也保存所请求的网格；`--strict` 在导出后依据最终复核结果退出，仍有问题时退出 1。网格写入失败则不继续 SVG；SVG 写入失败则退出 1，保留已写出的网格。两个输出应指定不同路径。
+CLI 支持 `--fix fixed.stl --svg fixed.svg` 组合：保存最终网格后，由同一个最终网格导出 SVG。没有可修复改动时也保存所请求的网格；`--strict` 在导出后依据最终复核结果退出，仍有问题时退出 1。网格写入失败则不继续 SVG；SVG 写入失败则退出 1，保留已写出的网格。两个输出在写入前按宿主平台规则比较规范化绝对路径（含 .、..、分隔符和 Windows 大小写），相同则拒绝；此词法比较不识别符号链接或硬链接别名。
 
 ## 流式路径
 
@@ -147,7 +149,8 @@ CLI 支持 `--fix fixed.stl --svg fixed.svg` 组合：保存最终网格后，�
 moon update
 moon check --target all --deny-warn
 moon build
-moon test
+moon test --target wasm
+moon test --target wasm-gc
 moon test --target js
 moon test --target native
 node cmd/main/smoke.cjs

@@ -93,6 +93,10 @@ pub fn parse_ply(
     Ok(h) => h
     Err(msg) => return Err(msg)
   }
+  match validate_ply_vertex_schema(header) {
+    Ok(_) => ()
+    Err(message) => return Err(message)
+  }
   let cursor = match
     PlyCursor::new(
       data,
@@ -105,6 +109,38 @@ pub fn parse_ply(
     Err(msg) => return Err(msg)
   }
   read_body(cursor, header)
+}
+
+///|
+/// 在读取任何正文前验证每个 vertex 元素，三坐标必须各有一个标量属性。
+/// 未知属性仍可读取后丢弃；兼容 ASCII 模式不放宽坐标声明。
+fn validate_ply_vertex_schema(header : PlyHeader) -> Result[Unit, String] {
+  for element in header.elements {
+    if element.name != "vertex" {
+      continue
+    }
+    for coordinate in ["x", "y", "z"] {
+      let mut count = 0
+      for property in element.props {
+        match property {
+          Scalar(name, _) => if name == coordinate { count = count + 1 }
+          List(name, _, _) =>
+            if name == coordinate {
+              return Err(
+                "PLY vertex 的 \{coordinate} 属性必须为标量，不能声明为 list",
+              )
+            }
+        }
+      }
+      if count == 0 {
+        return Err("PLY vertex 缺少 \{coordinate} 标量属性")
+      }
+      if count > 1 {
+        return Err("PLY vertex 重复声明 \{coordinate} 属性")
+      }
+    }
+  }
+  Ok(())
 }
 
 ///|

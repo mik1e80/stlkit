@@ -4,12 +4,12 @@ MoonBit 三维网格检查与修复库。读取 STL、OBJ、3MF、PLY 的支持�
 
 [在线演示](https://mik1e80.github.io/stlkit/) · [库接口](README.mbt.md) · [范围与复现案例](docs/review-cases.md) · [项目对比](COMPARISON.md) · [变更记录](CHANGELOG.md)
 
-本次修订版本 **0.1.1**。复核时请使用 [Mooncakes 0.1.1](https://mooncakes.io/docs/mik1e80/stlkit@0.1.1/) 或固定的 [v0.1.1 源码标签](https://github.com/mik1e80/stlkit/tree/v0.1.1)，不要用 0.1.0 验证本次修复。版本范围与迁移说明见 [发布说明](docs/releases/0.1.1.md)。
+本次修订版本 **0.1.2**。复核时请使用 [Mooncakes 0.1.2](https://mooncakes.io/docs/mik1e80/stlkit@0.1.2/) 或固定的 [v0.1.2 源码标签](https://github.com/mik1e80/stlkit/tree/v0.1.2)，不要用旧版 0.1.0 / 0.1.1 验证本次修复。版本范围与迁移说明见 [发布说明](docs/releases/0.1.2.md)。
 
 在已有 MoonBit 项目中安装指定版本：
 
 ```sh
-moon add mik1e80/stlkit@0.1.1
+moon add mik1e80/stlkit@0.1.2
 ```
 
 ## 快速运行
@@ -17,7 +17,7 @@ moon add mik1e80/stlkit@0.1.1
 安装 [MoonBit 工具链](https://www.moonbitlang.com/download/)，获取源码后执行：
 
 ```sh
-git clone --branch v0.1.1 --depth 1 https://github.com/mik1e80/stlkit
+git clone --branch v0.1.2 --depth 1 https://github.com/mik1e80/stlkit
 cd stlkit
 moon update
 moon run cmd/main examples/cube.obj --strict
@@ -28,7 +28,7 @@ moon run cmd/main examples/torus.obj --svg torus.svg
 
 网页支持本地打开 `web/index.html`，或访问在线演示。文件在浏览器本地处理，不上传；网页使用仓库内的编译产物，修改代码后需重建。
 
-`--fix` 与 `--svg` 可同时使用：先写出最终网格，再由修复后的网格生成 SVG；无需自动修复时也按指定路径导出网格和预览。`--strict` 根据最终网格的复核结果退出，仍有薄壁等问题时两个输出仍会生成，并以 1 退出。输出路径应不同。写入网格失败时不继续生成 SVG；SVG 写入失败时以 1 退出，已经写出的网格保留。
+`--fix` 与 `--svg` 可同时使用：先写出最终网格，再由修复后的网格生成 SVG；无需自动修复时也按指定路径导出网格和预览。`--strict` 根据最终网格的复核结果退出，仍有薄壁等问题时两个输出仍会生成，并以 1 退出。输出路径按宿主平台规则转换为规范化绝对路径后比较（包括 .、..、分隔符和 Windows 大小写）；相同则在写入前拒绝。此词法比较不识别符号链接或硬链接别名。写入网格失败时不继续生成 SVG；SVG 写入失败时以 1 退出，已经写出的网格保留。
 
 ## 已实现范围
 
@@ -43,7 +43,7 @@ moon run cmd/main examples/torus.obj --svg torus.svg
 | 输出 | ASCII / 二进制 STL、OBJ、ASCII / 二进制 PLY、SVG 和检查报告 |
 | 流式统计 | 二进制 STL 分块处理，不构造完整 Mesh；仍保存顶点去重表与三角形边记录 |
 
-不支持完整 3MF 扩展语义；非空 `requiredextensions` 明确拒绝，可选扩展可忽略。STL / OBJ 的非有限坐标及被读取法线、3MF 非有限变换与变换后的坐标溢出会报错。二进制流式统计跳过声明法线，不执行声明面法线反向检查。
+不支持完整 3MF 扩展语义；非空 `requiredextensions` 明确拒绝，可选扩展可忽略。STL / OBJ 的非有限坐标及被读取法线、3MF 非有限变换与变换后的坐标溢出会报错。二进制流式统计校验声明法线是否有限，但不执行声明面法线反向检查。
 
 ### 声明面法线检查范围
 
@@ -75,7 +75,9 @@ OBJ 的 `vn` 是逐顶点数据。本库只在一个三角形的三个顶点法�
 
 自建案例：[同一行的顶点与面](examples/ascii-packed.ply) 读取为 2 个三角形、面积 1 mm²；它是开放方片，几何复核仍会提示边界边。[未声明尾随值](examples/ascii-extra-values.ply) 默认报错，仅显式兼容模式可读取。回归见 [PLY 测试](ply_wbtest.mbt)。
 
-## STL 输入契约
+## STL 与 PLY 输入契约
+
+PLY 在读取正文前检查每个 `vertex` 元素：必须各声明一个标量 `x`、`y`、`z`，缺失、list 型坐标和重复坐标属性都会报错，不将缺失值补零。规则同样适用于 ASCII、大小端二进制及 `lenient_ascii=true`；坐标顺序可变，未知属性仍按声明消费。自建反例 [missing-z.ply](examples/missing-z.ply) 应明确报“vertex 缺少 z”，真实零坐标仍合法。
 
 STL 输入边界：二进制文件必须恰好为 `84 + 50 × 头部三角形数` 字节，数量须大于 0，法线与顶点都须为有限数；截断和任意尾部多余字节均拒绝。`parse_stl_binary()`、`stream_stl_binary()` 与 `StlScanner` 使用同一规则，分块调用必须调用 `finish()` 才能确认输入完整。
 
@@ -159,7 +161,7 @@ moon run cmd/main examples/cube.stl --bench
 ```sh
 moon check --target all --deny-warn
 moon build
-moon test
+moon test --target wasm
 moon test --target wasm-gc
 moon test --target js
 moon test --target native
