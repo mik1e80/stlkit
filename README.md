@@ -4,14 +4,20 @@ MoonBit 三维网格检查与修复库。读取 STL、OBJ、3MF、PLY 的支持�
 
 [在线演示](https://mik1e80.github.io/stlkit/) · [库接口](README.mbt.md) · [范围与复现案例](docs/review-cases.md) · [项目对比](COMPARISON.md) · [变更记录](CHANGELOG.md)
 
-源码版本 **0.1.1，尚未完成本次 Mooncakes 发布**。以下命令验证当前源码；安装旧发布包不能验证本次修订。
+本次修订版本 **0.1.1**。复核时请使用 [Mooncakes 0.1.1](https://mooncakes.io/docs/mik1e80/stlkit@0.1.1/) 或固定的 [v0.1.1 源码标签](https://github.com/mik1e80/stlkit/tree/v0.1.1)，不要用 0.1.0 验证本次修复。版本范围与迁移说明见 [发布说明](docs/releases/0.1.1.md)。
+
+在已有 MoonBit 项目中安装指定版本：
+
+```sh
+moon add mik1e80/stlkit@0.1.1
+```
 
 ## 快速运行
 
 安装 [MoonBit 工具链](https://www.moonbitlang.com/download/)，获取源码后执行：
 
 ```sh
-git clone https://github.com/mik1e80/stlkit
+git clone --branch v0.1.1 --depth 1 https://github.com/mik1e80/stlkit
 cd stlkit
 moon update
 moon run cmd/main examples/cube.obj --strict

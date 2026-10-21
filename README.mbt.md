@@ -1,6 +1,6 @@
 # stlkit：接口与实现
 
-MoonBit 的 STL / OBJ / 3MF / PLY 网格工具链。安装、命令行和网页版入口见 [README.md](README.md)。本次修订源码版本为 0.1.1，尚待发布；Mooncakes 0.1.0 不包含本次修复和新增的打印前复核接口。
+MoonBit 的 STL / OBJ / 3MF / PLY 网格工具链。本次修订版本为 **0.1.1**；安装、命令行和网页版入口见 [README.md](README.md)。Mooncakes 使用 `moon add mik1e80/stlkit@0.1.1`，源码固定到 [v0.1.1](https://github.com/mik1e80/stlkit/tree/v0.1.1)。0.1.0 不包含本轮修复，复核范围及迁移说明见 [0.1.1 发布说明](docs/releases/0.1.1.md)。
 
 ## 数据与单位
 
