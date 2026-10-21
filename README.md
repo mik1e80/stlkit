@@ -16,10 +16,13 @@ cd stlkit
 moon update
 moon run cmd/main examples/cube.obj --strict
 moon run cmd/main examples/broken.stl --fix fixed.stl --strict
+moon run cmd/main examples/broken.stl --fix fixed.stl --svg fixed.svg --strict
 moon run cmd/main examples/torus.obj --svg torus.svg
 ```
 
 网页支持本地打开 `web/index.html`，或访问在线演示。文件在浏览器本地处理，不上传；网页使用仓库内的编译产物，修改代码后需重建。
+
+`--fix` 与 `--svg` 可同时使用：先写出最终网格，再由修复后的网格生成 SVG；无需自动修复时也按指定路径导出网格和预览。`--strict` 根据最终网格的复核结果退出，仍有薄壁等问题时两个输出仍会生成，并以 1 退出。输出路径应不同。写入网格失败时不继续生成 SVG；SVG 写入失败时以 1 退出，已经写出的网格保留。
 
 ## 已实现范围
 

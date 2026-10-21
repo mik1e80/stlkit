@@ -42,7 +42,7 @@ fn command() -> @argparse.Command {
       ),
       @argparse.OptionArg(
         "svg",
-        about="把等轴测预览图导出成 SVG 文件",
+        about="导出等轴测 SVG 预览；与 --fix 同用时预览修复后的网格",
       ),
       @argparse.OptionArg(
         "fix",
@@ -379,7 +379,7 @@ fn fmt(value : Double, digits : Int) -> String {
 ///|
 /// 处理一个模型文件，把报告打印出来。
 ///
-/// `svg_path` 给了的话，顺便导出一张等轴测预览图。
+/// `svg_path` 给了的话，导出最终网格的等轴测预览图（含修复后的结果）。
 /// `fix_path` 给了的话，修一遍网格存到那里，并把修复前后的校验结果对照着打出来。
 ///
 /// 返回值里的 `Bool` 是「这个模型有没有问题」——`--strict` 模式要靠它定退出码。
@@ -392,6 +392,9 @@ fn report(
   min_thickness : Double,
   samples : Int,
 ) -> Result[Bool, String] {
+  if fix_path != "" && fix_path == svg_path {
+    return Err("--fix 与 --svg 必须使用不同的输出路径")
+  }
   let data = @fs.read_file_to_bytes(path) catch {
     @fs.IOError(msg) => return Err("读不了文件「\{path}」：\{msg}")
   }
@@ -488,19 +491,25 @@ fn report(
   println("")
   print_findings(review, parts)
 
-  if fix_path != "" {
-    return fix_and_save(
-      mesh,
-      check,
-      review.winding,
-      fix_path,
-      min_thickness,
-      samples,
-    )
+  let (final_mesh, final_has_problem) = if fix_path != "" {
+    match
+      fix_and_save(
+        mesh,
+        check,
+        review.winding,
+        fix_path,
+        min_thickness,
+        samples,
+      ) {
+      Ok(result) => result
+      Err(message) => return Err(message)
+    }
+  } else {
+    (mesh, has_problem)
   }
 
   if svg_path != "" {
-    let svg = @stlkit.render_svg(mesh, @stlkit.PreviewOptions::default())
+    let svg = @stlkit.render_svg(final_mesh, @stlkit.PreviewOptions::default())
     @fs.write_string_to_file(svg_path, svg) catch {
       @fs.IOError(msg) =>
         return Err("写不了预览图「\{svg_path}」：\{msg}")
@@ -508,7 +517,7 @@ fn report(
     println("")
     println("  预览图已导出到 \{svg_path}")
   }
-  Ok(has_problem)
+  Ok(final_has_problem)
 }
 
 ///|
@@ -582,7 +591,7 @@ fn fix_and_save(
   fix_path : String,
   min_thickness : Double,
   samples : Int,
-) -> Result[Bool, String] {
+) -> Result[(@stlkit.Mesh, Bool), String] {
   if before.is_watertight() &&
     before.degenerate_count == 0 &&
     before.wrong_normal_count == 0 &&
@@ -590,8 +599,15 @@ fn fix_and_save(
     winding.orientation_reliable() {
     println("")
     println("未发现当前自动修复能处理的网格问题。")
+    match save_mesh(mesh, fix_path) {
+      Ok(_) => ()
+      Err(message) => return Err(message)
+    }
     return Ok(
-      @stlkit.check_printability(mesh, min_thickness, samples~).needs_review(),
+      (
+        mesh,
+        @stlkit.check_printability(mesh, min_thickness, samples~).needs_review(),
+      ),
     )
   }
 
@@ -644,18 +660,28 @@ fn fix_and_save(
     "  修复后 边界边 \{after.boundary_edge_count}  非流形边 \{after.non_manifold_edge_count}  退化面 \{after.degenerate_count}",
   )
 
-  let bytes = match @stlkit.write_mesh(fixed.mesh, fix_path) {
+  match save_mesh(fixed.mesh, fix_path) {
+    Ok(_) => ()
+    Err(message) => return Err(message)
+  }
+  print_findings(after_review, @stlkit.count_parts_default(fixed.mesh))
+  Ok((fixed.mesh, after_review.needs_review()))
+}
+
+///|
+/// 按请求导出最终网格；没有可修复改动时也生成输出文件。
+fn save_mesh(mesh : @stlkit.Mesh, path : String) -> Result[Unit, String] {
+  let bytes = match @stlkit.write_mesh(mesh, path) {
     Ok(bytes) => bytes
     Err(msg) => return Err(msg)
   }
-  @fs.write_bytes_to_file(fix_path, bytes) catch {
-    @fs.IOError(msg) => return Err("写不了文件「\{fix_path}」：\{msg}")
+  @fs.write_bytes_to_file(path, bytes) catch {
+    @fs.IOError(msg) => return Err("写不了文件「\{path}」：\{msg}")
   }
 
   println("")
-  println("  已存到 \{fix_path}（\{bytes.length()} 字节）")
-  print_findings(after_review, @stlkit.count_parts_default(fixed.mesh))
-  Ok(after_review.needs_review())
+  println("  已存到 \{path}（\{bytes.length()} 字节）")
+  Ok(())
 }
 
 ///|

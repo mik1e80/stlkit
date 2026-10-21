@@ -152,3 +152,57 @@ for (const [i, text] of badAscii.entries()) {
   for (const options of [[], ['--bench']]) run([input, ...options], 1);
 }
 console.log('STL 输入契约 CLI 回归通过：尾部、截断、非有限法线及坏 ASCII 面。');
+
+// 组合参数必须生成两个输出，而且 SVG 必须属于最终网格。
+function fixWithSvg(input, status, name, svgFirst = false) {
+  const meshPath = path.join(dir, `${name}.stl`);
+  const svgPath = path.join(dir, `${name}.svg`);
+  const options = svgFirst ? ['--svg', svgPath, '--fix', meshPath]
+    : ['--fix', meshPath, '--svg', svgPath];
+  const output = run([input, ...options, '--strict'], status);
+  assert(fs.statSync(meshPath).size > 84, '指定的网格输出必须写出');
+  const svg = fs.readFileSync(svgPath, 'utf8');
+  assert.match(svg, /^<svg\b/);
+  assert.match(svg, /<polygon\b/);
+  assert(output.indexOf('已存到') < output.indexOf('预览图已导出到'));
+  const expectedPath = path.join(dir, `${name}-from-saved.svg`);
+  run([meshPath, '--svg', expectedPath], 0);
+  const expected = fs.readFileSync(expectedPath, 'utf8');
+  // 二进制 STL 会将坐标量化为 float32，重读后的投影允许微小数值误差。
+  const points = text => [...text.matchAll(/points="([^"]+)"/g)]
+    .flatMap(match => match[1].trim().split(/[ ,]+/).map(Number));
+  assert.equal(svg.replace(/points="[^"]+"/g, 'points=""'),
+    expected.replace(/points="[^"]+"/g, 'points=""'), '最终网格的可见面和样式应一致');
+  const actualPoints = points(svg), expectedPoints = points(expected);
+  assert.equal(actualPoints.length, expectedPoints.length);
+  for (let i = 0; i < actualPoints.length; i++) {
+    assert(Math.abs(actualPoints[i] - expectedPoints[i]) < 1e-5,
+      '组合预览应与修复文件单独生成的预览坐标一致');
+  }
+  return svg;
+}
+const inwardSvg = path.join(dir, 'inward-original.svg');
+run([inwardPath, '--svg', inwardSvg], 0);
+const repairedSvg = fixWithSvg(inwardPath, 0, 'combo-inward');
+assert.notEqual(repairedSvg, fs.readFileSync(inwardSvg, 'utf8'), '不得使用修复前网格生成 SVG');
+fixWithSvg(inwardPath, 0, 'combo-reversed-options', true);
+fixWithSvg('examples/cube.obj', 0, 'combo-no-change');
+fixWithSvg(thinPath, 1, 'combo-thin-no-change');
+const thinInwardPath = path.join(dir, 'thin-inward.obj');
+fs.writeFileSync(thinInwardPath, thin.split(/\r?\n/).map(line => line.startsWith('f ')
+  ? 'f ' + line.slice(2).trim().split(/\s+/).reverse().join(' ') : line).join('\n'));
+fixWithSvg(thinInwardPath, 1, 'combo-repaired-still-thin');
+const missingFix = path.join(dir, 'missing-mesh-dir', 'fixed.stl');
+const skippedSvg = path.join(dir, 'must-not-be-written.svg');
+run([inwardPath, '--fix', missingFix, '--svg', skippedSvg], 1, /写不了文件/);
+assert(!fs.existsSync(skippedSvg));
+const savedBeforeSvgError = path.join(dir, 'saved-before-svg-error.stl');
+const missingSvg = path.join(dir, 'missing-svg-dir', 'preview.svg');
+const svgError = run([inwardPath, '--fix', savedBeforeSvgError, '--svg', missingSvg], 1, /写不了预览图/);
+assert(fs.statSync(savedBeforeSvgError).size > 84);
+assert.doesNotMatch(svgError, /预览图已导出到/);
+const collisionPath = path.join(dir, 'collision.stl');
+fs.writeFileSync(collisionPath, 'keep existing file');
+run([inwardPath, '--fix', collisionPath, '--svg', collisionPath], 1, /不同的输出路径/);
+assert.equal(fs.readFileSync(collisionPath, 'utf8'), 'keep existing file');
+console.log('CLI 修复与 SVG 组合回归通过：最终网格、参数顺序、无需改动、严格模式和写入失败。');

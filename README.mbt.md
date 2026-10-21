@@ -131,6 +131,8 @@ STL 输入契约：`parse_stl_binary()`、`stream_stl_binary()` 和 `StlScanner:
 
 CLI 和网页修复后都再次运行统一复核入口。水密性改善不等于其他风险已消除。
 
+CLI 支持 `--fix fixed.stl --svg fixed.svg` 组合：保存最终网格后，由同一个最终网格导出 SVG。没有可修复改动时也保存所请求的网格；`--strict` 在导出后依据最终复核结果退出，仍有问题时退出 1。网格写入失败则不继续 SVG；SVG 写入失败则退出 1，保留已写出的网格。两个输出应指定不同路径。
+
 ## 流式路径
 
 `stream_stl_ascii(text)` / `stream_stl_binary(data)` 接收整份已在内存中的数据。`StlScanner::new()` / `feed(chunk)` / `finish()` 是二进制 STL 的分块入口，由调用方负责文件读取。
@@ -177,7 +179,7 @@ node web/smoke.cjs
 
 ## 输入边界补充（2026-10-17）
 
-ASCII STL / OBJ 的坐标和被读取的法线必须有限；二进制 STL 全量读取同样拒绝非有限坐标与法线。二进制流式路径不读取法线，但拒绝非有限顶点；分块扫描遇错后保留错误，finish() 返回 Err。
+ASCII STL / OBJ 的坐标和被读取的法线必须有限；二进制 STL 全量与流式读取均拒绝非有限坐标与声明法线。分块扫描遇错后保留错误，finish() 返回 Err；完整输入契约见上文“STL 输入契约”。
 
 3MF 拒绝非有限变换、嵌套变换或坐标计算溢出，以及单位换算后的坐标溢出。当前不实现扩展语义：非空 requiredextensions 一律明确拒绝；可选扩展仍可忽略。因此成功读取核心三角网格不表示完整支持所有 3MF 扩展。
 
