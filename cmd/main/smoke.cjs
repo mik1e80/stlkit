@@ -230,3 +230,23 @@ run([inwardPath, '--fix', missingCollision, '--svg', `${dir}/./new-collision.stl
 assert(!fs.existsSync(missingCollision));
 run(['examples/missing-z.ply'], 1, /vertex 缺少 z/);
 console.log('CLI 路径规范化及 PLY 缺失坐标回归通过。');
+
+const { invalidHeaderCases, binaryTrianglePly } = require('../../scripts/ply-fixtures.cjs');
+const validHeaderPly = fs.readFileSync(path.join(root, 'examples/ascii-packed.ply'), 'utf8').replaceAll('\r\n', '\n');
+for (const [i, [text, error]] of invalidHeaderCases(validHeaderPly).entries()) {
+  const input = path.join(dir, `bad-ply-header-${i}.ply`);
+  fs.writeFileSync(input, text);
+  run([input], 1, error);
+}
+run(['examples/missing-format.ply'], 1, /缺少 format/);
+for (const big of [false, true]) {
+  const valid = binaryTrianglePly(big);
+  const input = path.join(dir, `binary-ply-${big}.ply`);
+  fs.writeFileSync(input, valid);
+  run([input], 0, /三角形\s+1 个/);
+  for (const tail of [Buffer.from([0]), Buffer.from(' '), Buffer.alloc(4)]) {
+    fs.writeFileSync(input, Buffer.concat([valid, tail]));
+    run([input], 1, /多余尾部字节/);
+  }
+}
+console.log('PLY format 声明及二进制尾部 CLI 回归通过。');

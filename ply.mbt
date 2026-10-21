@@ -194,15 +194,36 @@ fn parse_header(text : String) -> Result[PlyHeader, String] {
   let mut big_endian = false
   let mut cur : PlyElement? = None
   let mut done = false
+  let mut format_seen = false
+  let mut line_no = 0
 
   for raw in text.split("\n") {
     if done {
       break
     }
+    line_no = line_no + 1
     let tokens = ascii_tokens(strip_cr(raw))
+    if line_no == 1 {
+      if !(tokens is ["ply"]) {
+        return Err("PLY header 的第一行必须为 ply")
+      }
+      continue
+    }
+    // 不从默认布尔值猜测编码；format 必须紧跟魔数，先于任何元素声明。
+    if !format_seen && !(tokens is ["format", ..]) {
+      return Err(
+        "PLY header 缺少 format 声明（必须紧跟 ply，位于 element 之前）",
+      )
+    }
     match tokens {
       ["end_header", ..] => done = true
-      ["format", kind, ..] =>
+      ["format", kind, version] => {
+        if format_seen {
+          return Err("PLY header 重复声明 format")
+        }
+        if version != "1.0" {
+          return Err("当前只支持 PLY 1.0，收到版本「\{version}」")
+        }
         match kind {
           "ascii" => binary = false
           "binary_little_endian" => {
@@ -214,6 +235,16 @@ fn parse_header(text : String) -> Result[PlyHeader, String] {
             big_endian = true
           }
           _ => return Err("PLY 的 format 认不出来：「\{kind}」")
+        }
+        format_seen = true
+      }
+      ["format", ..] =>
+        if format_seen {
+          return Err("PLY header 重复声明 format")
+        } else {
+          return Err(
+            "PLY format 必须完整声明为 format <编码> 1.0，不能缺少或增加字段",
+          )
         }
       ["element", name, count] => {
         // 上一个元素收尾
@@ -255,6 +286,9 @@ fn parse_header(text : String) -> Result[PlyHeader, String] {
       // ply / comment / obj_info 以及不认识的行，跳过就行
       _ => ()
     }
+  }
+  if !format_seen {
+    return Err("PLY header 缺少 format 声明")
   }
   match cur {
     Some(e) => elements.push(e)
@@ -677,6 +711,11 @@ fn read_body(cursor : PlyCursor, header : PlyHeader) -> Result[Mesh, String] {
 
   if !cursor.binary && cursor.has_ascii_token() {
     return Err("PLY 的正文含有 header 未声明的多余数据")
+  }
+  if cursor.binary && cursor.at != cursor.data.length() {
+    return Err(
+      "二进制 PLY 的正文含有 header 未声明的多余尾部字节：\{cursor.data.length() - cursor.at} 字节",
+    )
   }
   // 所有元素仍按 header 顺序消费；延后解析面索引，允许 face 在 vertex 之前声明。
   for corners in polygons {

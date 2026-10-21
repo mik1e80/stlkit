@@ -1,6 +1,6 @@
 # stlkit：接口与实现
 
-MoonBit 的 STL / OBJ / 3MF / PLY 网格工具链。本次修订版本为 **0.1.2**；安装、命令行和网页版入口见 [README.md](README.md)。Mooncakes 使用 `moon add mik1e80/stlkit@0.1.2`，源码固定到 [v0.1.2](https://github.com/mik1e80/stlkit/tree/v0.1.2)。0.1.0 / 0.1.1 不包含本轮坐标 schema 与路径规范化修复，复核范围及迁移说明见 [0.1.2 发布说明](docs/releases/0.1.2.md)。
+MoonBit 的 STL / OBJ / 3MF / PLY 网格工具链。本次修订版本为 **0.1.3**；安装、命令行和网页版入口见 [README.md](README.md)。Mooncakes 使用 `moon add mik1e80/stlkit@0.1.3`，源码固定到 [v0.1.3](https://github.com/mik1e80/stlkit/tree/v0.1.3)。0.1.0 / 0.1.1 / 0.1.2 不包含本轮 PLY format 与二进制尾部修复，复核范围及迁移说明见 [0.1.3 发布说明](docs/releases/0.1.3.md)。
 
 ## 数据与单位
 
@@ -31,6 +31,8 @@ ASCII PLY 默认严格按声明消费正文：记录可跨行或共用一行，�
 `parse_ply(data, lenient_ascii=true)` 显式启用异常 ASCII 文件的逐行兼容：一行一条记录，丢弃该行未声明的余项，行内缺少声明值时报错，不跨行补齐。这会有意丢弃数据，调用方应先确认布局；不能用于多条记录共用一行。该选项对二进制输入无影响。`parse_mesh()`、CLI、网页保持默认模式，不做失败后自动回退。普通 `parse_ply(data)` 调用方式保留；依赖旧版隐式忽略行尾数据的调用方需修正文件声明或显式启用兼容模式。
 
 ### 格式探测与解析
+
+PLY 必须以 `ply` 为第一行，第二行声明唯一的 `format <编码> 1.0`，编码为 ascii / binary_little_endian / binary_big_endian；不再从默认值猜测 ASCII，不接受缺少 / 重复 / 字段不全或多余 / 非 1.0 版本 / 位置不正确的 format。合法注释可位于 format 之后。大小端二进制都必须在消费全部声明数据后到达 EOF，额外尾字节一律拒绝；已声明未知属性与元素仍消费后丢弃。ASCII 兼容选项不绕过 header 或二进制长度规则。依据为 [原始 PLY 格式说明](https://gamma-web.iacs.umd.edu/POWERPLANT/papers/ply.pdf)，本库仍只声明支持子集。
 
 PLY 的每个 `vertex` 元素（含 count=0 的声明）必须分别包含且只包含一个标量 `x`、`y`、`z`。在构建正文游标前拒绝缺失、list 型或重复坐标属性，不从默认零值推断未声明的坐标。三种编码和显式逐行兼容模式采用同一 schema 规则；坐标重排、真实零值及未知属性仍可读取。回归见 `ply_schema_wbtest.mbt` 和自建的 `examples/missing-z.ply`。
 

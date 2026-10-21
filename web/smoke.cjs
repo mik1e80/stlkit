@@ -60,6 +60,22 @@ async function load(text) {
     bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) });
 }
 (async () => {
+  const { invalidHeaderCases, binaryTrianglePly } = require('../scripts/ply-fixtures.cjs');
+  const validHeaderPly = fs.readFileSync(path.join(__dirname, '../examples/ascii-packed.ply'), 'utf8').replaceAll('\r\n', '\n');
+  for (const [text, error] of invalidHeaderCases(validHeaderPly)) {
+    const input = Buffer.from(text).toString('base64');
+    assert.equal(context.analyze(input), '');
+    assert.match(context.analyze_error(input), error);
+  }
+  for (const big of [false, true]) {
+    const valid = binaryTrianglePly(big);
+    assert.equal(context.parseReport(context.analyze(valid.toString('base64')))['三角形'], '1');
+    for (const tail of [Buffer.from([0]), Buffer.from(' '), Buffer.alloc(4)]) {
+      const input = Buffer.concat([valid, tail]).toString('base64');
+      assert.equal(context.analyze(input), '');
+      assert.match(context.analyze_error(input), /多余尾部字节/);
+    }
+  }
   const missingZ = fs.readFileSync(path.join(__dirname, '../examples/missing-z.ply'));
   assert.equal(context.analyze(missingZ.toString('base64')), '');
   assert.match(context.analyze_error(missingZ.toString('base64')), /vertex 缺少 z/);

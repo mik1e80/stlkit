@@ -4,12 +4,12 @@ MoonBit 三维网格检查与修复库。读取 STL、OBJ、3MF、PLY 的支持�
 
 [在线演示](https://mik1e80.github.io/stlkit/) · [库接口](README.mbt.md) · [范围与复现案例](docs/review-cases.md) · [项目对比](COMPARISON.md) · [变更记录](CHANGELOG.md)
 
-本次修订版本 **0.1.2**。复核时请使用 [Mooncakes 0.1.2](https://mooncakes.io/docs/mik1e80/stlkit@0.1.2/) 或固定的 [v0.1.2 源码标签](https://github.com/mik1e80/stlkit/tree/v0.1.2)，不要用旧版 0.1.0 / 0.1.1 验证本次修复。版本范围与迁移说明见 [发布说明](docs/releases/0.1.2.md)。
+本次修订版本 **0.1.3**。复核时请使用 [Mooncakes 0.1.3](https://mooncakes.io/docs/mik1e80/stlkit@0.1.3/) 或固定的 [v0.1.3 源码标签](https://github.com/mik1e80/stlkit/tree/v0.1.3)，不要用旧版 0.1.0 / 0.1.1 / 0.1.2 验证本次修复。版本范围与迁移说明见 [发布说明](docs/releases/0.1.3.md)。
 
 在已有 MoonBit 项目中安装指定版本：
 
 ```sh
-moon add mik1e80/stlkit@0.1.2
+moon add mik1e80/stlkit@0.1.3
 ```
 
 ## 快速运行
@@ -17,7 +17,7 @@ moon add mik1e80/stlkit@0.1.2
 安装 [MoonBit 工具链](https://www.moonbitlang.com/download/)，获取源码后执行：
 
 ```sh
-git clone --branch v0.1.2 --depth 1 https://github.com/mik1e80/stlkit
+git clone --branch v0.1.3 --depth 1 https://github.com/mik1e80/stlkit
 cd stlkit
 moon update
 moon run cmd/main examples/cube.obj --strict
@@ -77,7 +77,11 @@ OBJ 的 `vn` 是逐顶点数据。本库只在一个三角形的三个顶点法�
 
 ## STL 与 PLY 输入契约
 
+PLY 第一行必须为 `ply`，第二行必须为唯一、完整的 `format <编码> 1.0` 声明；编码仅支持 `ascii`、`binary_little_endian`、`binary_big_endian`。缺失、重复、字段不全 / 多余、版本不为 `1.0`，或把声明放在注释 / element 后都会报错。合法注释应放在 format 之后。二进制正文必须精确消费所有已声明元素与属性，拒绝任意多余尾部字节（包括零填充、空格和换行）。`lenient_ascii=true` 不放宽 header 或二进制尾部规则。格式依据见 [Greg Turk 的原始 PLY 说明](https://gamma-web.iacs.umd.edu/POWERPLANT/papers/ply.pdf)，这些边界检查不表示完整规范认证。
+
 PLY 在读取正文前检查每个 `vertex` 元素：必须各声明一个标量 `x`、`y`、`z`，缺失、list 型坐标和重复坐标属性都会报错，不将缺失值补零。规则同样适用于 ASCII、大小端二进制及 `lenient_ascii=true`；坐标顺序可变，未知属性仍按声明消费。自建反例 [missing-z.ply](examples/missing-z.ply) 应明确报“vertex 缺少 z”，真实零坐标仍合法。
+
+自建反例 [missing-format.ply](examples/missing-format.ply) 虽有合法 ASCII 三角形正文，仍须明确拒绝，不能猜测为 ASCII。回归见 [PLY header 与尾部测试](ply_header_wbtest.mbt)。
 
 STL 输入边界：二进制文件必须恰好为 `84 + 50 × 头部三角形数` 字节，数量须大于 0，法线与顶点都须为有限数；截断和任意尾部多余字节均拒绝。`parse_stl_binary()`、`stream_stl_binary()` 与 `StlScanner` 使用同一规则，分块调用必须调用 `finish()` 才能确认输入完整。
 
