@@ -536,7 +536,7 @@ fn print_findings(review : @stlkit.PrintabilityReport, parts : Int) -> Unit {
   }
   if check.wrong_normal_count > 0 {
     println(
-      "  ⚠ 有 \{check.wrong_normal_count} 个面的声明法线与顶点顺序不一致",
+      "  ⚠ 有 \{check.wrong_normal_count} 个面的已保留声明面法线方向与三角形绕向相反（不代表完整法线校验）",
     )
   }
   if review.winding.flipped_faces > 0 {

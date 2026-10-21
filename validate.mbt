@@ -1,4 +1,4 @@
-// 网格校验：发现边界边、非流形边、退化面和声明法线异常。
+// 网格校验：发现边界边、非流形边、退化面和已保留声明面法线的反向。
 // 这些检查只覆盖部分几何问题，不能保证打印成功。
 //
 // 各项检查的原理都不复杂，难的是「两个顶点算不算同一个点」这个前置问题，
@@ -19,7 +19,8 @@ pub(all) struct ValidationReport {
   non_manifold_edge_count : Int
   /// 退化三角形（三个点共线，面积为零）的数量
   degenerate_count : Int
-  /// 法线朝向和文件里写的明显不符的三角形数量
+  /// 已保留声明面法线与几何法线点积 < 0 的数量；近零向量跳过。
+  /// 不检查单位长度、垂直性或精确一致性；0 不代表完整法线验证。
   wrong_normal_count : Int
   /// 不同边的条数（去重后）。和顶点数、三角形数一起能算出欧拉示性数
   unique_edge_count : Int
@@ -153,7 +154,7 @@ fn edge_key(a : Int, b : Int) -> (Int, Int) {
 }
 
 ///|
-/// 全面校验一个网格。
+/// 检查边计数、退化面和已保留声明面法线反向等有限项目。
 pub fn validate(mesh : Mesh, tolerance : Double) -> ValidationReport {
   let weld = weld_vertices(mesh, tolerance)
 
@@ -176,7 +177,8 @@ pub fn validate(mesh : Mesh, tolerance : Double) -> ValidationReport {
     }
 
     // 法线朝向：拿文件里写的法线和按顶点顺序算出来的比。
-    // 点乘为负说明方向相反（夹角超过 90 度），这个面在文件里是反的。
+    // 点积为负仅说明声明向量与几何法线夹角超过 90 度，不能据此断言顶点绕向错误。
+    // 不校验单位长度或垂直性；正交及同半球的其他向量不会计入。
     // 文件里法线填 0 0 0 的不算——那是「没填」，不是「填错了」。
     let declared = triangle.normal
     if !declared.is_zero(1.0e-9) {

@@ -128,7 +128,7 @@ fn parse_face(
     let (a, b, c) = face
     // 法线优先用文件里写的。一个平面的三个顶点法线一样时直接用
     // （3D 打印模型里绝大多数面都是平的），不一样就留零，
-    // 让校验环节去和按顶点顺序算出来的比。
+    // 零向量随后跳过声明面法线反向检查；不验证不同的平滑顶点法线。
     let normal = if same_vec(face_normals[a], face_normals[b]) &&
       same_vec(face_normals[b], face_normals[c]) {
       face_normals[a]

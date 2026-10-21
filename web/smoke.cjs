@@ -71,6 +71,9 @@ async function load(text) {
   const junk = Buffer.from('arbitrary non-mesh content').toString('base64');
   assert.equal(context.analyze(junk), '');
   assert.match(context.analyze_error(junk), /无法识别网格格式/);
+  await load(cube);
+  assert(descendants(document.getElementById("report")).some(e => e.textContent.includes("缺失或未保留项未检查")));
+  assert(!descendants(document.getElementById("report")).some(e => e.textContent === "法线朝向和顶点顺序一致"));
   const packedPly = fs.readFileSync(path.join(__dirname, '..', 'examples', 'ascii-packed.ply'), 'utf8');
   const extraPly = fs.readFileSync(path.join(__dirname, '..', 'examples', 'ascii-extra-values.ply'), 'utf8');
   assert.equal(report(packedPly)['三角形'], '2');
