@@ -189,3 +189,6 @@ ASCII STL / OBJ 的坐标和被读取的法线必须有限；二进制 STL 全�
 3MF 拒绝非有限变换、嵌套变换或坐标计算溢出，以及单位换算后的坐标溢出。当前不实现扩展语义：非空 requiredextensions 一律明确拒绝；可选扩展仍可忽略。因此成功读取核心三角网格不表示完整支持所有 3MF 扩展。
 
 `moon run cmd/main examples/nonfinite-rejected.obj --strict` 应拒绝输入并以 1 退出，不生成检查通过结论。内存构造的 3MF、二进制 STL 与分块反例见 input_boundary_wbtest.mbt。变更与兼容约定见 [CHANGELOG.md](CHANGELOG.md)。
+
+
+模型实测、失败反馈、外部来源与许可证、薄壁采样和 100k/500k/1m 大文件结果统一见 [COMPARISON.md](COMPARISON.md)。完整原始输出和命令可逐项复核；解析成功不等于网格或工艺通过。

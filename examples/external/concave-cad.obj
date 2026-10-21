@@ -1,0 +1,36 @@
+# CC0-1.0; Ghostkeeper/SlicerTestModels; see manifest.json.
+# Derived from OpenSCAD OFF: rejoined planar U caps; no coordinate changes.
+v 0 0 0
+v 0 40 5
+v 0 40 0
+v 0 0 5
+v 40 40 5
+v 35 35 5
+v 40 0 5
+v 5 35 5
+v 5 0 5
+v 35 0 5
+v 40 40 0
+v 40 0 0
+v 5 0 0
+v 5 35 0
+v 35 35 0
+v 35 0 0
+f 13 1 3 11 12 16 15 14
+f 7 5 2 4 9 8 6 10
+f 1 2 3
+f 2 1 4
+f 7 11 5
+f 11 7 12
+f 11 2 5
+f 2 11 3
+f 16 7 10
+f 7 16 12
+f 1 9 4
+f 9 1 13
+f 9 14 8
+f 14 9 13
+f 16 6 15
+f 6 16 10
+f 14 6 8
+f 6 14 15

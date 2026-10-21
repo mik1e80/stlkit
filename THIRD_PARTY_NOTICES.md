@@ -76,3 +76,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ## 浏览器分发补充
 
 网页包含 MoonBit core 编译代码；完整上游许可及附带声明保存在 web/licenses/moonbit-core.LICENSE 和 web/licenses/moonbit-core.NOTICE，构建时随站点复制，保留其中第三方来源及免责声明。网页界面和示例模型由本项目编写。
+
+
+## 模型实测语料补充（2026-10-21）
+
+`examples/corpus/` 的解析模型由本项目独立构造，采用 Apache-2.0，生成脚本为 `scripts/model-builders.cjs`。这不覆盖下面的第三方内容。
+
+`examples/external/` 收录 Ghostkeeper / SlicerTestModels contributors 的 CC0-1.0 CAD 源码、从这些源码导出的 STL / OBJ，以及 Cura 4.2 / 4.5 工程和分组 3MF。固定上游提交为 `e1bbc8eec047c2fb604b71f7e4793c3e0189fd6d`。完整 CC0 法律文本（含权利放弃、后备许可、限制和免责声明）随附于 [SlicerTestModels.CC0-1.0.txt](examples/external/licenses/SlicerTestModels.CC0-1.0.txt)，上游 README 许可说明也保留。导出及重组凹多边形面等改动逐文件注明，不把所有文件一概标成“原样收录”。
+
+`examples/external/kinect-scan.3mf` 来自 3MF Consortium，固定上游提交 `665e20dc4d7777fd4c9702bca86a2d4028440337`，原样收录，BSD-2-Clause，Copyright (c) 2018, 3MF Consortium。完整版权、两条条件及免责声明见 [3MFConsortium.BSD-2-Clause.txt](examples/external/licenses/3MFConsortium.BSD-2-Clause.txt)。独立转换的 PLY 仅提取几何并写入忽略目录 `_build/corpus/`，原 BSD 声明保留在 PLY header 和来源记录中。
+
+逐文件作者、来源 URL、许可证、SHA-256 和修改说明见 [manifest.json](examples/external/manifest.json)，实测及边界统一见 [COMPARISON.md](COMPARISON.md)。OpenSCAD 2021.01 仅作为本地 GPL-2.0 导出工具执行，不分发其程序或代码。未收录上游库中许可来源难以逐项核实的其他模型。

@@ -67,6 +67,16 @@ jobs:
           node scripts/review-cases.cjs
           git diff --exit-code -- examples/review
 
+      - name: 模型语料、许可证及真实 CLI 回归
+        run: |
+          python3 scripts/prepare-scan.py
+          node scripts/corpus-cases.cjs --check
+
+      - name: 100k 连通网格全量与分块一致性
+        env:
+          PYTHON: python3
+        run: node scripts/stress-cases.cjs --ci
+
       # 编译产物可能随平台或工具链版本变化，因此验证运行结果，不比较字节。
       # Pages 部署也会重新构建；本地直接打开网页使用仓库随附的产物。
       - name: 网页版能编译出来

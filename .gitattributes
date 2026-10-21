@@ -1,0 +1,5 @@
+# Preserve upstream model/source/license bytes used by the provenance manifest.
+examples/external/** -text -whitespace
+# Generated binary analytic fixtures are not text.
+examples/corpus/*.stl -text
+examples/corpus/*.3mf -text

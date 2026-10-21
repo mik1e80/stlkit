@@ -50,3 +50,6 @@ moon run cmd/main examples/box.3mf
 - `obj-stl-keywords.obj`：自建立方体，在注释与对象名称中出现 solid/facet/vertex；应显示 OBJ、12 个三角形、体积 1。
 
 二者可直接交给 CLI 或拖入网页；输入后缀不参与格式判断。
+
+
+模型实测、失败反馈、外部来源与许可证、薄壁采样和 100k/500k/1m 大文件结果统一见 [COMPARISON.md](../COMPARISON.md)。完整原始输出和命令可逐项复核；解析成功不等于网格或工艺通过。

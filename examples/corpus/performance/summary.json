@@ -1,0 +1,90 @@
+{
+  "platform": "win32",
+  "architecture": "x64",
+  "cpu": "AMD Ryzen 9 8945HX with Radeon Graphics        ",
+  "logical_cpus": 32,
+  "total_memory_bytes": 33342459904,
+  "moon": "moon 0.1.20260920 (914d7da 2026-09-20) ~\\.moon\\bin\\moon.exe\nmoonc v0.10.14+7d59c7ec9 (2026-09-18) ~\\.moon\\bin\\moonc.exe\nmoonrun 0.1.20260920 (914d7da 2026-09-20) ~\\.moon\\bin\\moonrun.exe\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+  "node": "v24.19.0",
+  "measurement": "One cold child process per run; 10 ms OS peak-memory polling; elapsed includes process startup, excludes generation/build. Local observation only, not a performance guarantee. bench runs chunked, full and whole-buffer paths sequentially, so its process peak is not full-parser-only memory.",
+  "models": [
+    {
+      "file": "_build/corpus/stress-100k.stl",
+      "triangles": 100000,
+      "expected_unique_vertices": 50000,
+      "expected_edge_records": 300000,
+      "bytes": 5000084,
+      "sha256": "ed05c15f1443620751e5679fc0467a2f80b0239d95144c652b726186e36a6e87",
+      "runs": [
+        {
+          "mode": "stream-only",
+          "command": "moon run --target native cmd/main _build/corpus/stress-100k.stl --stream-only",
+          "exit": 0,
+          "elapsed_ms": 180.9,
+          "observed_peak_rss_bytes": 23486464,
+          "memory_method": "OS high-water working set/RSS, sampled every 10 ms; observed lower bound"
+        },
+        {
+          "mode": "bench",
+          "command": "moon run --target native cmd/main _build/corpus/stress-100k.stl --bench",
+          "exit": 0,
+          "elapsed_ms": 1089,
+          "observed_peak_rss_bytes": 104448000,
+          "memory_method": "OS high-water working set/RSS, sampled every 10 ms; observed lower bound"
+        }
+      ]
+    },
+    {
+      "file": "_build/corpus/stress-500k.stl",
+      "triangles": 500000,
+      "expected_unique_vertices": 250000,
+      "expected_edge_records": 1500000,
+      "bytes": 25000084,
+      "sha256": "3fe798d9980b39eea00cc5af7b89b2da57a0edfb2ff4e59bf5178634498f5704",
+      "runs": [
+        {
+          "mode": "stream-only",
+          "command": "moon run --target native cmd/main _build/corpus/stress-500k.stl --stream-only",
+          "exit": 0,
+          "elapsed_ms": 934.1,
+          "observed_peak_rss_bytes": 78217216,
+          "memory_method": "OS high-water working set/RSS, sampled every 10 ms; observed lower bound"
+        },
+        {
+          "mode": "bench",
+          "command": "moon run --target native cmd/main _build/corpus/stress-500k.stl --bench",
+          "exit": 0,
+          "elapsed_ms": 5891.8,
+          "observed_peak_rss_bytes": 481046528,
+          "memory_method": "OS high-water working set/RSS, sampled every 10 ms; observed lower bound"
+        }
+      ]
+    },
+    {
+      "file": "_build/corpus/stress-1m.stl",
+      "triangles": 1000000,
+      "expected_unique_vertices": 500000,
+      "expected_edge_records": 3000000,
+      "bytes": 50000084,
+      "sha256": "2864703a89468c2aabc5e4bec04697c00ba22ade547cd20409532eea8a9b2934",
+      "runs": [
+        {
+          "mode": "stream-only",
+          "command": "moon run --target native cmd/main _build/corpus/stress-1m.stl --stream-only",
+          "exit": 0,
+          "elapsed_ms": 2108.9,
+          "observed_peak_rss_bytes": 146776064,
+          "memory_method": "OS high-water working set/RSS, sampled every 10 ms; observed lower bound"
+        },
+        {
+          "mode": "bench",
+          "command": "moon run --target native cmd/main _build/corpus/stress-1m.stl --bench",
+          "exit": 0,
+          "elapsed_ms": 12478.4,
+          "observed_peak_rss_bytes": 951046144,
+          "memory_method": "OS high-water working set/RSS, sampled every 10 ms; observed lower bound"
+        }
+      ]
+    }
+  ]
+}

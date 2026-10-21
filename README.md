@@ -182,3 +182,6 @@ node scripts/review-cases.cjs
 核心几何使用 MoonBit core；3MF 依赖 `hustcer/fzip`、`Milky2018/xml`，CLI 另用 `moonbitlang/x` 与 `moonbitlang/async`。库支持 wasm、wasm-gc、JS、native；CLI 文件读取支持 wasm、native。
 
 项目采用 [Apache-2.0](LICENSE)。17 个外部 3MF 样例来自 3MF Consortium，完整 BSD-2-Clause 条款及免责声明见 [第三方声明](THIRD_PARTY_NOTICES.md)。其余案例由项目自建；网页分发许可存于 `web/licenses/`。API 与模块组织参考 trimesh，不宣称厚度能力独有。
+
+
+模型实测、失败反馈、外部来源与许可证、薄壁采样和 100k/500k/1m 大文件结果统一见 [COMPARISON.md](COMPARISON.md)。完整原始输出和命令可逐项复核；解析成功不等于网格或工艺通过。

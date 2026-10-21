@@ -68,4 +68,4 @@ CLI 读取块为 256 KiB；调用方喂入更大的块时，扫描器也会暂�
 - 修复后重新检查；薄壁、网格自交、复杂洞和工艺条件不由自动补洞解决。
 - 本页、README、接口文档和 `docs/submission.md` 使用同一范围。申报时须替换旧附件，不能只更新 GitHub。
 
-所有新增模型由项目生成，采用 Apache-2.0；原有 17 个第三方 3MF 样例及完整 BSD-2-Clause 条款见 `THIRD_PARTY_NOTICES.md`。案例可复现不表示组委会已重新审核。
+本页 examples/review/ 案例模型由项目生成，采用 Apache-2.0；原有 17 个第三方 3MF 样例及完整 BSD-2-Clause 条款见 `THIRD_PARTY_NOTICES.md`。案例可复现不表示组委会已重新审核。

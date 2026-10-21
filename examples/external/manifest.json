@@ -1,0 +1,129 @@
+{
+  "retrieved": "2026-10-21",
+  "files": [
+    {
+      "file": "examples/external/source/spice_bracket.scad",
+      "sha256": "d20b6b8e60f2ec9ad55bd3ab134cbbc2d3b871782264d8a38c21b0b650341da5",
+      "author": "Ghostkeeper / SlicerTestModels contributors",
+      "license": "CC0-1.0",
+      "source": "https://raw.githubusercontent.com/Ghostkeeper/SlicerTestModels/e1bbc8eec047c2fb604b71f7e4793c3e0189fd6d/my/spice_bracket.scad",
+      "changes": "Unmodified source"
+    },
+    {
+      "file": "examples/external/source/gear.scad",
+      "sha256": "6afd7f7dddcddae244c24ee5d7ed4bee34e21ad12f0456c0ebf36def209730a3",
+      "author": "Ghostkeeper / SlicerTestModels contributors",
+      "license": "CC0-1.0",
+      "source": "https://raw.githubusercontent.com/Ghostkeeper/SlicerTestModels/e1bbc8eec047c2fb604b71f7e4793c3e0189fd6d/walls/gear.scad",
+      "changes": "Unmodified source"
+    },
+    {
+      "file": "examples/external/source/heart.scad",
+      "sha256": "465c0e04134c788c135a1a11f8eaa3cedede7907ee3af542aed00b984a943621",
+      "author": "Ghostkeeper / SlicerTestModels contributors",
+      "license": "CC0-1.0",
+      "source": "https://raw.githubusercontent.com/Ghostkeeper/SlicerTestModels/e1bbc8eec047c2fb604b71f7e4793c3e0189fd6d/my/heart.scad",
+      "changes": "Unmodified source"
+    },
+    {
+      "file": "examples/external/source/u.scad",
+      "sha256": "a530fe28f6b78884a962f872cec9b2f683ac8eb5f89605b1c3ddc48c40d3374d",
+      "author": "Ghostkeeper / SlicerTestModels contributors",
+      "license": "CC0-1.0",
+      "source": "https://raw.githubusercontent.com/Ghostkeeper/SlicerTestModels/e1bbc8eec047c2fb604b71f7e4793c3e0189fd6d/combing/u.scad",
+      "changes": "Unmodified source"
+    },
+    {
+      "file": "examples/external/licenses/SlicerTestModels.CC0-1.0.txt",
+      "sha256": "eef4fa86739682461fc1c29747121932ed18a07fa4ae2cc2a5f2260f85d3ff35",
+      "author": "Ghostkeeper / SlicerTestModels contributors",
+      "license": "CC0-1.0",
+      "source": "https://raw.githubusercontent.com/Ghostkeeper/SlicerTestModels/e1bbc8eec047c2fb604b71f7e4793c3e0189fd6d/LICENSE.md",
+      "changes": "Unmodified full legal text"
+    },
+    {
+      "file": "examples/external/source/SlicerTestModels.README.md",
+      "sha256": "a9bf58e50ff11026c746ad04caba35059ffea9aea2cfbe6b6c4e9c670488127e",
+      "author": "Ghostkeeper / SlicerTestModels contributors",
+      "license": "CC0-1.0",
+      "source": "https://raw.githubusercontent.com/Ghostkeeper/SlicerTestModels/e1bbc8eec047c2fb604b71f7e4793c3e0189fd6d/README.md",
+      "changes": "Unmodified upstream provenance and license statement"
+    },
+    {
+      "file": "examples/external/rotated-group.3mf",
+      "sha256": "efe78d9ee699c58d18c48b9d4904afb83f280287d89f2c73ca7c859788874ea9",
+      "author": "Ghostkeeper / SlicerTestModels contributors",
+      "license": "CC0-1.0",
+      "source": "https://raw.githubusercontent.com/Ghostkeeper/SlicerTestModels/e1bbc8eec047c2fb604b71f7e4793c3e0189fd6d/3mf/cura_exports/rotated_group.3mf",
+      "changes": "Unmodified Cura export; geometry only is tested"
+    },
+    {
+      "file": "examples/external/cura-4.5-project.3mf",
+      "sha256": "fbc3538003ba871b9995b92b8f8dcf7aeca623cfc8294c8b913dcf13a05b91cf",
+      "author": "Ghostkeeper / SlicerTestModels contributors",
+      "license": "CC0-1.0",
+      "source": "https://raw.githubusercontent.com/Ghostkeeper/SlicerTestModels/e1bbc8eec047c2fb604b71f7e4793c3e0189fd6d/cura_projects/4.5_um3_cube.3mf",
+      "changes": "Unmodified Cura 4.5 project; settings are not interpreted"
+    },
+    {
+      "file": "examples/external/kinect-scan.3mf",
+      "sha256": "5b729c0dd8848902bafc5717bdc73b3d94479a96b21ac56e46628b89956f1118",
+      "author": "3MF Consortium",
+      "license": "BSD-2-Clause",
+      "source": "https://raw.githubusercontent.com/3MFConsortium/3mf-samples/665e20dc4d7777fd4c9702bca86a2d4028440337/examples/material/kinect_scan.3mf",
+      "changes": "Unmodified source; contains material data not retained in Mesh"
+    },
+    {
+      "file": "examples/external/licenses/3MFConsortium.BSD-2-Clause.txt",
+      "sha256": "83b517301f26401f0b8cff0dcdc1b03aaa109252b91029e6a2f4c99e2d34f862",
+      "author": "Copyright (c) 2018, 3MF Consortium",
+      "license": "BSD-2-Clause",
+      "source": "https://raw.githubusercontent.com/3MFConsortium/3mf-samples/665e20dc4d7777fd4c9702bca86a2d4028440337/LICENSE",
+      "changes": "Unmodified full copyright, conditions and disclaimer"
+    },
+    {
+      "file": "examples/external/bracket.stl",
+      "sha256": "daab5c97babc8cca68a3be9b0fe4e0ca536e56f300c159531101da6d1460b7e3",
+      "author": "Ghostkeeper / SlicerTestModels contributors",
+      "license": "CC0-1.0",
+      "source": "examples/external/source/spice_bracket.scad",
+      "changes": "OpenSCAD 2021.01 ASCII STL export, then binary STL float32 coordinate rounding and recomputed face normals; no mesh repair; source rebuild can change triangulation/order, this SHA pins the tested artifact",
+      "reproduce": "OPENSCAD=<path> node scripts/prepare-external.cjs"
+    },
+    {
+      "file": "examples/external/gear.stl",
+      "sha256": "dc98979dfc65e4a9083642dcbdf6c3c90a65233713c026df0afc016bb3f6fb66",
+      "author": "Ghostkeeper / SlicerTestModels contributors",
+      "license": "CC0-1.0",
+      "source": "examples/external/source/gear.scad",
+      "changes": "OpenSCAD 2021.01 ASCII STL export, then binary STL float32 coordinate rounding and recomputed face normals; no mesh repair; source rebuild can change triangulation/order, this SHA pins the tested artifact",
+      "reproduce": "OPENSCAD=<path> node scripts/prepare-external.cjs"
+    },
+    {
+      "file": "examples/external/heart.stl",
+      "sha256": "3022cb03f9ecf4ac7df18628df9c2961e30c7352fbb8e67a9b152378aec7bc00",
+      "author": "Ghostkeeper / SlicerTestModels contributors",
+      "license": "CC0-1.0",
+      "source": "examples/external/source/heart.scad",
+      "changes": "OpenSCAD 2021.01 ASCII STL export, then binary STL float32 coordinate rounding and recomputed face normals; no mesh repair; front_text and back_text set to empty, no font geometry; source rebuild can change triangulation/order, this SHA pins the tested artifact",
+      "reproduce": "OPENSCAD=<path> node scripts/prepare-external.cjs"
+    },
+    {
+      "file": "examples/external/concave-cad.obj",
+      "sha256": "1379f68e2d4e99115975895642bf74383a38c4c35072983f285256589856c26f",
+      "author": "Ghostkeeper / SlicerTestModels contributors",
+      "license": "CC0-1.0",
+      "source": "examples/external/source/u.scad",
+      "changes": "OpenSCAD 2021.01 OFF export; rejoined coplanar U caps into two concave 8-gons; coordinates unchanged",
+      "reproduce": "OPENSCAD=<path> node scripts/prepare-external.cjs"
+    },
+    {
+      "file": "examples/external/cura-4.2-project.3mf",
+      "sha256": "245dfb05ea9c05c79132e8956c867db8d431d342a57a4c379a0e0ba4cc2d88d1",
+      "author": "Ghostkeeper / SlicerTestModels contributors",
+      "license": "CC0-1.0",
+      "source": "https://raw.githubusercontent.com/Ghostkeeper/SlicerTestModels/e1bbc8eec047c2fb604b71f7e4793c3e0189fd6d/cura_projects/4.2_one_at_a_time.3mf",
+      "changes": "Unmodified Cura 4.2 multi-object project; settings are not interpreted"
+    }
+  ]
+}
