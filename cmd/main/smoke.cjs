@@ -121,3 +121,34 @@ assert.match(thinReport, /重心\s+0\.5, 0\.5, 0\.05 mm/);
 assert.match(thinReport, /主惯量\s+\d/);
 assert.doesNotMatch(thinReport, /主惯量\s+未评估/);
 console.log('质量属性 CLI 回归通过：合法数值、闭合退化面、开放、绕向、修复及薄壁。');
+
+// 同一份坏 STL 经过普通报告、整块统计及真正分块 IO，均须失败。
+const binaryCube = fs.readFileSync(path.join(root, 'examples/review/cubes-1.stl'));
+assert.equal(binaryCube.length, 84 + binaryCube.readUInt32LE(80) * 50);
+run(['examples/review/cubes-1.stl', '--stream-only'], 0);
+const badBinary = [
+  ...[1, 49, 50, 51].map(n => Buffer.concat([binaryCube, Buffer.alloc(n)])),
+  binaryCube.subarray(0, binaryCube.length - 1),
+  binaryCube.subarray(0, 83),
+];
+const nonfiniteNormal = Buffer.from(binaryCube);
+nonfiniteNormal.writeFloatLE(Infinity, 84);
+badBinary.push(nonfiniteNormal);
+for (const [i, bytes] of badBinary.entries()) {
+  const input = path.join(dir, `bad-binary-${i}.stl`);
+  fs.writeFileSync(input, bytes);
+  for (const options of [[], ['--stream-only'], ['--bench']]) run([input, ...options], 1);
+}
+const asciiCube = fs.readFileSync(path.join(root, 'examples/cube.stl'), 'utf8');
+const badAscii = [
+  asciiCube + '\nfacet normal 0 0 1\nouter loop\nvertex 0 0 0\nendloop\nendfacet\n',
+  asciiCube + '\nfacet normal 0 0 NaN\n',
+  asciiCube + '\nfacet normal 0 0 1\n',
+  asciiCube + '\ntrailing garbage\n',
+];
+for (const [i, text] of badAscii.entries()) {
+  const input = path.join(dir, `bad-ascii-${i}.stl`);
+  fs.writeFileSync(input, text);
+  for (const options of [[], ['--bench']]) run([input, ...options], 1);
+}
+console.log('STL 输入契约 CLI 回归通过：尾部、截断、非有限法线及坏 ASCII 面。');

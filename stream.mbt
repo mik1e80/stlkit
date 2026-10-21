@@ -47,23 +47,9 @@ pub fn StreamReport::is_watertight(self : StreamReport) -> Bool {
 /// 二进制格式天生适合流式：每个三角形固定 50 字节，顺序读就行，
 /// 不需要回头。ASCII 格式要逐行扫，见 `stream_stl_ascii`。
 pub fn stream_stl_binary(data : Bytes) -> Result[StreamReport, String] {
-  if data.length() < 84 {
-    return Err(
-      "二进制 STL 至少要 84 字节（80 字节文件头 + 4 字节三角形数），" +
-      "这个文件只有 \{data.length()} 字节",
-    )
-  }
-  let count_u = read_u32_le(data, 80)
-  let expected = 84UL + count_u.to_uint64() * 50UL
-  if expected > data.length().to_uint64() {
-    return Err(
-      "二进制 STL 头部声称有 \{count_u} 个三角形（需要 \{expected} 字节），" +
-      "但文件只有 \{data.length()} 字节，文件被截断了",
-    )
-  }
-  let count = count_u.reinterpret_as_int()
-  if count == 0 {
-    return Err("这个二进制 STL 里一个三角形都没有")
+  let count = match stl_binary_count(data) {
+    Ok(count) => count
+    Err(message) => return Err(message)
   }
 
   // 累加器。这些都不需要保留中间结果，扫到哪算到哪
@@ -81,13 +67,13 @@ pub fn stream_stl_binary(data : Bytes) -> Result[StreamReport, String] {
 
   for i = 0; i < count; i = i + 1 {
     let base = 84 + i * 50
-    // 法线那 12 字节直接跳过 —— 统计用不上，我们自己算
+    if stl_binary_record_error(data, base, i) is Some(message) {
+      return Err(message)
+    }
+    // 法线虽不参与统计，仍与全量路径校验同一输入契约。
     let a = read_vec3_f32(data, base + 12)
     let b = read_vec3_f32(data, base + 24)
     let c = read_vec3_f32(data, base + 36)
-    if !finite_vertex(a) || !finite_vertex(b) || !finite_vertex(c) {
-      return Err("二进制 STL 第 \{i + 1} 个三角形包含非有限坐标")
-    }
 
     // 体积：三角形与原点构成的四面体的有符号体积，累加
     volume = volume + a.dot(b.cross(c)) / 6.0
@@ -241,82 +227,37 @@ pub fn stream_stl_ascii(text : String) -> Result[StreamReport, String] {
   let weld : Map[PositionKey, Int] = Map([])
   let edges : Array[UInt64] = []
   let mut unique_vertices = 0
-  let mut triangles = 0
-  let mut raw_vertices = 0
-
-  // 当前面攒到的三个顶点
-  let mut va = Vec3::zero()
-  let mut vb = Vec3::zero()
-  let mut vc = Vec3::zero()
-  let mut have = 0
-  let mut line_no = 0
-
-  for raw_line in text.split("\n") {
-    line_no = line_no + 1
-    let tokens : Array[StringView] = []
-    for raw_token in raw_line.split(" ") {
-      let token = strip_cr(raw_token)
-      if token.length() > 0 {
-        tokens.push(token)
+  let triangles = match
+    walk_stl_ascii(text, t => {
+      let (va, vb, vc) = (t.a, t.b, t.c)
+      volume = volume + va.dot(vb.cross(vc)) / 6.0
+      area = area + vb.sub(va).cross(vc.sub(va)).length() / 2.0
+      for v in [va, vb, vc] {
+        let (lo, hi) = expand_bbox(min, max, v)
+        min = lo
+        max = hi
       }
-    }
-    match tokens {
-      ["vertex", x, y, z] => {
-        let v = match parse_vec3(x, y, z, line_no) {
-          Ok(v) => v
-          Err(msg) => return Err(msg)
-        }
-        if have == 0 {
-          va = v
-        } else if have == 1 {
-          vb = v
-        } else if have == 2 {
-          vc = v
-        }
-        have = have + 1
-        raw_vertices = raw_vertices + 1
+      let ia = weld_vertex(weld, va)
+      let ib = weld_vertex(weld, vb)
+      let ic = weld_vertex(weld, vc)
+      unique_vertices = weld.length()
+      if ia != ib {
+        edges.push(pack_edge(ia, ib))
       }
-      ["endfacet", ..] => {
-        if have == 3 {
-          triangles = triangles + 1
-          volume = volume + va.dot(vb.cross(vc)) / 6.0
-          area = area + vb.sub(va).cross(vc.sub(va)).length() / 2.0
-          for v in [va, vb, vc] {
-            let (lo, hi) = expand_bbox(min, max, v)
-            min = lo
-            max = hi
-          }
-          let ia = weld_vertex(weld, va)
-          let ib = weld_vertex(weld, vb)
-          let ic = weld_vertex(weld, vc)
-          if weld.length() > unique_vertices {
-            unique_vertices = weld.length()
-          }
-          if ia != ib {
-            edges.push(pack_edge(ia, ib))
-          }
-          if ib != ic {
-            edges.push(pack_edge(ib, ic))
-          }
-          if ic != ia {
-            edges.push(pack_edge(ic, ia))
-          }
-        }
-        have = 0
+      if ib != ic {
+        edges.push(pack_edge(ib, ic))
       }
-      _ => ()
-    }
-  }
-
-  if triangles == 0 {
-    return Err(
-      "这个 ASCII STL 里一个三角形都没有，可能不是 STL 文件",
-    )
+      if ic != ia {
+        edges.push(pack_edge(ic, ia))
+      }
+    }) {
+    Ok(count) => count
+    Err(message) => return Err(message)
   }
   let (boundary, non_manifold) = count_edges(edges)
   Ok(StreamReport::{
     triangle_count: triangles,
-    raw_vertex_count: raw_vertices,
+    raw_vertex_count: triangles * 3,
     unique_vertex_count: unique_vertices,
     boundary_edge_count: boundary,
     non_manifold_edge_count: non_manifold,
@@ -442,12 +383,29 @@ fn StlScanner::drain(self : StlScanner) -> Unit {
     }
     // 三角形数量在偏移 80 处，小端
     let head = Bytes::from_array(self.tail[:STL_HEADER_SIZE])
-    self.declared = read_u32_le(head, 80).reinterpret_as_int()
+    let count = read_u32_le(head, 80)
+    if count > 2147483647U {
+      self.failure = Some(
+        "二进制 STL 三角形数量超出当前实现支持范围",
+      )
+      return
+    }
+    self.declared = count.reinterpret_as_int()
     self.started = true
     pos = STL_HEADER_SIZE
   }
-  // 再逐个处理完整的记录
-  while self.tail.length() - pos >= STL_RECORD_SIZE {
+  // 不把尾部垃圾当成三角形；完整字节数最终仍须严格核对。
+  let expected = 84UL + self.declared.to_uint64() * 50UL
+  if self.consumed > expected {
+    self.failure = stl_binary_length_error(
+      self.declared.reinterpret_as_uint(),
+      self.consumed,
+    )
+    self.tail.clear()
+    return
+  }
+  // 再逐个处理声明范围内的完整记录。
+  while self.done < self.declared && self.tail.length() - pos >= STL_RECORD_SIZE {
     let rec = Bytes::from_array(self.tail[pos:pos + STL_RECORD_SIZE])
     self.absorb(rec)
     self.done = self.done + 1
@@ -474,16 +432,14 @@ fn StlScanner::absorb(self : StlScanner, rec : Bytes) -> Unit {
   if self.failure is Some(_) {
     return
   }
-  // 前 12 字节是法线，跳过——统计用不上
+  if stl_binary_record_error(rec, 0, self.done) is Some(message) {
+    self.failure = Some(message)
+    return
+  }
+  // 法线不参与统计，但必须通过有限数校验。
   let a = read_vec3_f32(rec, 12)
   let b = read_vec3_f32(rec, 24)
   let c = read_vec3_f32(rec, 36)
-  if !finite_vertex(a) || !finite_vertex(b) || !finite_vertex(c) {
-    self.failure = Some(
-      "二进制 STL 第 \{self.done + 1} 个三角形包含非有限坐标",
-    )
-    return
-  }
 
   self.volume = self.volume + a.dot(b.cross(c)) / 6.0
   self.area = self.area + b.sub(a).cross(c.sub(a)).length() / 2.0
@@ -512,18 +468,13 @@ pub fn StlScanner::finish(self : StlScanner) -> Result[StreamReport, String] {
   if self.failure is Some(message) {
     return Err(message)
   }
-  if !self.started {
-    return Err(
-      "文件太短，连 84 字节的文件头都没读全（只读到 \{self.consumed} 字节）",
-    )
+  let count = if self.started {
+    self.declared.reinterpret_as_uint()
+  } else {
+    0U
   }
-  if self.done != self.declared {
-    return Err(
-      "文件被截断了：头部声称有 \{self.declared} 个三角形，实际只读到 \{self.done} 个",
-    )
-  }
-  if self.done == 0 {
-    return Err("这个二进制 STL 里一个三角形都没有")
+  if stl_binary_length_error(count, self.consumed) is Some(message) {
+    return Err(message)
   }
   let (boundary, non_manifold) = count_edges(self.edges)
   Ok(StreamReport::{

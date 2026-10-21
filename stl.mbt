@@ -136,98 +136,28 @@ fn strip_cr(s : StringView) -> StringView {
 }
 
 ///|
-/// 解析 ASCII STL。
-///
-/// 逐行扫，认三种关键字：
-///   `facet normal x y z`  开一个新面，记下法线
-///   `vertex x y z`        往当前面里加一个顶点
-///   `endfacet`            当前面结束，凑够三个顶点就收一个三角形
-///
-/// 其余的行（`solid`、`outer`、`loop`、`endloop`、`endsolid`）直接跳过——
-/// 它们不影响几何信息。
+/// 解析 ASCII STL；与流式入口共用逐面状态机。
+/// solid / endsolid 包装可省略；每个 facet 必须有完整 loop 和恰好三个有限顶点。
 pub fn parse_stl_ascii(text : String) -> Result[Mesh, String] {
   let triangles : Array[Triangle] = []
-  let mut normal = Vec3::zero()
-  let pending : Array[Vec3] = []
-  let mut line_no = 0
-
-  for raw_line in text.split("\n") {
-    line_no = line_no + 1
-    // 按空格切，顺便滤掉空串（行首缩进、连续空格都会产生空 token）
-    let tokens : Array[StringView] = []
-    for raw_token in raw_line.split(" ") {
-      let token = strip_cr(raw_token)
-      if token.length() > 0 {
-        tokens.push(token)
-      }
-    }
-    match tokens {
-      ["facet", "normal", x, y, z] =>
-        match parse_vec3(x, y, z, line_no) {
-          Ok(v) => {
-            normal = v
-            pending.clear()
-          }
-          Err(msg) => return Err(msg)
-        }
-      ["vertex", x, y, z] =>
-        match parse_vec3(x, y, z, line_no) {
-          Ok(v) => pending.push(v)
-          Err(msg) => return Err(msg)
-        }
-      ["endfacet", ..] =>
-        if pending.length() == 3 {
-          triangles.push({
-            normal,
-            a: pending[0],
-            b: pending[1],
-            c: pending[2],
-          })
-          pending.clear()
-        } else {
-          return Err(
-            "第 \{line_no} 行：一个面结束了，但里面只有 \{pending.length()} 个顶点，应该是 3 个",
-          )
-        }
-      _ => ()
-    }
+  match walk_stl_ascii(text, triangle => triangles.push(triangle)) {
+    Ok(_) => Ok(Mesh::new(triangles))
+    Err(message) => Err(message)
   }
-
-  if triangles.length() == 0 {
-    return Err(
-      "这个 ASCII STL 里一个三角形都没有，可能不是 STL 文件",
-    )
-  }
-  Ok(Mesh::new(triangles))
 }
 
 ///|
 /// 解析二进制 STL。
 pub fn parse_stl_binary(data : Bytes) -> Result[Mesh, String] {
-  if data.length() < 84 {
-    return Err(
-      "二进制 STL 至少要 84 字节（80 字节文件头 + 4 字节三角形数），" +
-      "这个文件只有 \{data.length()} 字节",
-    )
+  let count = match stl_binary_count(data) {
+    Ok(count) => count
+    Err(message) => return Err(message)
   }
-  let count_u = read_u32_le(data, 80)
-  let expected = 84UL + count_u.to_uint64() * 50UL
-  if expected > data.length().to_uint64() {
-    return Err(
-      "二进制 STL 头部声称有 \{count_u} 个三角形（需要 \{expected} 字节），" +
-      "但文件只有 \{data.length()} 字节，文件被截断了",
-    )
-  }
-  let count = count_u.reinterpret_as_int()
   let triangles : Array[Triangle] = []
   for i = 0; i < count; i = i + 1 {
     let base = 84 + i * 50
-    for offset in [0, 12, 24, 36] {
-      if !finite_vertex(read_vec3_f32(data, base + offset)) {
-        return Err(
-          "二进制 STL 第 \{i + 1} 个三角形的坐标或法线不是有限数字",
-        )
-      }
+    if stl_binary_record_error(data, base, i) is Some(message) {
+      return Err(message)
     }
     triangles.push({
       normal: read_vec3_f32(data, base),

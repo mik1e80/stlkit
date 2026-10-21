@@ -71,6 +71,26 @@ async function load(text) {
   const junk = Buffer.from('arbitrary non-mesh content').toString('base64');
   assert.equal(context.analyze(junk), '');
   assert.match(context.analyze_error(junk), /无法识别网格格式/);
+  const binaryCube = fs.readFileSync(path.join(__dirname, '../examples/review/cubes-1.stl'));
+  assert.notEqual(context.analyze(binaryCube.toString('base64')), '');
+  const nonfiniteNormal = Buffer.from(binaryCube);
+  nonfiniteNormal.writeFloatLE(Infinity, 84);
+  const asciiCube = fs.readFileSync(path.join(__dirname, '../examples/cube.stl'), 'utf8');
+  const badStl = [
+    ...[1, 49, 50, 51].map(n => Buffer.concat([binaryCube, Buffer.alloc(n)])),
+    binaryCube.subarray(0, binaryCube.length - 1),
+    binaryCube.subarray(0, 83),
+    nonfiniteNormal,
+    Buffer.from(asciiCube + '\nfacet normal 0 0 1\nouter loop\nvertex 0 0 0\nendloop\nendfacet\n'),
+    Buffer.from(asciiCube + '\nfacet normal 0 0 NaN\n'),
+    Buffer.from(asciiCube + '\nfacet normal 0 0 1\n'),
+    Buffer.from(asciiCube + '\ntrailing garbage\n'),
+  ];
+  for (const bytes of badStl) {
+    const input = bytes.toString('base64');
+    assert.equal(context.analyze(input), '');
+    assert.notEqual(context.analyze_error(input), '');
+  }
   await load(cube);
   assert(descendants(document.getElementById("report")).some(e => e.textContent.includes("缺失或未保留项未检查")));
   assert(!descendants(document.getElementById("report")).some(e => e.textContent === "法线朝向和顶点顺序一致"));

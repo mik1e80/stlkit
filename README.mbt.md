@@ -105,6 +105,14 @@ trimesh 的 `trimesh.proximity.thickness()` 同样提供厚度查询。本项目
 - `ray_triangle()`：底层返回 `origin + dir*t` 中的参数 `t`，不归一化方向。
 - `nearest_point()`：表面最近点及无符号距离。
 
+## STL 输入契约
+
+STL 输入契约：`parse_stl_binary()`、`stream_stl_binary()` 和 `StlScanner::finish()` 均要求严格匹配 `84 + 50 × count` 字节，三角形数大于 0，声明法线与顶点有限。任何额外尾字节、截断或非有限字段均失败；仅完成 `feed()` 不表示文件有效。数量字段以无符号数读取，不允许有符号截断变成负数。
+
+`parse_stl_ascii()` 与 `stream_stl_ascii()` 共用逐面状态机，要求 `facet normal`、`outer loop`、三个 `vertex`、`endloop`、`endfacet` 的完整顺序。空行、ASCII 空白和 CRLF 可读，solid 包装可省略；未知记录、坏数字、错误顶点数、嵌套或未结束的面会报错。几何退化仍由验证层处理。`detect_format()` 是内容提示，二进制长度匹配只是结构证据；自动入口还须解析成功。
+
+兼容性：此前被部分入口忽略的尾部垃圾、坏面和非有限声明法线现在统一拒绝；没有增加宽松模式。`stream_stl_ascii()` 仍接收完整文本，真正分块文件入口目前仅支持二进制 STL。
+
 ## 射线命中距离
 
 `Mesh::ray_cast(origin, dir)` 在内部归一化有限的非零方向，返回最近命中的 `RayHit`。`distance` 是起点到命中点的欧氏距离，单位与网格坐标相同；`point` 是命中坐标。将方向乘以正数不会改变射线及其距离，负倍数则改变射线朝向。例如，从单位立方体下方 (0.25, 0.5, -1) 沿 (0, 0, 2) 发射，最近命中 z=0，距离为 1，而不是参数值 0.5。
