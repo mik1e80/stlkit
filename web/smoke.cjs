@@ -76,6 +76,28 @@ async function load(text) {
   assert(!descendants(document.getElementById("report")).some(e => e.textContent === "法线朝向和顶点顺序一致"));
   const packedPly = fs.readFileSync(path.join(__dirname, '..', 'examples', 'ascii-packed.ply'), 'utf8');
   const extraPly = fs.readFileSync(path.join(__dirname, '..', 'examples', 'ascii-extra-values.ply'), 'utf8');
+  const degenerate = fs.readFileSync(path.join(__dirname, '..', 'examples', 'degenerate-closed.obj'), 'utf8');
+  const flipped = cube.replace(/^f (.+)$/m, (_, indices) =>
+    'f ' + indices.trim().split(/\s+/).reverse().join(' '));
+  assert.equal(report(cube)['重心'], '0.5, 0.5, 0.5');
+  assert.equal(report(cube)['主惯量'], '0.167 / 0.167 / 0.167');
+  assert.match(report(cube)['质量属性'], /已评估/);
+  assert.equal(report(degenerate)['水密'], 'true');
+  assert.equal(report(degenerate)['体积朝向已复核'], 'true');
+  assert.equal(report(degenerate)['退化面'], '1');
+  for (const text of [degenerate, packedPly, flipped, inward, mixed]) {
+    const result = report(text);
+    assert.equal(result['质量属性'], '未评估');
+    assert.equal(result['重心'], undefined);
+    assert.equal(result['主惯量'], undefined);
+    assert.match(result['质量属性前提'], /无退化面.*绕向一致.*分量朝向可靠/);
+  }
+  await load(degenerate);
+  const massSkipped = descendants(document.getElementById('report'));
+  assert.equal(massSkipped.filter(e => e.textContent === '未评估').length, 2);
+  assert(massSkipped.some(e => e.textContent.includes('无退化面')));
+  assert.equal(report(thin)['重心'], '0.5, 0.5, 0.05');
+  assert.notEqual(report(thin)['主惯量'], undefined);
   assert.equal(report(packedPly)['三角形'], '2');
   assert.equal(report(packedPly)['表面积'], '1');
   assert.equal(report(packedPly)['需复核'], 'true');
@@ -97,6 +119,7 @@ async function load(text) {
   assert(descendants(document.getElementById("report")).some(e => e.textContent.includes("负体积方向")));
   context.runFix();
   assert(descendants(document.getElementById("report")).some(e => e.className === "verdict verdict-ok"));
+  assert(!descendants(document.getElementById('report')).some(e => e.textContent === '未评估'));
   assert.equal(report(thin)["薄壁"], "1");
   assert.equal(report(thin, 0.05)["需复核"], "false");
   assert.equal(report(thin, 0)["薄壁"], "0");

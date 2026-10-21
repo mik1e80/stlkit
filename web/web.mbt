@@ -118,14 +118,23 @@ fn analyze_inner(
   lines.push("表面积|\{round3(mesh.surface_area())}")
   // 几块互不相连的几何。大于 1 说明打出来是几个独立的零件
   lines.push("零件|\{@stlkit.count_parts_default(mesh)}")
-  // 欧拉示性数和质量属性都只在网格闭合时才有意义，不水密就不报
+  // 欧拉数的原有显示条件；质量属性另用共享的完整前提检查。
   if check.is_watertight() && review.winding.orientation_reliable() {
     lines.push("欧拉数|\{check.euler_number()}")
+  }
+  if review.mass_properties_available() {
+    lines.push("质量属性|已评估（满足当前检查前提）")
     let c = mesh.center_mass()
     lines.push("重心|\{round3(c.x)}, \{round3(c.y)}, \{round3(c.z)}")
     let pm = mesh.principal_moments()
     lines.push(
       "主惯量|\{round3(pm[0])} / \{round3(pm[1])} / \{round3(pm[2])}",
+    )
+  } else {
+    // 不在数值字段中混入状态文本，调用方可继续按数值字段是否存在判断。
+    lines.push("质量属性|未评估")
+    lines.push(
+      "质量属性前提|需非空、闭合、无退化面、绕向一致且分量朝向可靠（无潜在嵌套或重叠）",
     )
   }
   match review.thickness {

@@ -99,7 +99,8 @@ trimesh 的 `trimesh.proximity.thickness()` 同样提供厚度查询。本项目
 - `symmetric_eigenvalues(m)` 保留并复用上述分解。`symmetric_eigenvector(m, lambda)` 选择最接近 lambda 的单个基向量；同一重根反复查询返回同一选择，要取得完整基应使用分解接口。
 - `count_parts_default(mesh)`：按共享边连通数零件，只有点接触不算连通。
 - `ValidationReport::euler_number()`：χ = V − E + F。对闭合可定向曲面，χ = 2k − 2Σg；不能脱离这些前提解释“洞”的数量。
-- `center_mass()`、`moment_inertia()`、`principal_moments()`：密度取 1，需结合闭合性和朝向解释。
+- `center_mass()`、`moment_inertia()`、`principal_moments()`：密度取 1，底层函数不自动验证网格，保留整体反向模型的计算行为；调用方负责几何前提。
+- `PrintabilityReport::mass_properties_available()`：CLI / 网页共用的质量属性输出条件，报告必须来自同一网格。要求非空、边计数闭合、无退化面、绕向一致、无需局部翻面，且分量均为正体积、无潜在嵌套 / 重叠标记。失败时入口显示“未评估”；网页协议新增“质量属性”“质量属性前提”，异常时继续省略“重心”“主惯量”数值字段。薄壁与参考阈值不单独阻断质量属性；此方法不验证自交、全部非流形顶点或数值精度。
 - `ray_cast()`：内部归一化方向，`RayHit.distance` 为最近命中的欧氏距离；零 / 非有限方向返回 `None`。
 - `ray_triangle()`：底层返回 `origin + dir*t` 中的参数 `t`，不归一化方向。
 - `nearest_point()`：表面最近点及无符号距离。

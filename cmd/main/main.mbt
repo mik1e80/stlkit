@@ -457,8 +457,9 @@ fn report(
     println(
       "  欧拉数    \{check.euler_number()}（单个闭合可定向曲面：χ = 2 − 2g）",
     )
-    // 质量属性也只在网格闭合时才有意义——重心靠有符号一阶矩算出来，
-    // 有破洞就抵消不干净
+  }
+  // 质量属性使用库中统一的前提检查；边计数闭合并不足够。
+  if review.mass_properties_available() {
     let c = mesh.center_mass()
     println("  重心      \{fmt(c.x, 3)}, \{fmt(c.y, 3)}, \{fmt(c.z, 3)} mm")
     let pm = mesh.principal_moments()
@@ -466,6 +467,12 @@ fn report(
     // 1/6 ≈ 0.167，只留 1 位就变成「0.2」，对着公式验的人会被误导
     println(
       "  主惯量    \{fmt(pm[0], 3)} / \{fmt(pm[1], 3)} / \{fmt(pm[2], 3)}（密度取 1）",
+    )
+  } else {
+    println("  重心      未评估")
+    println("  主惯量    未评估")
+    println(
+      "  质量属性前提  需非空、闭合、无退化面、绕向一致且分量朝向可靠（无潜在嵌套或重叠）",
     )
   }
   match review.thickness {

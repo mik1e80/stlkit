@@ -44,6 +44,20 @@ pub fn PrintabilityReport::inward(self : PrintabilityReport) -> Bool {
 }
 
 ///|
+/// CLI / 网页输出质量属性的几何前提，与参考壁厚阈值无关。
+/// 不验证自相交、全部非流形顶点或浮点计算精度；报告须对应同一网格。
+pub fn PrintabilityReport::mass_properties_available(
+  self : PrintabilityReport,
+) -> Bool {
+  self.validation.triangle_count > 0 &&
+  self.validation.is_watertight() &&
+  self.validation.degenerate_count == 0 &&
+  self.winding.consistent &&
+  self.winding.flipped_faces == 0 &&
+  self.winding.orientation_reliable()
+}
+
+///|
 pub fn PrintabilityReport::thin_wall(self : PrintabilityReport) -> Bool {
   match self.thickness {
     Some(r) =>

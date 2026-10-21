@@ -91,3 +91,33 @@ const junkPath = path.join(dir, 'unknown.obj');
 fs.writeFileSync(junkPath, 'arbitrary non-mesh content');
 run([junkPath], 1, /无法识别网格格式/);
 console.log('格式识别 CLI 回归通过：长头 STL、OBJ 注释、错误后缀、未知输入。');
+
+// 质量属性门槛与是否薄壁分开；失败时不能悄悄省略，也不能输出数值。
+function assessed(output) {
+  assert.match(output, /重心\s+0\.5, 0\.5, 0\.5 mm/);
+  assert.match(output, /主惯量\s+0\.167 \/ 0\.167 \/ 0\.167/);
+  assert.doesNotMatch(output, /重心\s+未评估|主惯量\s+未评估/);
+}
+function unassessed(output) {
+  assert.match(output, /重心\s+未评估/);
+  assert.match(output, /主惯量\s+未评估/);
+  assert.match(output, /质量属性前提.*无退化面.*绕向一致.*分量朝向可靠/);
+  assert.doesNotMatch(output, /重心\s+-?\d|主惯量\s+-?\d/);
+}
+assessed(run(['examples/cube.obj', '--strict'], 0));
+assessed(run([fixedPath, '--strict'], 0));
+for (const output of [
+  run(['examples/degenerate-closed.obj', '--strict'], 1),
+  run([inwardPath, '--strict'], 1),
+  mixedReport,
+  packedPly,
+]) unassessed(output);
+const flippedPath = path.join(dir, 'flipped-face.obj');
+fs.writeFileSync(flippedPath, cube.replace(/^f (.+)$/m, (_, indices) =>
+  'f ' + indices.trim().split(/\s+/).reverse().join(' ')));
+unassessed(run([flippedPath, '--strict'], 1));
+const thinReport = run([thinPath, '--strict'], 1);
+assert.match(thinReport, /重心\s+0\.5, 0\.5, 0\.05 mm/);
+assert.match(thinReport, /主惯量\s+\d/);
+assert.doesNotMatch(thinReport, /主惯量\s+未评估/);
+console.log('质量属性 CLI 回归通过：合法数值、闭合退化面、开放、绕向、修复及薄壁。');

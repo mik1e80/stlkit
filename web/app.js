@@ -135,8 +135,7 @@ function renderReport(fields) {
   statRow(geo, "表面积", fields["表面积"] || "-", "mm²");
   // 几块互不相连的几何。不是「错误」，是得知道的信息
   statRow(geo, "零件", fields["零件"] || "1", "个");
-  // 欧拉示性数和质量属性只在网格闭合时才有意义，
-  // 所以后端不水密时这几项根本不发
+  // 质量属性由后端的统一检查决定；缺少前提时明确显示状态。
   if (fields["欧拉数"] !== undefined) {
     statRow(geo, "欧拉数", fields["欧拉数"], "");
   }
@@ -145,6 +144,11 @@ function renderReport(fields) {
   }
   if (fields["主惯量"] !== undefined) {
     statRow(geo, "主惯量", fields["主惯量"], "");
+  }
+  if (fields["质量属性"] === "未评估") {
+    statRow(geo, "重心", "未评估", "");
+    statRow(geo, "主惯量", "未评估", "");
+    statRow(geo, "质量属性前提", fields["质量属性前提"], "");
   }
   if (fields["采样最小厚度"] !== undefined) {
     statRow(geo, "采样最小厚度", fields["采样最小厚度"], "mm");

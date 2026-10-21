@@ -138,6 +138,7 @@ pub(all) struct PrintabilityReport {
 }
 pub fn PrintabilityReport::inward(Self) -> Bool
 pub fn PrintabilityReport::inward_component_count(Self) -> Int
+pub fn PrintabilityReport::mass_properties_available(Self) -> Bool
 pub fn PrintabilityReport::needs_review(Self) -> Bool
 pub fn PrintabilityReport::thickness_unavailable(Self) -> Bool
 pub fn PrintabilityReport::thin_wall(Self) -> Bool
