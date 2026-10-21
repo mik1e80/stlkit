@@ -106,6 +106,7 @@ pub fn Mesh::volume(Self) -> Double
 pub(all) enum MeshFormat {
   Ascii
   Binary
+  Obj
   ThreeMF
   Ply
   Unknown

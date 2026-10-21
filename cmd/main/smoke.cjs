@@ -72,3 +72,22 @@ assert.match(packedPly, /三角形\s+2 个/);
 assert.match(packedPly, /表面积\s+1 mm²/);
 run(['examples/ascii-packed.ply', '--strict'], 1, /边界边/);
 run(['examples/ascii-extra-values.ply'], 1, /未声明的多余数据/);
+
+// Content detection, including misleading extensions and long headers.
+const longStl = fs.readFileSync(path.join(root, 'examples/long-header.stl'), 'utf8');
+const keywordsObj = fs.readFileSync(path.join(root, 'examples/obj-stl-keywords.obj'), 'utf8');
+const wrongObjPath = path.join(dir, 'really-stl.obj');
+const wrongStlPath = path.join(dir, 'really-obj.stl');
+fs.writeFileSync(wrongObjPath, longStl); fs.writeFileSync(wrongStlPath, keywordsObj);
+for (const file of ['examples/long-header.stl', wrongObjPath]) {
+  const output = run([file, '--strict'], 0, /格式\s+ASCII STL/);
+  assert.match(output, /三角形\s+12 个/);
+}
+for (const file of ['examples/obj-stl-keywords.obj', wrongStlPath]) {
+  const output = run([file, '--strict'], 0, /格式\s+OBJ/);
+  assert.match(output, /三角形\s+12 个/);
+}
+const junkPath = path.join(dir, 'unknown.obj');
+fs.writeFileSync(junkPath, 'arbitrary non-mesh content');
+run([junkPath], 1, /无法识别网格格式/);
+console.log('格式识别 CLI 回归通过：长头 STL、OBJ 注释、错误后缀、未知输入。');

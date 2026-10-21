@@ -60,6 +60,17 @@ async function load(text) {
     bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) });
 }
 (async () => {
+  const longStl = fs.readFileSync(path.join(__dirname, '../examples/long-header.stl'), 'utf8');
+  const keywordsObj = fs.readFileSync(path.join(__dirname, '../examples/obj-stl-keywords.obj'), 'utf8');
+  assert.equal(report(longStl)['格式'], 'ASCII STL');
+  assert.equal(report(longStl)['三角形'], '12');
+  assert.equal(report(keywordsObj)['格式'], 'OBJ');
+  assert.equal(report(keywordsObj)['三角形'], '12');
+  await load(longStl); // handleFile deliberately supplies the misleading name test.obj.
+  assert(descendants(document.getElementById('report')).some(e => e.textContent.includes('ASCII STL')));
+  const junk = Buffer.from('arbitrary non-mesh content').toString('base64');
+  assert.equal(context.analyze(junk), '');
+  assert.match(context.analyze_error(junk), /无法识别网格格式/);
   const packedPly = fs.readFileSync(path.join(__dirname, '..', 'examples', 'ascii-packed.ply'), 'utf8');
   const extraPly = fs.readFileSync(path.join(__dirname, '..', 'examples', 'ascii-extra-values.ply'), 'utf8');
   assert.equal(report(packedPly)['三角形'], '2');

@@ -36,6 +36,16 @@ moon run cmd/main examples/torus.obj --svg torus.svg
 
 不支持完整 3MF 扩展语义；非空 `requiredextensions` 明确拒绝，可选扩展可忽略。STL / OBJ 的非有限坐标及被读取法线、3MF 非有限变换与变换后的坐标溢出会报错。二进制流式统计跳过声明法线，不代替全量法线校验。
 
+### 格式探测与解析
+
+`detect_format(data)` 返回 `Ascii`（ASCII STL）、`Binary`（二进制 STL）、`Obj`、`ThreeMF`、`Ply` 或 `Unknown`。它依据内容提供解析路由提示，不使用文件后缀，也不证明文件有效或完整符合规范。
+
+探测先检查 ZIP/3MF 候选与 PLY 文件头，再检查二进制 STL 的计数和精确文件长度。其余文本逐行查找行首几何记录：STL 的 `facet/vertex/endfacet` 或 OBJ 的 `v/vn/f`；仅有 `solid/endsolid` 时作为 ASCII STL 候选。注释和对象名称中嵌入这些单词不会被当成几何记录。文本扫描直到找到提示或到达末尾，最坏为 O(n)，不以 512 字节作为识别上限。
+
+`parse_mesh()` 将已识别格式送到对应解析器；`Unknown` 文本依次尝试 ASCII STL 和 OBJ，均失败时返回“无法识别网格格式”并附两者原因。已识别格式的解析错误直接保留，不因文件损坏而换一种格式蒙混通过。`Unknown` 不再是 OBJ 的别名；`parse_stl()` 明确拒绝 OBJ、PLY 和 3MF。
+
+可复现：`examples/long-header.stl` 的 solid 名称长 2048 个字符，首个 facet 位于 512 字节之后；`examples/obj-stl-keywords.obj` 的注释和对象名称包含 STL 关键字。两者均应按实际内容显示正确格式、读取 12 个三角形；库、CLI、网页都有回归检查。
+
 ### ASCII PLY 的读取规则
 
 默认 `parse_ply(data)` 按 header 声明的元素、记录数量、属性及列表长度顺序连续读取正文 token；支持多条记录同一行、记录跨行，以及空格、制表符、CR / LF 等 ASCII 空白。未知元素和属性按声明消费后丢弃，不跳过未声明的行尾内容；正文不足或消费完声明后仍有非空白数据会报错。面先于顶点声明时，等顶点表读完再验证索引和三角化。

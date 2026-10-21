@@ -400,9 +400,9 @@ fn report(
     @stlkit.Ascii => "ASCII STL"
     @stlkit.ThreeMF => "3MF"
     @stlkit.Ply => "PLY"
-    // STL 的两个分支都不认，那就当 OBJ 试。用内容判断而不是看扩展名——
-    // 从别处拷来的文件经常带着错的扩展名。
-    @stlkit.Unknown => "OBJ"
+    // 内容提示与解析有效性分开；未知文本不再标为 OBJ。
+    @stlkit.Obj => "OBJ"
+    @stlkit.Unknown => "未知格式"
   }
   let mesh = match @stlkit.parse_mesh(data) {
     Ok(mesh) => mesh

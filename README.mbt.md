@@ -30,6 +30,16 @@ ASCII PLY 默认严格按声明消费正文：记录可跨行或共用一行，�
 
 `parse_ply(data, lenient_ascii=true)` 显式启用异常 ASCII 文件的逐行兼容：一行一条记录，丢弃该行未声明的余项，行内缺少声明值时报错，不跨行补齐。这会有意丢弃数据，调用方应先确认布局；不能用于多条记录共用一行。该选项对二进制输入无影响。`parse_mesh()`、CLI、网页保持默认模式，不做失败后自动回退。普通 `parse_ply(data)` 调用方式保留；依赖旧版隐式忽略行尾数据的调用方需修正文件声明或显式启用兼容模式。
 
+### 格式探测与解析
+
+`detect_format(data)` 返回 `Ascii`（ASCII STL）、`Binary`（二进制 STL）、`Obj`、`ThreeMF`、`Ply` 或 `Unknown`。它依据内容提供解析路由提示，不使用文件后缀，也不证明文件有效或完整符合规范。
+
+探测先检查 ZIP/3MF 候选与 PLY 文件头，再检查二进制 STL 的计数和精确文件长度。其余文本逐行查找行首几何记录：STL 的 `facet/vertex/endfacet` 或 OBJ 的 `v/vn/f`；仅有 `solid/endsolid` 时作为 ASCII STL 候选。注释和对象名称中嵌入这些单词不会被当成几何记录。文本扫描直到找到提示或到达末尾，最坏为 O(n)，不以 512 字节作为识别上限。
+
+`parse_mesh()` 将已识别格式送到对应解析器；`Unknown` 文本依次尝试 ASCII STL 和 OBJ，均失败时返回“无法识别网格格式”并附两者原因。已识别格式的解析错误直接保留，不因文件损坏而换一种格式蒙混通过。`Unknown` 不再是 OBJ 的别名；`parse_stl()` 明确拒绝 OBJ、PLY 和 3MF。
+
+可复现：`examples/long-header.stl` 的 solid 名称长 2048 个字符，首个 facet 位于 512 字节之后；`examples/obj-stl-keywords.obj` 的注释和对象名称包含 STL 关键字。两者均应按实际内容显示正确格式、读取 12 个三角形；库、CLI、网页都有回归检查。
+
 ## 校验与打印前复核
 
 `validate_default(mesh)` 返回三角形数、去重顶点数、边界边、非流形边、退化面、错误声明法线与边计数。退化检查包含顶点合并和三点共线两种情况。

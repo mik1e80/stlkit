@@ -12,120 +12,112 @@
 // 属性那 2 字节没有标准含义，多数导出器填 0，直接丢掉。
 
 ///|
-/// 从 STL 数据解析出网格，自动判断是 ASCII 还是二进制。
-///
-/// 判断方法：先按二进制试——第 80 字节处读出的三角形数量如果能让总长度
-/// 刚好对上（84 + 数量 × 50），那就是二进制。对不上再按文本解析。
-///
-/// 为什么不用「开头是不是 solid」判断？因为二进制 STL 的 80 字节文件头
-/// 是随便写的，很多导出器就塞一句 "solid ..."，靠这个判断会误判。
-/// 反过来，长度校验几乎不会误判。
+/// 自动读取 STL；格式探测只是路由提示，几何仍由解析器验证。
 pub fn parse_stl(data : Bytes) -> Result[Mesh, String] {
   match detect_format(data) {
     Binary => parse_stl_binary(data)
-    Ascii =>
-      // 用 @utf8.decode_lossy 正经解码。两个坑：
-      //
-      // 1. 不能用 Bytes::to_unchecked_string——那个是把字节直接当成 MoonBit
-      //    字符串的内部表示（UTF-16）来重新解释，拿它解 UTF-8 会得到一堆
-      //    乱码（512 字节会变成 256 个乱字符）。
-      // 2. 用 lossy 而不是 decode：文件损坏时坏字节会被换成 U+FFFD，
-      //    继续往下走，最后由坐标解析报出「不是一个合法的数字」，
-      //    比在这里抛一个编码错误更有指向性。
-      parse_stl_ascii(@utf8.decode_lossy(data))
+    Ascii | Unknown =>
+      match parse_stl_ascii(@utf8.decode_lossy(data)) {
+        Ok(mesh) => Ok(mesh)
+        Err(message) => Err("认不出或无法解析 STL：\{message}")
+      }
+    Obj =>
+      Err(
+        "这是一个 OBJ 文件，不是 STL——请用 parse_mesh 或 parse_obj",
+      )
     ThreeMF =>
       Err(
-        "这是一个 3MF 文件（ZIP 包），不是 STL——请用 parse_mesh 或 parse_3mf",
+        "这是一个 3MF 文件，不是 STL——请用 parse_mesh 或 parse_3mf",
       )
     Ply =>
       Err(
         "这是一个 PLY 文件，不是 STL——请用 parse_mesh 或 parse_ply",
       )
-    Unknown =>
-      Err(
-        "认不出这是 ASCII 还是二进制 STL：文件 \{data.length()} 字节，" +
-        "既不是合法的二进制 STL（长度对不上三角形数量），开头也不像文本",
-      )
   }
 }
 
 ///|
-/// 按内容自动判断格式并解析。STL、OBJ、3MF 都能读。
-///
-/// 判断靠内容不靠扩展名——从别处拷来的文件经常带着错的扩展名，
-/// 而且二进制 STL 根本没有可靠的文本特征。
-///
-/// 顺序是：3MF（ZIP 魔数）→ STL 的两种形态（靠长度校验和关键字）→
-/// 都不认再当 OBJ 试。
+/// 按内容提示选择 STL / OBJ / 3MF / PLY 解析器，不使用文件扩展名。
+/// 无提示的文本依次尝试 ASCII STL 和 OBJ，均失败时返回组合诊断。
 pub fn parse_mesh(data : Bytes) -> Result[Mesh, String] {
   match detect_format(data) {
     ThreeMF => parse_3mf(data)
     Ply => parse_ply(data)
-    Unknown => parse_obj(@utf8.decode_lossy(data))
-    _ => parse_stl(data)
+    Binary => parse_stl_binary(data)
+    Ascii => parse_stl_ascii(@utf8.decode_lossy(data))
+    Obj => parse_obj(@utf8.decode_lossy(data))
+    Unknown => {
+      let text = @utf8.decode_lossy(data)
+      match parse_stl_ascii(text) {
+        Ok(mesh) => Ok(mesh)
+        Err(stl_error) =>
+          match parse_obj(text) {
+            Ok(mesh) => Ok(mesh)
+            Err(obj_error) =>
+              Err(
+                "无法识别网格格式；ASCII STL：\{stl_error}；OBJ：\{obj_error}",
+              )
+          }
+      }
+    }
   }
 }
 
 ///|
-/// 支持的格式。
-///
-/// `Unknown` 不是「认不出来」，而是「不是 STL，去试试 OBJ」——
-/// 调用方看到它应该走 OBJ 那条路，见 `parse_mesh`。
+/// 格式探测结果；不是文件有效性或完整格式兼容性的证明。
 pub(all) enum MeshFormat {
   Ascii
   Binary
-  /// 3MF：ZIP 包 + XML，现代切片软件用的格式
+  Obj
   ThreeMF
-  /// PLY：三维扫描仪常用的格式
   Ply
+  /// 未发现支持格式的提示；不再表示 OBJ。
   Unknown
 }
 
 ///|
-/// 判断数据是哪种格式。
-///
-/// 顺序有讲究：**带魔数的排前面，靠长度算术的排后面**。
-/// 二进制 STL 的判据是「文件长度正好等于 84 + 数量 × 50」，
-/// 一个随便什么文件撞上这个式子的概率大约是 1/50——所以不能在它前面
-/// 留一个「可能会被误判成二进制 STL」的岔路。3MF 和 PLY 都只看开头
-/// 几个固定字节，几乎不会误判，放前面最稳。
+/// 先识别 ZIP/3MF 和 PLY，再检查二进制 STL 长度。
+/// 其余文本按行首记录探测，直到找到几何记录或读完，不设 512 字节上限。
+/// 关键字在注释、对象名称或 solid 名称中出现时不作为几何记录。
 pub fn detect_format(data : Bytes) -> MeshFormat {
-  // 3MF 是个 ZIP 包，按魔数认。放在最前面判断是最省的——
-  // 只看 4 个字节，而下面的二进制 STL 判断要读长度做算术
   if is_3mf(data) {
     return ThreeMF
   }
-  // PLY 的第一行必须是 `ply`
   if is_ply(data) {
     return Ply
   }
-  // 二进制：长度必须正好是 84 + 数量 × 50
   if data.length() >= 84 {
     let count = read_u32_le(data, 80)
-    // 用 64 位算，避免 count 很大时 32 位溢出反而「碰巧对上」
     let expected = 84UL + count.to_uint64() * 50UL
     if expected == data.length().to_uint64() {
       return Binary
     }
   }
-  // ASCII：开头有 solid、里面有 facet 关键字。
-  //
-  // 直接在字节上找，不解码成字符串——关键字都是 ASCII，按字节比就够了。
-  // 而且这样不怕把开头切在多字节字符中间（中文字节被截断会让解码失败）。
-  // 只看开头 512 字节就够：关键字必然在最前面，没必要为了判断把几十 MB
-  // 的整个扫一遍。
-  let head_len = if data.length() < 512 { data.length() } else { 512 }
-  let has_solid = bytes_contain_ascii(data, head_len, "solid")
-  let has_facet = bytes_contain_ascii(data, head_len, "facet")
-  let has_vertex = bytes_contain_ascii(data, head_len, "vertex")
-  if has_solid && (has_facet || has_vertex) {
-    return Ascii
+  let text = @utf8.decode_lossy(data)
+  let mut stl_header = false
+  for line in text.split("\n") {
+    let mut start = 0
+    while start < line.length() &&
+          is_ascii_space(line.code_unit_at(start).to_int()) {
+      start = start + 1
+    }
+    let mut end = start
+    while end < line.length() &&
+          !is_ascii_space(line.code_unit_at(end).to_int()) {
+      end = end + 1
+    }
+    match line[start:end] {
+      "facet" | "vertex" | "endfacet" => return Ascii
+      "v" | "vn" | "f" => return Obj
+      "solid" | "endsolid" => stl_header = true
+      _ => ()
+    }
   }
-  // 有的 ASCII STL 开头不写 solid，那就只看有没有 facet/vertex 关键字
-  if has_facet && has_vertex {
-    return Ascii
+  if stl_header {
+    Ascii
+  } else {
+    Unknown
   }
-  Unknown
 }
 
 ///|
@@ -141,36 +133,6 @@ fn strip_cr(s : StringView) -> StringView {
   } else {
     s
   }
-}
-
-///|
-/// 在前 `limit` 个字节里找 ASCII 子串。
-///
-/// 整个文件扫一遍是 O(n×m)，但这些关键字都很短、limit 也小，
-/// 真正调用时只在前 512 字节里找，开销可以忽略。
-fn bytes_contain_ascii(data : Bytes, limit : Int, needle : String) -> Bool {
-  let target = @utf8.encode(needle)
-  let n = target.length()
-  if n == 0 {
-    return true
-  }
-  let end = if limit < data.length() { limit } else { data.length() }
-  if end < n {
-    return false
-  }
-  for start = 0; start <= end - n; start = start + 1 {
-    let mut matched = true
-    for j = 0; j < n; j = j + 1 {
-      if data[start + j] != target[j] {
-        matched = false
-        break
-      }
-    }
-    if matched {
-      return true
-    }
-  }
-  false
 }
 
 ///|
