@@ -9,7 +9,7 @@
 ///|
 /// 一次射线命中。
 pub(all) struct RayHit {
-  /// 从射线起点沿方向走了多远
+  /// 从射线起点到命中点的欧氏距离，单位与网格坐标相同。
   distance : Double
   /// 打中的是第几个三角形
   triangle : Int
@@ -18,10 +18,12 @@ pub(all) struct RayHit {
 }
 
 ///|
-/// 一条射线打在一个三角形上，返回距离（`None` = 没打中）。
+/// 一条射线打在一个三角形上，返回参数 t（`None` = 没打中）。
+/// 命中点为 origin + dir*t；仅当 dir 为单位向量时，t 才等于欧氏距离。
+/// 此底层入口不归一化方向；需要几何距离时使用 Mesh::ray_cast。
 ///
 /// Möller–Trumbore：把命中点表示成 `a + u·(b−a) + v·(c−a)`，
-/// 直接解出 u、v 和距离 t。三个约束各自能提前退出，不用算完整。
+/// 直接解出 u、v 和射线参数 t。三个约束各自能提前退出，不用算完整。
 ///
 /// 只有 `t > 0` 才算命中——反方向的交点是「背后的东西」，不算。
 pub fn ray_triangle(
@@ -63,35 +65,42 @@ pub fn ray_triangle(
 
 ///|
 /// 射线穿过整个网格，返回**最近**的一次命中。
+/// 内部归一化有限非零方向，distance 不受方向向量长度影响。
+/// 零方向、非有限起点或方向返回 None；方向的正倍数表示同一条射线。
 pub fn Mesh::ray_cast(self : Mesh, origin : Vec3, dir : Vec3) -> RayHit? {
+  if !finite_vertex(origin) || !finite_vertex(dir) {
+    return None
+  }
+  // Scale first: directly squaring a very large/small finite direction can
+  // overflow/underflow even though its orientation is representable.
+  let scale = dir.x.abs().max(dir.y.abs()).max(dir.z.abs())
+  if scale == 0.0 {
+    return None
+  }
+  let dir = Vec3::new(dir.x / scale, dir.y / scale, dir.z / scale).normalize()
   let mut best : RayHit? = None
   for i, t in self.triangles {
     match ray_triangle(origin, dir, t.a, t.b, t.c) {
-      Some(d) =>
-        match best {
-          Some(h) =>
-            if d < h.distance {
-              best = Some({
-                distance: d,
-                triangle: i,
-                point: Vec3::new(
-                  origin.x + dir.x * d,
-                  origin.y + dir.y * d,
-                  origin.z + dir.z * d,
-                ),
-              })
-            }
-          None =>
-            best = Some({
-              distance: d,
-              triangle: i,
-              point: Vec3::new(
-                origin.x + dir.x * d,
-                origin.y + dir.y * d,
-                origin.z + dir.z * d,
-              ),
-            })
+      Some(d) => {
+        if not_finite(d) {
+          continue
         }
+        let point = Vec3::new(
+          origin.x + dir.x * d,
+          origin.y + dir.y * d,
+          origin.z + dir.z * d,
+        )
+        if !finite_vertex(point) {
+          continue
+        }
+        let closer = match best {
+          Some(h) => d < h.distance
+          None => true
+        }
+        if closer {
+          best = Some({ distance: d, triangle: i, point, })
+        }
+      }
       None => ()
     }
   }

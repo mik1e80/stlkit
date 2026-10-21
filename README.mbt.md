@@ -100,7 +100,19 @@ trimesh 的 `trimesh.proximity.thickness()` 同样提供厚度查询。本项目
 - `count_parts_default(mesh)`：按共享边连通数零件，只有点接触不算连通。
 - `ValidationReport::euler_number()`：χ = V − E + F。对闭合可定向曲面，χ = 2k − 2Σg；不能脱离这些前提解释“洞”的数量。
 - `center_mass()`、`moment_inertia()`、`principal_moments()`：密度取 1，需结合闭合性和朝向解释。
-- `ray_cast()`、`nearest_point()`：射线求交与表面最近点。
+- `ray_cast()`：内部归一化方向，`RayHit.distance` 为最近命中的欧氏距离；零 / 非有限方向返回 `None`。
+- `ray_triangle()`：底层返回 `origin + dir*t` 中的参数 `t`，不归一化方向。
+- `nearest_point()`：表面最近点及无符号距离。
+
+## 射线命中距离
+
+`Mesh::ray_cast(origin, dir)` 在内部归一化有限的非零方向，返回最近命中的 `RayHit`。`distance` 是起点到命中点的欧氏距离，单位与网格坐标相同；`point` 是命中坐标。将方向乘以正数不会改变射线及其距离，负倍数则改变射线朝向。例如，从单位立方体下方 (0.25, 0.5, -1) 沿 (0, 0, 2) 发射，最近命中 z=0，距离为 1，而不是参数值 0.5。
+
+零方向、非有限起点或方向返回 `None`；无命中时同样返回 `None`，该返回类型不区分这些原因。归一化先按方向的最大绝对分量缩放，避免直接平方极大 / 极小方向造成溢出或下溢。求交仍使用 Double 和原有平行 / 自交阈值，不是任意几何尺度下的精确计算保证。
+
+底层 `ray_triangle(origin, dir, a, b, c)` 保持返回射线参数 `t`：命中点为 `origin + dir*t`。它不归一化方向；只有单位方向下参数才等于欧氏距离。不要把这个底层返回值与 `RayHit.distance` 混淆。
+
+此次修复不改变函数签名。依赖旧版非单位方向下参数值的 `ray_cast()` 调用方应改用正确的几何距离；需要命中点时直接读取 `hit.point`，不要将距离再次乘以原始非单位方向。轴向、斜向、极大 / 极小正比例方向及无效输入回归见 `ray_direction_wbtest.mbt`。
 
 ## 修复
 
