@@ -1,8 +1,7 @@
 // PLY 解析。
 //
 // PLY（Polygon File Format，也叫 Stanford Triangle Format）是**三维扫描仪**
-// 最常用的输出格式。这一点对 stlkit 特别有意义：扫描件动辄几百 MB，
-// 正好是流式扫描要解决的那种文件。
+// 常见输出格式。本库对 PLY 全量读取；分块扫描入口只针对二进制 STL。
 //
 // 格式结构很简单，一个纯文本头 + 一段数据：
 //
@@ -216,7 +215,7 @@ fn parse_header(text : String) -> Result[PlyHeader, String] {
       )
     }
     match tokens {
-      ["end_header", ..] => done = true
+      ["end_header"] => done = true
       ["format", kind, version] => {
         if format_seen {
           return Err("PLY header 重复声明 format")
@@ -263,6 +262,9 @@ fn parse_header(text : String) -> Result[PlyHeader, String] {
           Some(e) => e
           None => return Err("PLY 的 property 出现在 element 之前")
         }
+        if ply_integer_range(count_ty) is None {
+          return Err("PLY list 的计数类型必须是整数类型")
+        }
         if ply_type_size(count_ty) is None {
           return Err("PLY 里有个不认识的类型「\{count_ty}」")
         }
@@ -283,12 +285,15 @@ fn parse_header(text : String) -> Result[PlyHeader, String] {
         }
         e.props.push(Scalar(name.to_owned(), ty.to_owned()))
       }
-      // ply / comment / obj_info 以及不认识的行，跳过就行
-      _ => ()
+      ["comment", ..] | ["obj_info", ..] | [] => ()
+      _ => return Err("PLY header 存在未知或不完整声明：\{raw}")
     }
   }
   if !format_seen {
     return Err("PLY header 缺少 format 声明")
+  }
+  if !done {
+    return Err("PLY header 缺少 end_header")
   }
   match cur {
     Some(e) => elements.push(e)
@@ -304,13 +309,7 @@ fn parse_header(text : String) -> Result[PlyHeader, String] {
 ///|
 /// 解析一个元素的数量。PLY 头里写的是十进制整数。
 fn parse_count(s : StringView) -> Result[Int, String] {
-  let value = @string.parse_double(s) catch {
-    _ => return Err("PLY 头里的数量「\{s}」不是个数字")
-  }
-  if value.is_nan() || value.is_inf() || value < 0.0 || value != value.round() {
-    return Err("PLY 头里的数量「\{s}」不是个非负整数")
-  }
-  Ok(value.to_int())
+  profile_decimal_int(s, 0)
 }
 
 ///|
@@ -490,9 +489,22 @@ fn PlyCursor::next_double(
     }
     let tok = self.lines[self.li][self.ci]
     self.ci = self.ci + 1
-    Ok(@string.parse_double(tok)) catch {
-      _ => Err("PLY 的数据里『\{tok}』不是一个数字")
+    let value = @string.parse_double(tok) catch {
+      _ => return Err("PLY 的数据里『\{tok}』不是一个数字")
     }
+    match ply_integer_range(ty[:]) {
+      Some((lo, hi)) =>
+        if !profile_integer_token(tok) ||
+          not_finite(value) ||
+          value < lo ||
+          value > hi {
+          return Err(
+            "PLY 整数属性超出声明类型 \{ty} 的词法或数值范围：\{tok}",
+          )
+        }
+      None => ()
+    }
+    Ok(value)
   }
 }
 
@@ -517,6 +529,11 @@ fn PlyCursor::next_int(self : PlyCursor, ty : String) -> Result[Int, String] {
   }
   if value.is_nan() || value.is_inf() || value != value.round() {
     return Err("PLY 的数据里有个不是整数的编号：\{value}")
+  }
+  if value < -2147483648.0 || value > 2147483647.0 {
+    return Err(
+      "PLY 索引或列表长度超出当前实现的 32 位有符号范围",
+    )
   }
   Ok(value.to_int())
 }
@@ -673,6 +690,11 @@ fn read_body(cursor : PlyCursor, header : PlyHeader) -> Result[Mesh, String] {
               return Err("PLY 的列表长度是个负数：\{n}")
             }
             if is_face && (name == "vertex_indices" || name == "vertex_index") {
+              if ply_integer_range(item_ty[:]) is None {
+                return Err(
+                  "PLY face 顶点索引的列表项必须声明为整数类型",
+                )
+              }
               for _k = 0; _k < n; _k = _k + 1 {
                 let idx = match cursor.next_int(item_ty) {
                   Ok(v) => v
@@ -745,7 +767,7 @@ fn read_body(cursor : PlyCursor, header : PlyHeader) -> Result[Mesh, String] {
 ///
 /// PLY 的面天生是多边形（列表长度可变），所以这里和 OBJ 一样要三角化，
 /// 共用 OBJ 的凸多边形扇形切分和凹多边形耳切，保留原顶点下标。
-/// 少于三个点的面直接丢掉——它不是个面。
+/// 少于三个点的面明确拒绝，不静默丢弃。
 ///
 /// 编号是**从 0 开始**的（这和 OBJ 不一样，OBJ 从 1 开始）——
 /// 按 OBJ 的习惯写就会整体错一位，得到一个完全错误的网格。
@@ -758,7 +780,7 @@ fn append_polygon(
   triangles : Array[(Int, Int, Int)],
 ) -> Result[Unit, String] {
   if corners.length() < 3 {
-    return Ok(())
+    return Err("PLY face 至少需要三个顶点，不能静默丢弃")
   }
   let n = vertices.length()
   for k in corners {

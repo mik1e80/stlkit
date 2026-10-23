@@ -81,7 +81,9 @@ test "立方体是水密的" {
 
 ///|
 test "带纹理坐标的面" {
-  let mesh = parse_or_fail("v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1/1 2/2 3/3\n")
+  let mesh = parse_or_fail(
+    "v 0 0 0\nv 1 0 0\nv 0 1 0\nvt 0 0\nvt 1 0\nvt 0 1\nf 1/1 2/2 3/3\n",
+  )
   assert_eq(mesh.triangle_count(), 1)
 }
 
@@ -98,7 +100,7 @@ test "带法线的面" {
 ///|
 test "带纹理和法线的面" {
   let mesh = parse_or_fail(
-    "v 0 0 0\nv 1 0 0\nv 0 1 0\nvn 0 0 1\nf 1/1/1 2/2/1 3/3/1\n",
+    "v 0 0 0\nv 1 0 0\nv 0 1 0\nvn 0 0 1\nvt 0 0\nvt 1 0\nvt 0 1\nf 1/1/1 2/2/1 3/3/1\n",
   )
   assert_eq(mesh.triangle_count(), 1)
   assert_true(close(mesh.triangles[0].normal.z, 1.0))

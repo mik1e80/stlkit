@@ -54,16 +54,17 @@ fn mf_bytes_with_rels(model_xml : String, rels : String) -> Bytes {
 /// STL 要把每个三角形的三个顶点各写一遍，36 条记录。
 fn cube_vertices_xml() -> String {
   let mut s = ""
-  for v in [
-    (0, 0, 0),
-    (1, 0, 0),
-    (1, 1, 0),
-    (0, 1, 0),
-    (0, 0, 1),
-    (1, 0, 1),
-    (1, 1, 1),
-    (0, 1, 1),
-  ] {
+  for
+    v in [
+      (0, 0, 0),
+      (1, 0, 0),
+      (1, 1, 0),
+      (0, 1, 0),
+      (0, 0, 1),
+      (1, 0, 1),
+      (1, 1, 1),
+      (0, 1, 1),
+    ] {
     let (x, y, z) = v
     s = s + "<vertex x=\"\{x}\" y=\"\{y}\" z=\"\{z}\"/>"
   }
@@ -74,20 +75,21 @@ fn cube_vertices_xml() -> String {
 /// 单位立方体的 12 个三角形，存的是顶点表下标。
 fn cube_triangles_xml() -> String {
   let mut s = ""
-  for t in [
-    (0, 1, 2),
-    (0, 2, 3),
-    (4, 6, 5),
-    (4, 7, 6),
-    (0, 4, 5),
-    (0, 5, 1),
-    (3, 2, 6),
-    (3, 6, 7),
-    (0, 3, 7),
-    (0, 7, 4),
-    (1, 5, 6),
-    (1, 6, 2),
-  ] {
+  for
+    t in [
+      (0, 1, 2),
+      (0, 2, 3),
+      (4, 6, 5),
+      (4, 7, 6),
+      (0, 4, 5),
+      (0, 5, 1),
+      (3, 2, 6),
+      (3, 6, 7),
+      (0, 3, 7),
+      (0, 7, 4),
+      (1, 5, 6),
+      (1, 6, 2),
+    ] {
     let (a, b, c) = t
     s = s + "<triangle v1=\"\{a}\" v2=\"\{b}\" v3=\"\{c}\"/>"
   }
@@ -205,8 +207,7 @@ test "build 里的平移变换生效" {
   // 沿着 x 平移 10（矩阵最后三个数是平移）
   let data = mf_bytes(
     cube_model_xml(
-      "millimeter",
-      "<item objectid=\"1\" transform=\"1 0 0 0 1 0 0 0 1 10 0 0\"/>",
+      "millimeter", "<item objectid=\"1\" transform=\"1 0 0 0 1 0 0 0 1 10 0 0\"/>",
     ),
   )
   let mesh = match parse_3mf(data) {
@@ -225,8 +226,7 @@ test "缩放变换会改变体积" {
   // 每个方向放大 2 倍 → 体积 8 倍
   let data = mf_bytes(
     cube_model_xml(
-      "millimeter",
-      "<item objectid=\"1\" transform=\"2 0 0 0 2 0 0 0 2 0 0 0\"/>",
+      "millimeter", "<item objectid=\"1\" transform=\"2 0 0 0 2 0 0 0 2 0 0 0\"/>",
     ),
   )
   let mesh = match parse_3mf(data) {
@@ -241,7 +241,9 @@ test "transform 个数不对要报错" {
   // 少一个数会让整条装配链错位，而错位后模型「看起来有东西」但体积不对，
   // 是最难查的那种错，必须在解析阶段就拦下来
   let data = mf_bytes(
-    cube_model_xml("millimeter", "<item objectid=\"1\" transform=\"1 0 0 0 1 0\"/>"),
+    cube_model_xml(
+      "millimeter", "<item objectid=\"1\" transform=\"1 0 0 0 1 0\"/>",
+    ),
   )
   match parse_3mf(data) {
     Ok(_) => fail("个数不对的 transform 不该成功")
@@ -347,9 +349,7 @@ test "顶点下标越界要报错" {
 
 ///|
 test "引用了不存在的对象要报错" {
-  let data = mf_bytes(
-    cube_model_xml("millimeter", "<item objectid=\"7\"/>"),
-  )
+  let data = mf_bytes(cube_model_xml("millimeter", "<item objectid=\"7\"/>"))
   match parse_3mf(data) {
     Ok(_) => fail("不存在的对象不该成功")
     Err(msg) => assert_true(msg.contains("id=7"))
@@ -406,9 +406,11 @@ test "关系表合法但没有 3dmodel 关系：要能退出，并退回按文�
     cube_model_xml("millimeter", "<item objectid=\"1\"/>"),
     rels,
   )
-  let mesh = match parse_3mf(data) {
+  assert_true(parse_3mf(data) is Err(_))
+  let mesh = match parse_3mf(data, compatibility=true) {
     Ok(m) => m
-    Err(msg) => fail("应该退回按文件名找到模型部件，却报错：\{msg}")
+    Err(msg) =>
+      fail("应该退回按文件名找到模型部件，却报错：\{msg}")
   }
   assert_eq(mesh.triangle_count(), 12)
 }
@@ -427,9 +429,11 @@ test "关系表里 3dmodel 那条缺 Target：也不能挂死" {
     cube_model_xml("millimeter", "<item objectid=\"1\"/>"),
     rels,
   )
-  let mesh = match parse_3mf(data) {
+  assert_true(parse_3mf(data) is Err(_))
+  let mesh = match parse_3mf(data, compatibility=true) {
     Ok(m) => m
-    Err(msg) => fail("缺 Target 时应该退回按文件名找，却报错：\{msg}")
+    Err(msg) =>
+      fail("缺 Target 时应该退回按文件名找，却报错：\{msg}")
   }
   assert_eq(mesh.triangle_count(), 12)
 }
@@ -446,12 +450,12 @@ test "压缩包里用反斜杠分隔路径也能认" {
     ("_rels\\.rels", @utf8.encode(rels_xml()).to_fixedarray()),
     (
       "3D\\3dmodel.model",
-      @utf8
-        .encode(cube_model_xml("millimeter", "<item objectid=\"1\"/>"))
-        .to_fixedarray(),
+      @utf8.encode(cube_model_xml("millimeter", "<item objectid=\"1\"/>")).to_fixedarray(),
     ),
   ]
-  let mesh = match parse_3mf(Bytes::from_array(@fzip.zip_sync(files))) {
+  let data = Bytes::from_array(@fzip.zip_sync(files))
+  assert_true(parse_3mf(data) is Err(_))
+  let mesh = match parse_3mf(data, compatibility=true) {
     Ok(m) => m
     Err(msg) => fail("反斜杠路径不该导致失败：\{msg}")
   }
@@ -580,7 +584,7 @@ test "XML 坏掉要报错并带上行号" {
   // 故意写成多行，第 3 行的标签对不上——行号要是报错了，
   // 拿这个信息去定位文件里哪出问题就成了误导
   let xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
-    "<model unit=\"millimeter\">\n" +
+    "<model unit=\"millimeter\" xmlns=\"http://schemas.microsoft.com/3dmanufacturing/core/2015/02\">\n" +
     "<resources></model>"
   match parse_3mf(mf_bytes(xml)) {
     Ok(_) => fail("坏的 XML 不该成功")

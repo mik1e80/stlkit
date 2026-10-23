@@ -1,6 +1,6 @@
 # stlkit：接口与实现
 
-MoonBit 的 STL / OBJ / 3MF / PLY 网格工具链。本次修订版本为 **0.1.3**；安装、命令行和网页版入口见 [README.md](README.md)。Mooncakes 使用 `moon add mik1e80/stlkit@0.1.3`，源码固定到 [v0.1.3](https://github.com/mik1e80/stlkit/tree/v0.1.3)。0.1.0 / 0.1.1 / 0.1.2 不包含本轮 PLY format 与二进制尾部修复，复核范围及迁移说明见 [0.1.3 发布说明](docs/releases/0.1.3.md)。
+MoonBit 的 STL / OBJ / 3MF / PLY 三角网格工具链。本次版本 **0.1.4**；安装 `moon add mik1e80/stlkit@0.1.4`，源码固定 [v0.1.4](https://github.com/mik1e80/stlkit/tree/v0.1.4)。本轮收紧 OBJ 纹理引用、PLY 声明类型和坏面、3MF 包结构；精确格式参考、输入契约和未实现语义见 [格式兼容性说明](docs/format-compatibility.md)，代码与申报修改分项见 [0.1.4 发布说明](docs/releases/0.1.4.md)。
 
 ## 数据与单位
 
@@ -16,8 +16,8 @@ MoonBit 的 STL / OBJ / 3MF / PLY 网格工具链。本次修订版本为 **0.1.
 | --- | --- |
 | `parse_mesh(data)` | 按内容检测 STL / OBJ / 3MF / PLY，返回 `Result[Mesh, String]` |
 | `parse_stl_ascii(text)` / `parse_stl_binary(data)` | STL 读取 |
-| `parse_obj(text)` | OBJ 顶点、法线、负索引和多边形面；支持空格、制表符、CRLF、行内注释 |
-| `parse_3mf(data)` | ZIP / XML、对象引用、组件变换与单位 |
+| `parse_obj(text)` | OBJ 顶点、法线、vt 声明和索引验证、负索引及多边形面；支持空格、制表符、CRLF、行内注释 |
+| `parse_3mf(data, compatibility=false)` | 默认严格 OPC 关系/内容类型及 Core 几何读取；显式兼容只放宽旧包定位 |
 | `parse_ply(data, lenient_ascii=false)` | ASCII / 小端 / 大端 PLY；默认连续按声明消费正文，不丢弃行尾 token |
 | `write_stl_ascii(mesh)` / `write_stl_binary(mesh)` | STL 导出 |
 | `write_obj(mesh)` | OBJ 导出 |
@@ -179,7 +179,7 @@ node web/smoke.cjs
 
 ## 许可与参考
 
-项目采用 [Apache-2.0](LICENSE)。参考 trimesh 的 API 与模块设计，差异和能力边界见 [COMPARISON.md](COMPARISON.md)。随附 3MF 样例采用 BSD-2-Clause，完整版权、条款及免责声明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+项目采用 [Apache-2.0](LICENSE)。参考 trimesh 的 API 与模块设计，差异和能力边界见 [COMPARISON.md](COMPARISON.md)。外部样例分别保留 BSD-2-Clause / CC0-1.0，完整版权、来源、条款及免责声明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
 
 ## 输入边界补充（2026-10-17）

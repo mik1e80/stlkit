@@ -190,5 +190,8 @@ async function load(text) {
   await load("v nan 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n");
   assert(!descendants(document.getElementById("report")).some(e => e.className.startsWith("verdict")));
   assert.match(context.analyze_error(Buffer.from("v nan 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n").toString("base64")), /有限数字/);
+  for (const fixture of require("../scripts/format-fixtures.cjs").cases) {
+    assert.match(context.analyze_error(fixture.bytes.toString("base64")), fixture.error);
+  }
   console.log("网页回归通过：朝内、薄壁、阈值调整、修复结论和非法输入。");
 })().catch(error => { console.error(error); process.exitCode = 1; });

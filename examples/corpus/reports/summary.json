@@ -1402,10 +1402,10 @@
       "report": "external_cura-4.5-project.3mf.txt",
       "exit": 1,
       "command": "moon run --target native cmd/main examples/external/cura-4.5-project.3mf --samples 1 --min-thickness 0",
-      "error": "错误：这个 3MF 的 build 里没有列任何对象，没有东西可以打印",
+      "error": "错误：3MF XML 必须恰有一个使用 Core 2015/02 命名空间的 model 根元素",
       "license": "CC0-1.0",
       "group": "external",
-      "feedback": "标准 build 为空，当前拒绝；不支持完整 Cura 工程恢复",
+      "feedback": "Cura 私有 XML 根元素不是 Core model，严格拒绝；不支持完整工程恢复",
       "sha256": "fbc3538003ba871b9995b92b8f8dcf7aeca623cfc8294c8b913dcf13a05b91cf",
       "hash_scope": "file bytes"
     },

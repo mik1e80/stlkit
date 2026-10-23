@@ -4,12 +4,12 @@ MoonBit 三维网格检查与修复库。读取 STL、OBJ、3MF、PLY 的支持�
 
 [在线演示](https://mik1e80.github.io/stlkit/) · [库接口](README.mbt.md) · [范围与复现案例](docs/review-cases.md) · [项目对比](COMPARISON.md) · [变更记录](CHANGELOG.md)
 
-本次修订版本 **0.1.3**。复核时请使用 [Mooncakes 0.1.3](https://mooncakes.io/docs/mik1e80/stlkit@0.1.3/) 或固定的 [v0.1.3 源码标签](https://github.com/mik1e80/stlkit/tree/v0.1.3)，不要用旧版 0.1.0 / 0.1.1 / 0.1.2 验证本次修复。版本范围与迁移说明见 [发布说明](docs/releases/0.1.3.md)。
+本次修订版本 **0.1.4**。使用 [Mooncakes 0.1.4](https://mooncakes.io/docs/mik1e80/stlkit@0.1.4/) 或固定的 [v0.1.4 标签](https://github.com/mik1e80/stlkit/tree/v0.1.4) 复核本轮格式输入修复；0.1.3 及以前不包含这些新边界。[发布说明](docs/releases/0.1.4.md) 分开列明文档、代码和申报材料的调整。
 
 在已有 MoonBit 项目中安装指定版本：
 
 ```sh
-moon add mik1e80/stlkit@0.1.3
+moon add mik1e80/stlkit@0.1.4
 ```
 
 ## 快速运行
@@ -17,7 +17,7 @@ moon add mik1e80/stlkit@0.1.3
 安装 [MoonBit 工具链](https://www.moonbitlang.com/download/)，获取源码后执行：
 
 ```sh
-git clone --branch v0.1.3 --depth 1 https://github.com/mik1e80/stlkit
+git clone --branch v0.1.4 --depth 1 https://github.com/mik1e80/stlkit
 cd stlkit
 moon update
 moon run cmd/main examples/cube.obj --strict
@@ -30,11 +30,17 @@ moon run cmd/main examples/torus.obj --svg torus.svg
 
 `--fix` 与 `--svg` 可同时使用：先写出最终网格，再由修复后的网格生成 SVG；无需自动修复时也按指定路径导出网格和预览。`--strict` 根据最终网格的复核结果退出，仍有薄壁等问题时两个输出仍会生成，并以 1 退出。输出路径按宿主平台规则转换为规范化绝对路径后比较（包括 .、..、分隔符和 Windows 大小写）；相同则在写入前拒绝。此词法比较不识别符号链接或硬链接别名。写入网格失败时不继续生成 SVG；SVG 写入失败时以 1 退出，已经写出的网格保留。
 
+## 格式参考与支持范围
+
+STL 参考 3D Systems 1989 年格式布局；OBJ 参考 Wavefront Advanced Visualizer 3.0 Appendix B1 的多边形几何；PLY 固定 1.0；3MF 以 Core 1.3.0 为参考，仅实现核心几何读取子集。每种格式的必需行为、拒绝条件、兼容选项、未实现语义、资料版权和可复现测试集中在 [格式兼容性说明](docs/format-compatibility.md)，不宣称完整标准/ISO 符合性或完整 Core 1.4.0 兼容。
+
+OBJ 读取并验证 `vt` 及面引用，UV 不进入 Mesh；没有 `vt` 的 `v/vt` 引用失败。PLY 检查 ASCII 整数声明范围、list 类型和长度、非法 header，以及不足三个顶点的 face。3MF 默认要求正确的根关系和内容类型表、唯一对象 Id、精确 Core 命名空间及受支持几何层级；自动入口不会猜测唯一 `.model`。旧包定位只能由库调用方显式传 `parse_3mf(data, compatibility=true)`，不会放宽模型 XML/几何检查。
+
 ## 已实现范围
 
 | 能力 | 内容与限制 |
 | --- | --- |
-| 读取 | ASCII / 二进制 STL；OBJ 顶点、法线、负索引、多边形面；3MF 核心三角网格、组件引用、变换和单位；ASCII / 大小端二进制 PLY |
+| 读取 | ASCII / 二进制 STL；OBJ 顶点、法线、纹理坐标声明及引用检查、负索引、多边形面；3MF 核心三角网格、组件引用、变换和单位；ASCII / 大小端二进制 PLY |
 | 多边形 | OBJ / PLY 平面简单凸、凹多边形三角化；自相交或非平面多边形报错 |
 | 网格检查 | 边界边、非流形边、退化面、已保留声明面法线方向是否与三角形绕向相反；按共享边连通分量报告绕向、有符号体积和朝向状态 |
 | 厚度采样 | 从确定性表面样本沿内法线取射线命中距离，报告样本最小值、命中数和参考阈值提醒 |
@@ -181,7 +187,7 @@ node scripts/review-cases.cjs
 
 核心几何使用 MoonBit core；3MF 依赖 `hustcer/fzip`、`Milky2018/xml`，CLI 另用 `moonbitlang/x` 与 `moonbitlang/async`。库支持 wasm、wasm-gc、JS、native；CLI 文件读取支持 wasm、native。
 
-项目采用 [Apache-2.0](LICENSE)。17 个外部 3MF 样例来自 3MF Consortium，完整 BSD-2-Clause 条款及免责声明见 [第三方声明](THIRD_PARTY_NOTICES.md)。其余案例由项目自建；网页分发许可存于 `web/licenses/`。API 与模块组织参考 trimesh，不宣称厚度能力独有。
+项目采用 [Apache-2.0](LICENSE)。原有 17 个外部 3MF 样例来自 3MF Consortium；新增外部 CAD、扫描及 Cura 样例分别采用 BSD-2-Clause 或 CC0-1.0，作者、固定来源、改动和完整条款见 [第三方声明](THIRD_PARTY_NOTICES.md) 与 [逐文件清单](examples/external/manifest.json)。自建案例采用 Apache-2.0；网页分发许可存于 `web/licenses/`。API 与模块组织参考 trimesh，不宣称厚度能力独有。
 
 
 模型实测、失败反馈、外部来源与许可证、薄壁采样和 100k/500k/1m 大文件结果统一见 [COMPARISON.md](COMPARISON.md)。完整原始输出和命令可逐项复核；解析成功不等于网格或工艺通过。

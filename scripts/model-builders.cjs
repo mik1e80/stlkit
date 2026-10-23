@@ -354,6 +354,7 @@ function stress(file, n, m) {
   }
 }
 module.exports = {
+  zip,
   box,
   map,
   reverse,

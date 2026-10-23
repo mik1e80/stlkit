@@ -346,8 +346,8 @@ function main() {
     );
   check(
     "examples/external/cura-4.5-project.3mf",
-    { reject: "build.*没有列任何对象" },
-    "标准 build 为空，当前拒绝；不支持完整 Cura 工程恢复",
+    { reject: "Core 2015/02" },
+    "Cura 私有 XML 根元素不是 Core model，严格拒绝；不支持完整工程恢复",
     "CC0-1.0",
     "external",
   );
@@ -535,7 +535,7 @@ function main() {
     ];
   };
   const section =
-    "<!-- corpus-results:start -->\n## 模型实测与反馈（2026-10-21）\n\n以下语料与报告为 GitHub 主分支补充，核心库及 CLI 与已发布 0.1.3 一致；没有把旧 Mooncakes 包或版本标签改写成包含这些新附件。数据由 `node scripts/corpus-cases.cjs --update` 调用实际 Native CLI 生成。默认门槛为 0 mm、样本预算 1，只用于快速几何回归；壁厚另按下表固定预算测试。STL / OBJ / PLY 的坐标由调用方按毫米解释；3MF 按声明单位换算。顶点焊接默认容差为 `1e-6`。报告三位小数按绝对误差约 0.0015 核对；跨工具链快照容许 0.003。完整数值、退出码、命令和输入哈希见 [summary.json](examples/corpus/reports/summary.json)。\n\n解析退出 0 不等于检查通过。下表体积列在朝向不可靠时仅为有符号贡献绝对值，不可作为可靠实体体积；以原始报告中的质量属性前提为准。外部样例的计数快照用于发现行为变化，不能替代独立正确性证明。\n\n### 自建解析值与边界模型\n\n模型和生成脚本采用 [Apache-2.0](LICENSE)，全部为独立构造。`non-manifold-vertex` 与 `vertex-touching-cubes` 故意使用同一几何验证两个语义，不算两个独立几何来源。\n\n" +
+    "<!-- corpus-results:start -->\n## 模型实测与反馈（2026-10-23）\n\n以下语料在 0.1.4 严格读取路径下重新复核；10月21日的性能记录保留原始测量环境，不作为新版本的重新计时。数据由 `node scripts/corpus-cases.cjs --update` 调用实际 Native CLI 生成。默认门槛为 0 mm、样本预算 1，只用于快速几何回归；壁厚另按下表固定预算测试。STL / OBJ / PLY 的坐标由调用方按毫米解释；3MF 按声明单位换算。顶点焊接默认容差为 `1e-6`。报告三位小数按绝对误差约 0.0015 核对；跨工具链快照容许 0.003。完整数值、退出码、命令和输入哈希见 [summary.json](examples/corpus/reports/summary.json)。\n\n解析退出 0 不等于检查通过。下表体积列在朝向不可靠时仅为有符号贡献绝对值，不可作为可靠实体体积；以原始报告中的质量属性前提为准。外部样例的计数快照用于发现行为变化，不能替代独立正确性证明。\n\n### 自建解析值与边界模型\n\n模型和生成脚本采用 [Apache-2.0](LICENSE)，全部为独立构造。`non-manifold-vertex` 与 `vertex-touching-cubes` 故意使用同一几何验证两个语义，不算两个独立几何来源。\n\n" +
     table(
       [
         "模型",

@@ -250,3 +250,11 @@ for (const big of [false, true]) {
   }
 }
 console.log('PLY format 声明及二进制尾部 CLI 回归通过。');
+
+// New strict format profile: public automatic CLI entry must reject every fixture.
+for (const fixture of require("../../scripts/format-fixtures.cjs").cases) {
+  const filename = path.join(dir, fixture.name);
+  fs.writeFileSync(filename, fixture.bytes);
+  run([filename], 1, fixture.error);
+}
+console.log("严格格式读取 CLI 回归通过：OBJ 纹理索引、PLY 类型和坏面、3MF 包结构。");

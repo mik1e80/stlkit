@@ -12,7 +12,8 @@
 //
 // 第二点对「能不能打印」这个问题特别重要：**拓扑关系是现成的**。
 // STL 里「哪些三角形共用同一个顶点」得靠容差焊接去猜（差 1e-9 的算不算同一个点？），
-// 3MF 直接写清楚了。所以同一个模型，3MF 的水密性判断比 STL 更可靠。
+// 输入文件可明确共享身份，但本库统一展开到 Triangle 列表；
+// 下游仍按坐标容差重建拓扑，不保留原始顶点身份。
 //
 // 代价是格式复杂得多：要解 ZIP、要解 XML，对象还能互相引用拼成装配体。
 
@@ -44,8 +45,12 @@ pub fn is_3mf(data : Bytes) -> Bool {
 }
 
 ///|
-/// 解析 3MF：解 ZIP → 找模型部件 → 解 XML → 按 build 里列的对象拼出网格。
-pub fn parse_3mf(data : Bytes) -> Result[Mesh, String] {
+/// 默认严格校验 OPC 关系和内容类型，再按 Core 几何子集读取。
+/// compatibility=true 显式启用旧包定位回退；不放宽 XML/几何检查。
+pub fn parse_3mf(
+  data : Bytes,
+  compatibility? : Bool = false,
+) -> Result[Mesh, String] {
   // 解 ZIP。fzip 自带 zip bomb 防护（解压比超过 1000 倍直接拒绝）
   // 和不安全路径拒绝（绝对路径、`..` 一律不收）——解析用户传上来的文件，
   // 这两道防线是必须的，自己写很容易漏。
@@ -53,7 +58,12 @@ pub fn parse_3mf(data : Bytes) -> Result[Mesh, String] {
     @fzip.FzipError(message~, ..) =>
       return Err("这不是一个合法的 3MF：ZIP 解不开——\{message}")
   }
-  let xml = match find_model_part(entries) {
+  let located = if compatibility {
+    find_model_part(entries)
+  } else {
+    mf_strict_model_part(entries)
+  }
+  let xml = match located {
     Ok(text) => text
     Err(msg) => return Err(msg)
   }
@@ -76,7 +86,7 @@ fn find_model_part(
   match target {
     Some(path) =>
       match find_entry(entries, path) {
-        Some(raw) => Ok(@utf8.decode_lossy(Bytes::from_array(raw)))
+        Some(raw) => mf_xml_text(raw)
         None =>
           Err(
             "3MF 的关系表指向「\{path}」，但包里没有这个部件",
@@ -101,7 +111,7 @@ fn find_model_part(
         )
       } else {
         match find_entry(entries, models[0]) {
-          Some(raw) => Ok(@utf8.decode_lossy(Bytes::from_array(raw)))
+          Some(raw) => mf_xml_text(raw)
           None => Err("读不到模型部件「\{models[0]}」")
         }
       }
@@ -146,7 +156,7 @@ fn rels_model_target(xml : String) -> String? {
       Some(t) => t
       None => continue
     }
-    if !kind.has_suffix("/3dmodel") {
+    if kind != "http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel" {
       continue
     }
     // 关系对上了但没有 Target——文件不规范，不算数，继续往后找
@@ -231,37 +241,52 @@ fn prefix_of(name : String) -> String {
 }
 
 ///|
-/// 3MF 核心命名空间的识别特征。
-///
-/// 不写死完整 URI 是因为后面可能跟版本号（规范的命名空间是
-/// `http://schemas.microsoft.com/3dmanufacturing/core/2015/02`）。
-const CORE_NS_MARK : String = "3dmanufacturing/core"
+const MF_CORE_NS : String = "http://schemas.microsoft.com/3dmanufacturing/core/2015/02"
 
 ///|
-/// 从根元素的命名空间声明里找出**核心命名空间用的是哪个前缀**。
-///
-/// 为什么需要这个：只看本地名会把别的命名空间的同名元素也认成核心元素。
-/// 最现实的例子是 3MF 的切片扩展——里面有 `<s:vertices>` / `<s:vertex>`，
-/// 那是**二维**顶点，规范只定义了 x 和 y，**没有 z**。不区分命名空间的话
-/// 它会被当成核心的三维顶点，报一句「少了坐标属性 z」，
-/// 结果是一份完全合法的文件整个解析不了。
-///
-/// 返回 `None` 表示根元素上没有声明核心命名空间，那就退回老规矩：
-/// 不带前缀的元素都算核心的。
-fn detect_core_prefix(element : @xml.XmlElement) -> String? {
+priv struct MfXmlScope {
+  name : String
+  tag : String
+  bindings : Map[String, String]
+}
+
+///|
+fn mf_bindings(
+  element : @xml.XmlElement,
+  inherited : Map[String, String],
+) -> Map[String, String] {
+  if !element.attributes.any(a => {
+      a.name == "xmlns" || a.name.has_prefix("xmlns:")
+    }) {
+    return inherited
+  }
+  let bindings : Map[String, String] = Map([])
+  for key, value in inherited {
+    bindings.set(key, value)
+  }
   for attr in element.attributes {
-    if !attr.value.contains(CORE_NS_MARK) {
-      continue
-    }
-    // 默认命名空间写成 xmlns="..."，前缀是空串
     if attr.name == "xmlns" {
-      return Some("")
-    }
-    if attr.name.has_prefix("xmlns:") {
-      return Some(attr.name[6:].to_owned())
+      bindings.set("", attr.value)
+    } else if attr.name.has_prefix("xmlns:") {
+      bindings.set(attr.name[6:].to_owned(), attr.value)
     }
   }
-  None
+  bindings
+}
+
+///|
+fn mf_parent_of(tag : String) -> String? {
+  match tag {
+    "resources" | "build" => Some("model")
+    "object" => Some("resources")
+    "mesh" | "components" => Some("object")
+    "vertices" | "triangles" => Some("mesh")
+    "vertex" => Some("vertices")
+    "triangle" => Some("triangles")
+    "component" => Some("components")
+    "item" => Some("build")
+    _ => None
+  }
 }
 
 ///|
@@ -270,7 +295,7 @@ fn detect_core_prefix(element : @xml.XmlElement) -> String? {
 /// 关心的标签只有几个：`model`（拿单位）、`object`（攒顶点和三角形）、
 /// `component`（装配体引用）、`item`（build 里列出要打印的对象）。
 /// 其余（metadata、basematerials、切片信息……）全部跳过——
-/// 它们和「能不能打印」没关系。
+/// 这些语义不进入 Mesh；忽略不代表已验证制造语义或可打印。
 fn parse_model_xml(xml : String) -> Result[Mesh, String] {
   let reader = @xml.Reader::from_string(xml)
   let objects : Map[Int, MfObject] = Map([])
@@ -281,8 +306,13 @@ fn parse_model_xml(xml : String) -> Result[Mesh, String] {
   // 一个以英寸建模的模型体积会差 25.4³ ≈ 16387 倍
   let mut unit_scale = 1.0
 
-  // 核心命名空间用的是哪个前缀。`None` = 还没见到根元素
-  let mut core_prefix : String? = None
+  // 按 XML 作用域解析完整 URI；不把前缀名称当作命名空间身份。
+  let scopes : Array[MfXmlScope] = []
+  let empty_bindings : Map[String, String] = Map([])
+  let mut model_seen = false
+  let mut resources_seen = false
+  let mut build_seen = false
+  let mut geometry_seen = false
 
   // 当前正在攒的对象
   let mut cur_id : Int? = None
@@ -300,14 +330,14 @@ fn parse_model_xml(xml : String) -> Result[Mesh, String] {
     let element = match event.kind {
       @xml.EventKind::Start(e) | @xml.EventKind::Empty(e) => e
       @xml.EventKind::End(name) => {
-        // 对象在这里收尾。但自闭合的 `<object/>` 不会走到这——
-        // 那种情况由下一次 object 开始时的 flush 兜住。
-        // 同样要认命名空间：`</s:object>` 不是核心的 object
-        let end_is_core = match core_prefix {
-          Some(p) => prefix_of(name) == p
-          None => prefix_of(name) == ""
+        if scopes.length() == 0 {
+          return Err("3MF XML 出现无对应开始标签的结束标签")
         }
-        if end_is_core && local_name(name) == "object" {
+        let scope = scopes.pop().unwrap()
+        if scope.name != name {
+          return Err("3MF XML 标签不匹配")
+        }
+        if scope.tag == "object" {
           flush_object(
             objects, cur_id, cur_vertices, cur_triangles, cur_components,
           )
@@ -318,27 +348,90 @@ fn parse_model_xml(xml : String) -> Result[Mesh, String] {
         }
         continue
       }
+      @xml.EventKind::Decl(encoding~, ..) => {
+        match encoding {
+          Some(e) =>
+            if e.to_lower() != "utf-8" {
+              return Err("3MF XML 声明必须使用 UTF-8")
+            }
+          None => ()
+        }
+        continue
+      }
+      @xml.EventKind::DocType(_) =>
+        return Err("当前 3MF 几何读取子集不接受 DTD")
+      @xml.EventKind::Text(text) | @xml.EventKind::CData(text) => {
+        if scopes.length() == 0 && obj_words(text).length() > 0 {
+          return Err("3MF XML 根元素外存在文本")
+        }
+        continue
+      }
       _ => continue
     }
-    let tag = local_name(element.name)
-
-    if tag == "model" {
-      // 根元素上声明了核心命名空间，记下它用的前缀
-      core_prefix = detect_core_prefix(element)
+    let parent = if scopes.length() > 0 {
+      scopes[scopes.length() - 1].tag
+    } else {
+      ""
     }
-
-    // 只处理核心命名空间的元素。
-    //
-    // 带别的前缀（比如切片扩展的 `s:`）一律跳过——它们的本地名可能和核心元素
-    // 撞车，但语义完全不同。最典型的是 `<s:vertex>`：那是**二维**顶点，
-    // 只有 x 和 y，当成三维顶点就会报「少了坐标属性 z」，整份合法文件都读不了。
+    let inherited = if scopes.length() > 0 {
+      scopes[scopes.length() - 1].bindings
+    } else {
+      empty_bindings
+    }
+    let bindings = mf_bindings(element, inherited)
     let prefix = prefix_of(element.name)
-    let is_core = match core_prefix {
-      Some(p) => prefix == p
-      // 根元素上没声明命名空间，退回老规矩：不带前缀的当核心元素
-      None => prefix == ""
+    let uri = match bindings.get(prefix) {
+      Some(value) => value
+      None => ""
     }
-    if !is_core {
+    if prefix != "" && uri == "" {
+      return Err("3MF XML 使用了未声明的命名空间前缀")
+    }
+    let tag_name = local_name(element.name)
+    let mut tag = if uri == MF_CORE_NS { tag_name } else { "" }
+    if scopes.length() == 0 {
+      if model_seen || tag != "model" {
+        return Err(
+          "3MF XML 必须恰有一个使用 Core 2015/02 命名空间的 model 根元素",
+        )
+      }
+      model_seen = true
+    } else if parent == "" {
+      // Optional foreign/unknown subtrees cannot inject Core lookalikes.
+      tag = ""
+    } else if tag == "model" {
+      return Err("3MF model 不能嵌套")
+    } else {
+      match mf_parent_of(tag) {
+        Some(required_parent) =>
+          if parent != required_parent {
+            return Err("3MF <\{tag}> 必须位于 <\{required_parent}> 中")
+          }
+        None => tag = ""
+      }
+    }
+    if tag == "resources" {
+      if resources_seen || build_seen {
+        return Err("3MF resources 必须唯一且位于 build 之前")
+      }
+      resources_seen = true
+    }
+    if tag == "build" {
+      if build_seen || !resources_seen {
+        return Err("3MF build 必须唯一且位于 resources 之后")
+      }
+      build_seen = true
+    }
+    if tag == "mesh" || tag == "components" {
+      if geometry_seen {
+        return Err("3MF object 只能包含一个 mesh 或一个 components")
+      }
+      geometry_seen = true
+    }
+    if event.kind is @xml.EventKind::Start(_) {
+      scopes.push({ name: element.name, tag, bindings, })
+    }
+    if tag == "" {
       continue
     }
 
@@ -362,13 +455,16 @@ fn parse_model_xml(xml : String) -> Result[Mesh, String] {
         None => ()
       }
     } else if tag == "object" {
-      // 开始一个新对象。先把上一个收尾——这样自闭合的、漏了结束标签的
-      // 坏文件也能解析出大部分内容，而不是丢掉整个模型
+      // 自闭合的未使用空对象在下一对象处收尾；不接受坏 XML。
       flush_object(objects, cur_id, cur_vertices, cur_triangles, cur_components)
       let id = match attribute_int(element, "id", "object") {
         Ok(v) => v
         Err(msg) => return Err(msg)
       }
+      if objects.contains(id) {
+        return Err("3MF object id 重复：\{id}")
+      }
+      geometry_seen = false
       cur_id = Some(id)
       cur_vertices = []
       cur_triangles = []
@@ -415,6 +511,12 @@ fn parse_model_xml(xml : String) -> Result[Mesh, String] {
       }
       build.push((id, tf))
     }
+  }
+  if !model_seen || scopes.length() != 0 {
+    return Err("3MF XML 缺少完整 model 根元素")
+  }
+  if !resources_seen || !build_seen {
+    return Err("3MF 缺少 resources 或 build")
   }
   // 最后一个对象
   flush_object(objects, cur_id, cur_vertices, cur_triangles, cur_components)
@@ -675,14 +777,14 @@ fn attribute_int(
 ) -> Result[Int, String] {
   match element.get(name) {
     Some(raw) => {
-      let value = @string.parse_double(raw) catch {
-        _ =>
-          return Err("3MF 的 <\{tag}> 里 \{name}=\"\{raw}\" 不是个整数")
+      let minimum = if name == "id" || name == "objectid" { 1 } else { 0 }
+      match profile_decimal_int(raw[:], minimum) {
+        Ok(i) => Ok(i)
+        Err(msg) =>
+          Err(
+            "3MF <\{tag}> 的 \{name} 不是个整数或超出允许范围：\{msg}",
+          )
       }
-      if value.is_nan() || value.is_inf() || value != value.round() {
-        return Err("3MF 的 <\{tag}> 里 \{name}=\"\{raw}\" 不是个整数")
-      }
-      Ok(value.to_int())
     }
     None => Err("3MF 的 <\{tag}> 少了一个必需的属性 \{name}")
   }

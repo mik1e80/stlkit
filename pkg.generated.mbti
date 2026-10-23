@@ -24,7 +24,7 @@ pub fn is_3mf(Bytes) -> Bool
 
 pub fn is_ply(Bytes) -> Bool
 
-pub fn parse_3mf(Bytes) -> Result[Mesh, String]
+pub fn parse_3mf(Bytes, compatibility? : Bool) -> Result[Mesh, String]
 
 pub fn parse_mesh(Bytes) -> Result[Mesh, String]
 

@@ -16,14 +16,15 @@
 /// 解析 OBJ 文本。
 ///
 /// 只认几何相关的关键字：`v`（顶点）、`f`（面）、`vn`（法线）会读，
-/// 其余（`vt`、`g`、`o`、`s`、`mtllib`、`usemtl`、注释）跳过——
-/// 它们不影响几何形状，也不影响能不能打印。
+/// `vt` 读取并检查面引用，纹理值不保存在 Mesh；其余（`g`、`o`、`s`、`mtllib`、`usemtl`、注释）跳过——
+/// 这些语义不进入 Mesh；跳过不表示已验证材质或工艺。
 pub fn parse_obj(text : String) -> Result[Mesh, String] {
   // 顶点表。OBJ 的编号是 1 基的，为了少一次减法，这里在下标 0 处
   // 塞一个占位，让 vertices[1] 就是文件里的第 1 号顶点。
   let vertices : Array[Vec3] = [Vec3::zero()]
   // 法线表，同样是 1 基
   let normals : Array[Vec3] = [Vec3::zero()]
+  let textures : Array[Vec3] = [Vec3::zero()]
   let triangles : Array[Triangle] = []
   let mut line_no = 0
 
@@ -40,18 +41,51 @@ pub fn parse_obj(text : String) -> Result[Mesh, String] {
       }
     }
     match tokens {
-      ["v", x, y, z, ..] =>
+      ["v", x, y, z] =>
         match parse_vec3(x, y, z, line_no) {
           Ok(v) => vertices.push(v)
           Err(msg) => return Err(msg)
         }
-      ["vn", x, y, z, ..] =>
+      ["vn", x, y, z] =>
         match parse_vec3(x, y, z, line_no) {
           Ok(v) => normals.push(v)
           Err(msg) => return Err(msg)
         }
+      ["v", x, y, z, w] => {
+        let weight = @string.parse_double(w) catch {
+          _ => return Err("第 \{line_no} 行：OBJ v 的 w 不是有限数字")
+        }
+        if weight != 1.0 {
+          return Err(
+            "第 \{line_no} 行：当前 OBJ 多边形读取子集只接受省略 w 或 w=1",
+          )
+        }
+        match parse_vec3(x, y, z, line_no) {
+          Ok(v) => vertices.push(v)
+          Err(msg) => return Err(msg)
+        }
+      }
+      ["v", ..] | ["vn", ..] =>
+        return Err(
+          "第 \{line_no} 行：OBJ v/vn 字段数量不符合当前几何读取子集",
+        )
+      ["vt", .. values] => {
+        let uvw = match values {
+          [u] => parse_vec3(u, "0", "0", line_no)
+          [u, v] => parse_vec3(u, v, "0", line_no)
+          [u, v, w] => parse_vec3(u, v, w, line_no)
+          _ =>
+            return Err(
+              "第 \{line_no} 行：OBJ vt 必须有 1..3 个有限坐标",
+            )
+        }
+        match uvw {
+          Ok(v) => textures.push(v)
+          Err(msg) => return Err(msg)
+        }
+      }
       ["f", .. rest] =>
-        match parse_face(rest, vertices, normals, line_no) {
+        match parse_face(rest, vertices, normals, textures, line_no) {
           Ok(new_triangles) =>
             for t in new_triangles {
               triangles.push(t)
@@ -93,11 +127,12 @@ fn obj_words(line : StringView) -> Array[StringView] {
 ///
 /// 每个顶点记号可能是 `3`、`3/5`、`3//7`、`3/5/7` 四种形式之一，
 /// 分别表示「只有顶点」「顶点/纹理」「顶点//法线」「顶点/纹理/法线」。
-/// 我们只关心顶点和法线，纹理坐标跳过。
+/// 纹理坐标仅用于合法性和索引范围检查，不进入 Mesh。
 fn parse_face(
   refs : ArrayView[StringView],
   vertices : Array[Vec3],
   normals : Array[Vec3],
+  textures : Array[Vec3],
   line_no : Int,
 ) -> Result[Array[Triangle], String] {
   if refs.length() < 3 {
@@ -107,10 +142,23 @@ fn parse_face(
   }
 
   // 先把这个面的所有顶点解出来
+  let mut reference_shape : Int? = None
   let face_vertices : Array[Vec3] = []
   let face_normals : Array[Vec3] = []
   for vref in refs {
-    match parse_face_ref(vref, vertices, normals, line_no) {
+    let fields = vref.split("/").to_array()
+    let shape = fields.length() * 2 +
+      (if fields.length() > 1 && fields[1].length() == 0 { 1 } else { 0 })
+    match reference_shape {
+      Some(old) =>
+        if old != shape {
+          return Err(
+            "第 \{line_no} 行：OBJ 同一面的引用形式必须一致",
+          )
+        }
+      None => reference_shape = Some(shape)
+    }
+    match parse_face_ref(vref, vertices, normals, textures, line_no) {
       Ok(pair) => {
         face_vertices.push(pair.0)
         face_normals.push(pair.1)
@@ -163,6 +211,7 @@ fn parse_face_ref(
   vref : StringView,
   vertices : Array[Vec3],
   normals : Array[Vec3],
+  textures : Array[Vec3],
   line_no : Int,
 ) -> Result[(Vec3, Vec3), String] {
   // 按 `/` 切开，最多三段：顶点[/纹理][/法线]
@@ -170,15 +219,39 @@ fn parse_face_ref(
   for part in vref.split("/") {
     parts.push(part)
   }
+  match parts {
+    [v] =>
+      if v.length() == 0 {
+        return Err("第 \{line_no} 行：空的顶点引用")
+      }
+    [v, t] =>
+      if v.length() == 0 || t.length() == 0 {
+        return Err("第 \{line_no} 行：OBJ v/vt 引用不完整")
+      }
+    [v, _, n] =>
+      if v.length() == 0 || n.length() == 0 {
+        return Err("第 \{line_no} 行：OBJ 法线引用不完整")
+      }
+    _ =>
+      return Err(
+        "第 \{line_no} 行：OBJ 面引用只接受 v、v/vt、v//vn、v/vt/vn",
+      )
+  }
   let vertex_index = match parts {
     [v, ..] => v
     [] => return Err("第 \{line_no} 行：空的顶点记号")
+  }
+  if parts.length() >= 2 && parts[1].length() > 0 {
+    match lookup(parts[1], textures, line_no, "纹理") {
+      Ok(_) => ()
+      Err(msg) => return Err(msg)
+    }
   }
   let vertex = match lookup(vertex_index, vertices, line_no, "顶点") {
     Ok(v) => v
     Err(msg) => return Err(msg)
   }
-  // 第三段才是法线；只有两段的话那段是纹理，跳过
+  // 第三段才是法线；第二段纹理索引已在上面验证，纹理数据不进入 Mesh。
   let normal = match parts {
     [_, _, n, ..] =>
       if n.length() == 0 {
@@ -235,6 +308,9 @@ fn parse_int(
   line_no : Int,
   what : String,
 ) -> Result[Int, String] {
+  if !profile_integer_token(token) {
+    return Err("第 \{line_no} 行：OBJ 编号必须为十进制整数")
+  }
   Ok(@string.parse_int(token)) catch {
     _ =>
       Err(

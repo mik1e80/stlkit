@@ -57,9 +57,9 @@ STLKIT 仅统计已保留声明面法线与三角形绕向相反的情况（点�
 
 
 <!-- corpus-results:start -->
-## 模型实测与反馈（2026-10-21）
+## 模型实测与反馈（2026-10-23）
 
-以下语料与报告为 GitHub 主分支补充，核心库及 CLI 与已发布 0.1.3 一致；没有把旧 Mooncakes 包或版本标签改写成包含这些新附件。数据由 `node scripts/corpus-cases.cjs --update` 调用实际 Native CLI 生成。默认门槛为 0 mm、样本预算 1，只用于快速几何回归；壁厚另按下表固定预算测试。STL / OBJ / PLY 的坐标由调用方按毫米解释；3MF 按声明单位换算。顶点焊接默认容差为 `1e-6`。报告三位小数按绝对误差约 0.0015 核对；跨工具链快照容许 0.003。完整数值、退出码、命令和输入哈希见 [summary.json](examples/corpus/reports/summary.json)。
+以下语料在 0.1.4 严格读取路径下重新复核；10月21日的性能记录保留原始测量环境，不作为新版本的重新计时。数据由 `node scripts/corpus-cases.cjs --update` 调用实际 Native CLI 生成。默认门槛为 0 mm、样本预算 1，只用于快速几何回归；壁厚另按下表固定预算测试。STL / OBJ / PLY 的坐标由调用方按毫米解释；3MF 按声明单位换算。顶点焊接默认容差为 `1e-6`。报告三位小数按绝对误差约 0.0015 核对；跨工具链快照容许 0.003。完整数值、退出码、命令和输入哈希见 [summary.json](examples/corpus/reports/summary.json)。
 
 解析退出 0 不等于检查通过。下表体积列在朝向不可靠时仅为有符号贡献绝对值，不可作为可靠实体体积；以原始报告中的质量属性前提为准。外部样例的计数快照用于发现行为变化，不能替代独立正确性证明。
 
@@ -106,7 +106,7 @@ CC0 模型来自 [Ghostkeeper / SlicerTestModels contributors](https://github.co
 | [examples/external/rotated-group.3mf](examples/external/rotated-group.3mf) | CC0-1.0 | 40 | 57262.581 / 18105.806 | 0 / 3 / 6 | 4 个共享边零件；报告 3 条非流形边及 6 个退化面；[原始输出](examples/corpus/reports/external_rotated-group.3mf.txt) |
 | [examples/external/cura-4.2-project.3mf](examples/external/cura-4.2-project.3mf) | CC0-1.0 | 36 | 3000 / 1800 | 0 / 0 / 0 | Cura 4.2 工程几何读取；不验证切片配置；[原始输出](examples/corpus/reports/external_cura-4.2-project.3mf.txt) |
 | [examples/external/kinect-scan.3mf](examples/external/kinect-scan.3mf) | BSD-2-Clause | 282544 | 178768.942 / 27465.862 | 0 / 0 / 0 | 141249 顶点扫描模型读取成功；材料不进入 Mesh；[原始输出](examples/corpus/reports/external_kinect-scan.3mf.txt) |
-| [examples/external/cura-4.5-project.3mf](examples/external/cura-4.5-project.3mf) | CC0-1.0 | — | 拒绝 | — | 标准 build 为空，当前拒绝；不支持完整 Cura 工程恢复；[原始输出](examples/corpus/reports/external_cura-4.5-project.3mf.txt) |
+| [examples/external/cura-4.5-project.3mf](examples/external/cura-4.5-project.3mf) | CC0-1.0 | — | 拒绝 | — | Cura 私有 XML 根元素不是 Core model，严格拒绝；不支持完整工程恢复；[原始输出](examples/corpus/reports/external_cura-4.5-project.3mf.txt) |
 | `_build/corpus/kinect-scan.ply` | BSD-2-Clause | 282544 | 178768.941 / 27465.862 | 0 / 0 / 0 | 同一 3MF 的独立几何转换；非独立扫描源；材料未转换；[原始输出](examples/corpus/reports/_build_corpus_kinect-scan.ply.txt) |
 
 R01 支架、R02 齿轮、R03 CAD 凹面、R04 扫描 PLY、R05 有机曲面、R06 组件 3MF、R07 Cura 工程、R08 10–30 万面均有对应案例。R04 与 R08 使用同一个 BSD 扫描源，PLY 是几何转换，不能当作第二个独立来源。R04 没有验证颜色/法线保真，3MF 材质、Cura 配置和精确自遮挡均未评估；不声称完整切片工程兼容。
