@@ -8,7 +8,8 @@
 ///|
 test "正对打中立方体的底面" {
   // 从 (0.5, 0.5, -1) 朝 +z 打，应该打中 z=0 那个面，走 1 个单位
-  let hit = match cube_mesh().ray_cast(Vec3::new(0.5, 0.5, -1.0), Vec3::new(0.0, 0.0, 1.0)) {
+  let hit = match
+    cube_mesh().ray_cast(Vec3::new(0.5, 0.5, -1.0), Vec3::new(0.0, 0.0, 1.0)) {
     Some(h) => h
     None => fail("应该打中")
   }
@@ -19,7 +20,8 @@ test "正对打中立方体的底面" {
 
 ///|
 test "从侧面打中" {
-  let hit = match cube_mesh().ray_cast(Vec3::new(-2.0, 0.5, 0.5), Vec3::new(1.0, 0.0, 0.0)) {
+  let hit = match
+    cube_mesh().ray_cast(Vec3::new(-2.0, 0.5, 0.5), Vec3::new(1.0, 0.0, 0.0)) {
     Some(h) => h
     None => fail("应该打中")
   }
@@ -30,23 +32,31 @@ test "从侧面打中" {
 ///|
 test "打偏了要返回空" {
   // 从立方体旁边打过去，高度超出了
-  let miss = cube_mesh().ray_cast(Vec3::new(0.5, 0.5, -1.0), Vec3::new(0.0, 1.0, 0.0))
+  let miss = cube_mesh().ray_cast(
+    Vec3::new(0.5, 0.5, -1.0),
+    Vec3::new(0.0, 1.0, 0.0),
+  )
   assert_true(miss is None)
   // 反方向也不行
-  let back = cube_mesh().ray_cast(Vec3::new(0.5, 0.5, -1.0), Vec3::new(0.0, 0.0, -1.0))
+  let back = cube_mesh().ray_cast(
+    Vec3::new(0.5, 0.5, -1.0),
+    Vec3::new(0.0, 0.0, -1.0),
+  )
   assert_true(back is None)
 }
 
 ///|
 test "穿过去的时候取最近的那次命中" {
   // 从立方体外面打进去，会依次穿过两个面。返回的必须是**先打到的那个**
-  let hit = match cube_mesh().ray_cast(Vec3::new(0.5, 0.5, -1.0), Vec3::new(0.0, 0.0, 1.0)) {
+  let hit = match
+    cube_mesh().ray_cast(Vec3::new(0.5, 0.5, -1.0), Vec3::new(0.0, 0.0, 1.0)) {
     Some(h) => h
     None => fail("应该打中")
   }
   assert_true(close(hit.distance, 1.0))
   // 再往前打，起点已经在里面了，最近的还是 z=1 那个面
-  let inside = match cube_mesh().ray_cast(Vec3::new(0.5, 0.5, 0.25), Vec3::new(0.0, 0.0, 1.0)) {
+  let inside = match
+    cube_mesh().ray_cast(Vec3::new(0.5, 0.5, 0.25), Vec3::new(0.0, 0.0, 1.0)) {
     Some(h) => h
     None => fail("应该打中")
   }
@@ -56,7 +66,10 @@ test "穿过去的时候取最近的那次命中" {
 ///|
 test "平行于面打过去的射线不算命中" {
   // 贴着 z=0 那个面平行走。既不该报打中，也不该因为共面而算出个零距离
-  let hit = cube_mesh().ray_cast(Vec3::new(-1.0, 0.5, 0.0), Vec3::new(1.0, 0.0, 0.0))
+  let hit = cube_mesh().ray_cast(
+    Vec3::new(-1.0, 0.5, 0.0),
+    Vec3::new(1.0, 0.0, 0.0),
+  )
   // 它会打中 x=0 的那条边所在的三角形（正对着射线方向），
   // 但**不该**打中底面
   match hit {
@@ -67,7 +80,8 @@ test "平行于面打过去的射线不算命中" {
 
 ///|
 test "从面的正中间垂直打，命中点就在正下方" {
-  let hit = match cube_mesh().ray_cast(Vec3::new(0.25, 0.75, 5.0), Vec3::new(0.0, 0.0, -1.0)) {
+  let hit = match
+    cube_mesh().ray_cast(Vec3::new(0.25, 0.75, 5.0), Vec3::new(0.0, 0.0, -1.0)) {
     Some(h) => h
     None => fail("应该打中")
   }
@@ -137,7 +151,9 @@ test "最近点在长方体的各个方向都对" {
     let (p, want) = case
     let (d, q) = mesh.nearest_point(p)
     if !close(d, want) {
-      fail("点 (\{p.x},\{p.y},\{p.z}) 的最近距离是 \{d}，应该是 \{want}")
+      fail(
+        "点 (\{p.x},\{p.y},\{p.z}) 的最近距离是 \{d}，应该是 \{want}",
+      )
     }
     // 最近点必须在长方体表面上
     let on_face = close(q.x, 0.0) ||

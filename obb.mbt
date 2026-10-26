@@ -138,8 +138,8 @@ pub fn Mesh::oriented_bounding_box(self : Mesh) -> Obb? {
 /// 三个轴按半长从大到小排序，返回下标顺序。
 ///
 /// 只有三个元素，直接手写比较比调排序省事
-fn sort_axes_by_length(half : Array[Double]) -> Array[Int] {
-  let idx : Array[Int] = [0, 1, 2]
+fn sort_axes_by_length(half : Array[Double]) -> Array[Int32] {
+  let idx : Array[Int32] = [0, 1, 2]
   // 冒泡两轮，从大到小
   for _pass = 0; _pass < 2; _pass = _pass + 1 {
     for i = 0; i + 1 < 3; i = i + 1 {
@@ -160,7 +160,7 @@ fn sort_axes_by_length(half : Array[Double]) -> Array[Int] {
 /// 「什么算同一个点」整个项目只有一个答案，不然同一条边
 /// 在这个环节算共用的、到那个环节又算两个点，报告就会自相矛盾。
 fn unique_positions(mesh : Mesh) -> Array[Vec3] {
-  let table : Map[PositionKey, Int] = Map([])
+  let table : Map[PositionKey, Int32] = Map([])
   let out : Array[Vec3] = []
   for t in mesh.triangles {
     for v in [t.a, t.b, t.c] {

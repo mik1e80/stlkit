@@ -8,22 +8,22 @@
 /// 网格校验报告。
 pub(all) struct ValidationReport {
   /// 三角形总数
-  triangle_count : Int
+  triangle_count : Int32
   /// 文件里写了多少个顶点（等于三角形数 × 3，STL 每个面都重写一遍自己的顶点）
-  raw_vertex_count : Int
+  raw_vertex_count : Int32
   /// 焊接之后剩下多少个不同的顶点
-  unique_vertex_count : Int
+  unique_vertex_count : Int32
   /// 只被一个面用到的边。数量大于零说明网格有破洞
-  boundary_edge_count : Int
+  boundary_edge_count : Int32
   /// 被三个及以上面共用的边。这种边在真实物体上不该出现
-  non_manifold_edge_count : Int
+  non_manifold_edge_count : Int32
   /// 退化三角形（三个点共线，面积为零）的数量
-  degenerate_count : Int
+  degenerate_count : Int32
   /// 已保留声明面法线与几何法线点积 < 0 的数量；近零向量跳过。
   /// 不检查单位长度、垂直性或精确一致性；0 不代表完整法线验证。
-  wrong_normal_count : Int
+  wrong_normal_count : Int32
   /// 不同边的条数（去重后）。和顶点数、三角形数一起能算出欧拉示性数
-  unique_edge_count : Int
+  unique_edge_count : Int32
 }
 
 ///|
@@ -40,7 +40,7 @@ pub(all) struct ValidationReport {
 ///
 /// 有 k 个独立表面时，χ = 2k − 2Σg，g 为各表面的亏格。
 /// 边闭合不证明网格无自相交或非流形顶点；解释前需要核实这些前提。
-pub fn ValidationReport::euler_number(self : ValidationReport) -> Int {
+pub fn ValidationReport::euler_number(self : ValidationReport) -> Int32 {
   self.unique_vertex_count - self.unique_edge_count + self.triangle_count
 }
 
@@ -102,9 +102,9 @@ fn position_key(v : Vec3, tolerance : Double) -> PositionKey {
 /// 顶点焊接的结果。
 pub(all) struct WeldResult {
   /// 每个顶点焊接后的编号。第 i 个顶点的编号是 ids[i]
-  ids : Array[Int]
+  ids : Array[Int32]
   /// 焊接后剩下多少个不同的顶点
-  unique_count : Int
+  unique_count : Int32
 }
 
 ///|
@@ -117,8 +117,8 @@ pub(all) struct WeldResult {
 /// 用 Map 存「量化后的坐标 → 编号」，第一次见到的坐标分配一个新编号，
 /// 之后见到的复用。坐标量化的细节见 quantize。
 fn weld_vertices(mesh : Mesh, tolerance : Double) -> WeldResult {
-  let lookup : Map[PositionKey, Int] = Map([])
-  let ids : Array[Int] = []
+  let lookup : Map[PositionKey, Int32] = Map([])
+  let ids : Array[Int32] = []
   let mut next_id = 0
   for triangle in mesh.triangles {
     for v in triangle.vertices() {
@@ -145,7 +145,7 @@ fn weld_vertices(mesh : Mesh, tolerance : Double) -> WeldResult {
 /// 一条边有两个端点，但从哪个面看过来顺序可能相反（第一个面是 a→b，
 /// 相邻面是 b→a）。要统计「这条边被几个面用了」，得先让两个方向
 /// 表示成同一个东西：小的编号在前。
-fn edge_key(a : Int, b : Int) -> (Int, Int) {
+fn edge_key(a : Int32, b : Int32) -> (Int32, Int32) {
   if a < b {
     (a, b)
   } else {
@@ -160,7 +160,7 @@ pub fn validate(mesh : Mesh, tolerance : Double) -> ValidationReport {
 
   // 统计每条边被几个三角形共用。
   // 键是「小编号,大编号」拼成的字符串，值是出现次数。
-  let edge_counts : Map[String, Int] = Map([])
+  let edge_counts : Map[String, Int32] = Map([])
   let mut degenerate = 0
   let mut wrong_normal = 0
 
@@ -270,7 +270,7 @@ pub fn validate_default(mesh : Mesh) -> ValidationReport {
 /// 注意**只有共用边才算连接**。两个零件刚好顶点碰着顶点不算——
 /// 那种接触在切片时是断的，和分开放没有区别。
 /// （这也是为什么不用「顶点相同就算连通」来判，那样会漏报。）
-pub fn count_parts(mesh : Mesh, tolerance : Double) -> Int {
+pub fn count_parts(mesh : Mesh, tolerance : Double) -> Int32 {
   let n = mesh.triangle_count()
   if n == 0 {
     return 0
@@ -278,7 +278,7 @@ pub fn count_parts(mesh : Mesh, tolerance : Double) -> Int {
   let weld = weld_vertices(mesh, tolerance)
 
   // 无向边 → 用到它的面。同一条边上的面互为邻居
-  let edge_faces : Map[String, Array[Int]] = Map([])
+  let edge_faces : Map[String, Array[Int32]] = Map([])
   for i = 0; i < n; i = i + 1 {
     let ia = weld.ids[i * 3]
     let ib = weld.ids[i * 3 + 1]
@@ -293,7 +293,7 @@ pub fn count_parts(mesh : Mesh, tolerance : Double) -> Int {
       let list = match edge_faces.get(key) {
         Some(l) => l
         None => {
-          let l : Array[Int] = []
+          let l : Array[Int32] = []
           edge_faces.set(key, l)
           l
         }
@@ -310,7 +310,7 @@ pub fn count_parts(mesh : Mesh, tolerance : Double) -> Int {
   let mut parts = 0
   // 每个连通块做一次广度优先。用下标当队头而不用 pop，
   // 免得每弹一个元素就挪一次数组
-  let queue : Array[Int] = []
+  let queue : Array[Int32] = []
   for seed = 0; seed < n; seed = seed + 1 {
     if visited[seed] {
       continue
@@ -349,6 +349,6 @@ pub fn count_parts(mesh : Mesh, tolerance : Double) -> Int {
 
 ///|
 /// 用默认容差数零件。
-pub fn count_parts_default(mesh : Mesh) -> Int {
+pub fn count_parts_default(mesh : Mesh) -> Int32 {
   count_parts(mesh, default_weld_tolerance())
 }

@@ -21,10 +21,10 @@ pub fn WindingOrientation::label(self : WindingOrientation) -> String {
 
 ///|
 pub(all) struct WindingComponent {
-  index : Int
+  index : Int32
   /// Original face indices, for locating the component in the input mesh.
-  faces : Array[Int]
-  flipped_faces : Int
+  faces : Array[Int32]
+  flipped_faces : Int32
   closed : Bool
   consistent : Bool
   signed_volume : Double
@@ -36,7 +36,7 @@ pub(all) struct WindingComponent {
 
 ///|
 pub(all) struct WindingReport {
-  flipped_faces : Int
+  flipped_faces : Int32
   consistent : Bool
   /// Aggregate diagnostic only: signs of different components may cancel.
   signed_volume : Double
@@ -44,7 +44,7 @@ pub(all) struct WindingReport {
 }
 
 ///|
-pub fn WindingReport::negative_components(self : WindingReport) -> Int {
+pub fn WindingReport::negative_components(self : WindingReport) -> Int32 {
   self.components.filter(c => c.orientation == NegativeVolume).length()
 }
 
@@ -59,13 +59,13 @@ pub fn WindingReport::orientation_reliable(self : WindingReport) -> Bool {
 ///|
 priv struct WindingPartition {
   flags : Array[Bool]
-  faces : Array[Array[Int]]
+  faces : Array[Array[Int32]]
   closed : Array[Bool]
   orientable : Array[Bool]
 }
 
 ///|
-fn winding_edge_key(a : Int, b : Int) -> String {
+fn winding_edge_key(a : Int32, b : Int32) -> String {
   if a < b {
     "\{a},\{b}"
   } else {
@@ -82,7 +82,7 @@ fn winding_partition(mesh : Mesh, tolerance : Double) -> WindingPartition {
   let ids = Array::makei(n, i => {
     (weld.ids[i * 3], weld.ids[i * 3 + 1], weld.ids[i * 3 + 2])
   })
-  let edges : Map[String, Array[(Int, Int)]] = Map([])
+  let edges : Map[String, Array[(Int32, Int32)]] = Map([])
   for i, (a, b, c) in ids {
     for (u, v) in [(a, b), (b, c), (c, a)] {
       let key = winding_edge_key(u, v)
@@ -247,7 +247,7 @@ fn flip_winding(t : Triangle) -> Triangle {
 ///|
 /// Make adjacent faces consistent, then orient isolated closed components positive.
 /// Potentially nested/overlapping shells retain their sign for manual review.
-fn unify_winding_details(mesh : Mesh, tolerance : Double) -> (Mesh, Int) {
+fn unify_winding_details(mesh : Mesh, tolerance : Double) -> (Mesh, Int32) {
   let part = winding_partition(mesh, tolerance)
   let triangles = mesh.triangles.copy()
   for i, group in part.faces {

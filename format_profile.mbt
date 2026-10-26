@@ -24,7 +24,10 @@ fn profile_integer_token(raw : StringView) -> Bool {
 }
 
 ///|
-fn profile_decimal_int(raw : StringView, minimum : Int) -> Result[Int, String] {
+fn profile_decimal_int(
+  raw : StringView,
+  minimum : Int32,
+) -> Result[Int32, String] {
   if !profile_integer_token(raw) {
     return Err("需要十进制整数字面量：\{raw}")
   }

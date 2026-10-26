@@ -1,7 +1,7 @@
 // STL 各入口共用的输入契约，不包含网格几何有效性判定。
 
 ///|
-fn stl_binary_length_error(count : UInt, actual : UInt64) -> String? {
+fn stl_binary_length_error(count : UInt32, actual : UInt64) -> String? {
   if actual < 84UL {
     return Some(
       "二进制 STL 至少要 84 字节（80 字节文件头 + 4 字节三角形数），这个文件只有 \{actual} 字节",
@@ -25,7 +25,7 @@ fn stl_binary_length_error(count : UInt, actual : UInt64) -> String? {
 }
 
 ///|
-fn stl_binary_count(data : Bytes) -> Result[Int, String] {
+fn stl_binary_count(data : Bytes) -> Result[Int32, String] {
   let count = if data.length() >= 84 { read_u32_le(data, 80) } else { 0U }
   if stl_binary_length_error(count, data.length().to_uint64()) is Some(message) {
     return Err(message)
@@ -37,7 +37,11 @@ fn stl_binary_count(data : Bytes) -> Result[Int, String] {
 }
 
 ///|
-fn stl_binary_record_error(data : Bytes, base : Int, index : Int) -> String? {
+fn stl_binary_record_error(
+  data : Bytes,
+  base : Int32,
+  index : Int32,
+) -> String? {
   for offset in [0, 12, 24, 36] {
     if !finite_vertex(read_vec3_f32(data, base + offset)) {
       return Some(
@@ -61,7 +65,7 @@ priv struct StlAsciiReader {
   mut stage : StlAsciiStage
   mut normal : Vec3
   pending : Array[Vec3]
-  mut line_no : Int
+  mut line_no : Int32
 }
 
 ///|
@@ -163,7 +167,7 @@ fn StlAsciiReader::read_line(
 fn walk_stl_ascii(
   text : String,
   emit : (Triangle) -> Unit,
-) -> Result[Int, String] {
+) -> Result[Int32, String] {
   let reader : StlAsciiReader = {
     stage: Outside,
     normal: Vec3::zero(),

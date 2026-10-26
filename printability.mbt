@@ -13,7 +13,7 @@ pub(all) struct PrintabilityReport {
 pub fn check_printability(
   mesh : Mesh,
   min_thickness : Double,
-  samples? : Int = DEFAULT_THICKNESS_SAMPLES,
+  samples~ : Int32 = DEFAULT_THICKNESS_SAMPLES,
 ) -> PrintabilityReport {
   let validation = validate_default(mesh)
   let winding = check_winding_default(mesh)
@@ -34,7 +34,7 @@ pub fn check_printability(
 /// 从分量明细计算，避免与 winding.components 保存重复且可能不一致的计数。
 pub fn PrintabilityReport::inward_component_count(
   self : PrintabilityReport,
-) -> Int {
+) -> Int32 {
   self.winding.negative_components()
 }
 

@@ -2,9 +2,9 @@
 package "mik1e80/stlkit"
 
 // Values
-pub fn check_printability(Mesh, Double, samples? : Int) -> PrintabilityReport
+pub fn check_printability(Mesh, Double, samples? : Int32) -> PrintabilityReport
 
-pub fn check_thickness(Mesh, Int) -> ThicknessReport
+pub fn check_thickness(Mesh, Int32) -> ThicknessReport
 
 pub fn check_thickness_default(Mesh) -> ThicknessReport
 
@@ -12,9 +12,9 @@ pub fn check_winding(Mesh, Double) -> WindingReport
 
 pub fn check_winding_default(Mesh) -> WindingReport
 
-pub fn count_parts(Mesh, Double) -> Int
+pub fn count_parts(Mesh, Double) -> Int32
 
-pub fn count_parts_default(Mesh) -> Int
+pub fn count_parts_default(Mesh) -> Int32
 
 pub fn default_weld_tolerance() -> Double
 
@@ -99,7 +99,7 @@ pub fn Mesh::oriented_bounding_box(Self) -> Obb?
 pub fn Mesh::principal_moments(Self) -> FixedArray[Double]
 pub fn Mesh::ray_cast(Self, Vec3, Vec3) -> RayHit?
 pub fn Mesh::surface_area(Self) -> Double
-pub fn Mesh::triangle_count(Self) -> Int
+pub fn Mesh::triangle_count(Self) -> Int32
 pub fn Mesh::vertices(Self) -> Array[Vec3]
 pub fn Mesh::volume(Self) -> Double
 
@@ -121,8 +121,8 @@ pub fn Obb::size(Self) -> Vec3
 pub fn Obb::volume(Self) -> Double
 
 pub(all) struct PreviewOptions {
-  width : Int
-  height : Int
+  width : Int32
+  height : Int32
   yaw : Double
   pitch : Double
   stroke : String
@@ -137,7 +137,7 @@ pub(all) struct PrintabilityReport {
   min_thickness : Double
 }
 pub fn PrintabilityReport::inward(Self) -> Bool
-pub fn PrintabilityReport::inward_component_count(Self) -> Int
+pub fn PrintabilityReport::inward_component_count(Self) -> Int32
 pub fn PrintabilityReport::mass_properties_available(Self) -> Bool
 pub fn PrintabilityReport::needs_review(Self) -> Bool
 pub fn PrintabilityReport::thickness_unavailable(Self) -> Bool
@@ -146,7 +146,7 @@ pub fn PrintabilityReport::verdict(Self) -> String
 
 pub(all) struct RayHit {
   distance : Double
-  triangle : Int
+  triangle : Int32
   point : Vec3
 }
 
@@ -163,21 +163,21 @@ pub fn RepairOptions::normals_only() -> Self
 
 pub(all) struct RepairResult {
   mesh : Mesh
-  removed_degenerate : Int
-  removed_duplicates : Int
-  filled_holes : Int
-  added_triangles : Int
-  recomputed_normals : Int
-  flipped_faces : Int
-  reoriented_components : Int
+  removed_degenerate : Int32
+  removed_duplicates : Int32
+  filled_holes : Int32
+  added_triangles : Int32
+  recomputed_normals : Int32
+  flipped_faces : Int32
+  reoriented_components : Int32
 }
 pub fn RepairResult::changed(Self) -> Bool
 
 pub(all) struct ScanStorage {
-  unique_vertices : Int
-  edge_records : Int
-  pending_bytes : Int
-  peak_buffered_bytes : Int
+  unique_vertices : Int32
+  edge_records : Int32
+  pending_bytes : Int32
+  peak_buffered_bytes : Int32
 }
 
 pub(all) struct StlScanner {
@@ -189,11 +189,11 @@ pub fn StlScanner::new() -> Self
 pub fn StlScanner::storage(Self) -> ScanStorage
 
 pub(all) struct StreamReport {
-  triangle_count : Int
-  raw_vertex_count : Int
-  unique_vertex_count : Int
-  boundary_edge_count : Int
-  non_manifold_edge_count : Int
+  triangle_count : Int32
+  raw_vertex_count : Int32
+  unique_vertex_count : Int32
+  boundary_edge_count : Int32
+  non_manifold_edge_count : Int32
   volume : Double
   surface_area : Double
   bbox : Aabb?
@@ -206,8 +206,8 @@ pub(all) struct SymmetricEigen {
 }
 
 pub(all) struct ThicknessReport {
-  samples : Int
-  hits : Int
+  samples : Int32
+  hits : Int32
   min_thickness : Double
   min_at : Vec3?
   mean_thickness : Double
@@ -226,16 +226,16 @@ pub fn Triangle::signed_volume(Self) -> Double
 pub fn Triangle::vertices(Self) -> Array[Vec3]
 
 pub(all) struct ValidationReport {
-  triangle_count : Int
-  raw_vertex_count : Int
-  unique_vertex_count : Int
-  boundary_edge_count : Int
-  non_manifold_edge_count : Int
-  degenerate_count : Int
-  wrong_normal_count : Int
-  unique_edge_count : Int
+  triangle_count : Int32
+  raw_vertex_count : Int32
+  unique_vertex_count : Int32
+  boundary_edge_count : Int32
+  non_manifold_edge_count : Int32
+  degenerate_count : Int32
+  wrong_normal_count : Int32
+  unique_edge_count : Int32
 }
-pub fn ValidationReport::euler_number(Self) -> Int
+pub fn ValidationReport::euler_number(Self) -> Int32
 pub fn ValidationReport::is_watertight(Self) -> Bool
 
 pub(all) struct Vec3 {
@@ -254,14 +254,14 @@ pub fn Vec3::sub(Self, Self) -> Self
 pub fn Vec3::zero() -> Self
 
 pub(all) struct WeldResult {
-  ids : Array[Int]
-  unique_count : Int
+  ids : Array[Int32]
+  unique_count : Int32
 }
 
 pub(all) struct WindingComponent {
-  index : Int
-  faces : Array[Int]
-  flipped_faces : Int
+  index : Int32
+  faces : Array[Int32]
+  flipped_faces : Int32
   closed : Bool
   consistent : Bool
   signed_volume : Double
@@ -280,12 +280,12 @@ pub fn WindingOrientation::label(Self) -> String
 pub fn WindingOrientation::not_equal(Self, Self) -> Bool
 
 pub(all) struct WindingReport {
-  flipped_faces : Int
+  flipped_faces : Int32
   consistent : Bool
   signed_volume : Double
   components : Array[WindingComponent]
 }
-pub fn WindingReport::negative_components(Self) -> Int
+pub fn WindingReport::negative_components(Self) -> Int32
 pub fn WindingReport::orientation_reliable(Self) -> Bool
 
 // Type aliases

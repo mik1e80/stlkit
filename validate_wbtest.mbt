@@ -16,7 +16,7 @@ fn cube_mesh() -> Mesh {
 
 ///|
 /// 拿走前 n 个三角形，造出破洞。
-fn cube_mesh_without(n : Int) -> Mesh {
+fn cube_mesh_without(n : Int32) -> Mesh {
   let triangles : Array[Triangle] = []
   let mut i = 0
   for t in unit_cube_triangles() {

@@ -18,15 +18,15 @@
 /// 字段和 `ValidationReport` 有意保持一致，方便并排显示。
 pub(all) struct StreamReport {
   /// 三角形总数
-  triangle_count : Int
+  triangle_count : Int32
   /// 文件里写了多少个顶点（二进制 STL 就是三角形数 × 3）
-  raw_vertex_count : Int
+  raw_vertex_count : Int32
   /// 去重之后剩下多少个不同的顶点
-  unique_vertex_count : Int
+  unique_vertex_count : Int32
   /// 只被一个面用到的边。大于零说明有破洞
-  boundary_edge_count : Int
+  boundary_edge_count : Int32
   /// 被三个及以上面共用的边
-  non_manifold_edge_count : Int
+  non_manifold_edge_count : Int32
   /// 体积
   volume : Double
   /// 表面积
@@ -61,7 +61,7 @@ pub fn stream_stl_binary(data : Bytes) -> Result[StreamReport, String] {
   // 需要保留的两样东西：
   //   1. 顶点去重表 —— 只存「量化坐标 → 编号」，不存三角形本身
   //   2. 边表 —— 只存每条边的两个端点编号，最后排序统计
-  let weld : Map[PositionKey, Int] = Map([])
+  let weld : Map[PositionKey, Int32] = Map([])
   let edges : Array[UInt64] = []
   let mut unique_vertices = 0
 
@@ -134,7 +134,7 @@ pub fn stream_stl_binary(data : Bytes) -> Result[StreamReport, String] {
 ///
 /// 量化方式和全量校验那边一致（`validate.mbt` 的 `quantize`），
 /// 这样两条路径对「两个点算不算同一个」的判断是一样的。
-fn weld_vertex(table : Map[PositionKey, Int], v : Vec3) -> Int {
+fn weld_vertex(table : Map[PositionKey, Int32], v : Vec3) -> Int32 {
   let key = position_key(v, default_weld_tolerance())
   match table.get(key) {
     Some(id) => id
@@ -174,7 +174,7 @@ fn expand_bbox(min : Vec3?, max : Vec3?, v : Vec3) -> (Vec3?, Vec3?) {
 /// 把一条边的两个端点编号打包成一个 64 位的整数。
 ///
 /// 无向边：小的编号放高位，这样 (a,b) 和 (b,a) 得到同一个键。
-fn pack_edge(a : Int, b : Int) -> UInt64 {
+fn pack_edge(a : Int32, b : Int32) -> UInt64 {
   let lo = if a < b { a } else { b }
   let hi = if a < b { b } else { a }
   (lo.to_uint64() << 32) | hi.to_uint64()
@@ -185,7 +185,7 @@ fn pack_edge(a : Int, b : Int) -> UInt64 {
 ///
 /// 排序之后同一条边必然挨在一起，扫一遍数连续相同的个数就行，
 /// 不需要哈希表。
-fn count_edges(edges : Array[UInt64]) -> (Int, Int) {
+fn count_edges(edges : Array[UInt64]) -> (Int32, Int32) {
   if edges.length() == 0 {
     return (0, 0)
   }
@@ -224,7 +224,7 @@ pub fn stream_stl_ascii(text : String) -> Result[StreamReport, String] {
   let mut area = 0.0
   let mut min : Vec3? = None
   let mut max : Vec3? = None
-  let weld : Map[PositionKey, Int] = Map([])
+  let weld : Map[PositionKey, Int32] = Map([])
   let edges : Array[UInt64] = []
   let mut unique_vertices = 0
   let triangles = match
@@ -292,30 +292,30 @@ pub(all) struct StlScanner {
   /// 文件头读完了没有
   priv mut started : Bool
   /// 头部声称的三角形数
-  priv mut declared : Int
+  priv mut declared : Int32
   /// 已经处理了多少个三角形
-  priv mut done : Int
+  priv mut done : Int32
   priv mut volume : Double
   priv mut area : Double
   priv mut min : Vec3?
   priv mut max : Vec3?
   /// 顶点去重表
-  priv weld : Map[PositionKey, Int]
+  priv weld : Map[PositionKey, Int32]
   /// 边表，最后统一排序统计
   priv edges : Array[UInt64]
   /// 读到的总字节数，用来核对文件长度
   priv mut consumed : UInt64
   priv mut failure : String?
-  priv mut peak_buffered_bytes : Int
+  priv mut peak_buffered_bytes : Int32
 }
 
 ///|
 /// 二进制 STL 的文件头长度：80 字节说明 + 4 字节三角形数。
-const STL_HEADER_SIZE : Int = 84
+const STL_HEADER_SIZE : Int32 = 84
 
 ///|
 /// 二进制 STL 每个三角形固定 50 字节。
-const STL_RECORD_SIZE : Int = 50
+const STL_RECORD_SIZE : Int32 = 50
 
 ///|
 pub fn StlScanner::new() -> StlScanner {
@@ -356,10 +356,10 @@ pub fn StlScanner::feed(self : StlScanner, chunk : Bytes) -> Unit {
 ///|
 /// Logical retained-record counts, not allocator capacity or process RSS.
 pub(all) struct ScanStorage {
-  unique_vertices : Int
-  edge_records : Int
-  pending_bytes : Int
-  peak_buffered_bytes : Int
+  unique_vertices : Int32
+  edge_records : Int32
+  pending_bytes : Int32
+  peak_buffered_bytes : Int32
 }
 
 ///|

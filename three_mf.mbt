@@ -27,9 +27,9 @@ priv struct MfObject {
   /// 共享顶点表
   vertices : Array[Vec3]
   /// 三角形，存的是顶点表下标
-  triangles : Array[(Int, Int, Int)]
+  triangles : Array[(Int32, Int32, Int32)]
   /// 组件：引用的对象 id + 变换矩阵
-  components : Array[(Int, FixedArray[Double]?)]
+  components : Array[(Int32, FixedArray[Double]?)]
 }
 
 ///|
@@ -49,7 +49,7 @@ pub fn is_3mf(data : Bytes) -> Bool {
 /// compatibility=true 显式启用旧包定位回退；不放宽 XML/几何检查。
 pub fn parse_3mf(
   data : Bytes,
-  compatibility? : Bool = false,
+  compatibility~ : Bool = false,
 ) -> Result[Mesh, String] {
   // 解 ZIP。fzip 自带 zip bomb 防护（解压比超过 1000 倍直接拒绝）
   // 和不安全路径拒绝（绝对路径、`..` 一律不收）——解析用户传上来的文件，
@@ -298,9 +298,9 @@ fn mf_parent_of(tag : String) -> String? {
 /// 这些语义不进入 Mesh；忽略不代表已验证制造语义或可打印。
 fn parse_model_xml(xml : String) -> Result[Mesh, String] {
   let reader = @xml.Reader::from_string(xml)
-  let objects : Map[Int, MfObject] = Map([])
+  let objects : Map[Int32, MfObject] = Map([])
   // build 里列出的 (对象 id, 变换)
-  let build : Array[(Int, FixedArray[Double]?)] = []
+  let build : Array[(Int32, FixedArray[Double]?)] = []
 
   // 单位换算到毫米。STL 没有单位概念，3MF 有，不换算的话
   // 一个以英寸建模的模型体积会差 25.4³ ≈ 16387 倍
@@ -315,10 +315,10 @@ fn parse_model_xml(xml : String) -> Result[Mesh, String] {
   let mut geometry_seen = false
 
   // 当前正在攒的对象
-  let mut cur_id : Int? = None
+  let mut cur_id : Int32? = None
   let mut cur_vertices : Array[Vec3] = []
-  let mut cur_triangles : Array[(Int, Int, Int)] = []
-  let mut cur_components : Array[(Int, FixedArray[Double]?)] = []
+  let mut cur_triangles : Array[(Int32, Int32, Int32)] = []
+  let mut cur_components : Array[(Int32, FixedArray[Double]?)] = []
 
   while !reader.is_eof() {
     let event = reader.read_event() catch {
@@ -569,11 +569,11 @@ fn parse_model_xml(xml : String) -> Result[Mesh, String] {
 /// 抽成函数是因为「收尾」要在两个地方发生：遇到结束标签时，
 /// 以及开始下一个对象之前。后一处是给自闭合或者结构不完整的文件兜底的。
 fn flush_object(
-  objects : Map[Int, MfObject],
-  id : Int?,
+  objects : Map[Int32, MfObject],
+  id : Int32?,
   vertices : Array[Vec3],
-  triangles : Array[(Int, Int, Int)],
-  components : Array[(Int, FixedArray[Double]?)],
+  triangles : Array[(Int32, Int32, Int32)],
+  components : Array[(Int32, FixedArray[Double]?)],
 ) -> Unit {
   match id {
     Some(i) => objects.set(i, MfObject::{ vertices, triangles, components, })
@@ -608,10 +608,10 @@ fn scale_mesh(triangles : Array[Triangle], scale : Double) -> Array[Triangle] {
 /// `depth` 是递归深度。3MF 允许对象互相引用，**引用成环是坏文件，
 /// 但真会出现**，不设上限就会栈溢出。
 fn build_object(
-  objects : Map[Int, MfObject],
-  id : Int,
+  objects : Map[Int32, MfObject],
+  id : Int32,
   transform : FixedArray[Double],
-  depth : Int,
+  depth : Int32,
 ) -> Result[Array[Triangle], String] {
   if depth > 32 {
     return Err(
@@ -774,7 +774,7 @@ fn attribute_int(
   element : @xml.XmlElement,
   name : String,
   tag : String,
-) -> Result[Int, String] {
+) -> Result[Int32, String] {
   match element.get(name) {
     Some(raw) => {
       let minimum = if name == "id" || name == "objectid" { 1 } else { 0 }

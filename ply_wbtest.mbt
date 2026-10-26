@@ -14,9 +14,12 @@
 ///
 /// 直接用手写死 8 个顶点容易和 unit_cube_triangles() 对不上，
 /// 所以从它推出来——这样两边的三角剖分保证一致。
-fn cube_ply_parts() -> (Array[(Double, Double, Double)], Array[(Int, Int, Int)]) {
+fn cube_ply_parts() -> (
+  Array[(Double, Double, Double)],
+  Array[(Int32, Int32, Int32)],
+) {
   let verts : Array[(Double, Double, Double)] = []
-  let faces : Array[(Int, Int, Int)] = []
+  let faces : Array[(Int32, Int32, Int32)] = []
   for t in unit_cube_triangles() {
     let (a, b, c) = t
     let ia = intern_vertex(verts, a)
@@ -29,7 +32,7 @@ fn cube_ply_parts() -> (Array[(Double, Double, Double)], Array[(Int, Int, Int)])
 
 ///|
 /// 顶点表里找这个点，没有就加进去并返回新编号。
-fn intern_vertex(verts : Array[(Double, Double, Double)], v : Vec3) -> Int {
+fn intern_vertex(verts : Array[(Double, Double, Double)], v : Vec3) -> Int32 {
   for i, e in verts {
     let (x, y, z) = e
     if x == v.x && y == v.y && z == v.z {
@@ -48,7 +51,7 @@ fn ascii_ply(
   vertex_extra : String,
   face_extra : String,
   verts : Array[(Double, Double, Double)],
-  faces : Array[(Int, Int, Int)],
+  faces : Array[(Int32, Int32, Int32)],
 ) -> Bytes {
   let mut s = "ply\nformat ascii 1.0\n"
   s = s + "element vertex \{verts.length()}\n"
@@ -75,7 +78,7 @@ fn ascii_ply(
 /// 测试用的立方体坐标只有 0 和 1，所以直接取这两个值的 IEEE 754 位模式
 /// （0.0 → 0x00000000、1.0 → 0x3F800000），省得为了 Double → 位模式
 /// 的转换再翻一遍标准库。
-fn f32_bits(v : Double) -> UInt {
+fn f32_bits(v : Double) -> UInt32 {
   if v == 0.0 {
     0x00000000
   } else {
@@ -85,7 +88,7 @@ fn f32_bits(v : Double) -> UInt {
 
 ///|
 /// 把一个 UInt 按 4 字节写进数组，`big` 决定字节序。
-fn ply_push_u32(out : Array[Byte], v : UInt, big : Bool) -> Unit {
+fn ply_push_u32(out : Array[Byte], v : UInt32, big : Bool) -> Unit {
   let b0 = (v & 0xFF).reinterpret_as_int()
   let b1 = ((v >> 8) & 0xFF).reinterpret_as_int()
   let b2 = ((v >> 16) & 0xFF).reinterpret_as_int()
@@ -110,7 +113,7 @@ fn ply_push_u32(out : Array[Byte], v : UInt, big : Bool) -> Unit {
 fn binary_ply(
   big : Bool,
   verts : Array[(Double, Double, Double)],
-  faces : Array[(Int, Int, Int)],
+  faces : Array[(Int32, Int32, Int32)],
 ) -> Bytes {
   let kind = if big { "binary_big_endian" } else { "binary_little_endian" }
   let mut head = "ply\nformat " + kind + " 1.0\n"
@@ -410,7 +413,7 @@ test "ASCII PLY 列表截断报错且宽松模式不借用下一行补属性" {
 ///|
 test "编号越界要报错" {
   let (verts, _faces) = cube_ply_parts()
-  let bad : Array[(Int, Int, Int)] = [(0, 1, 99)]
+  let bad : Array[(Int32, Int32, Int32)] = [(0, 1, 99)]
   match parse_ply(ascii_ply("", "", verts, bad)) {
     Ok(_) => fail("越界的编号不该成功")
     Err(msg) => assert_true(msg.contains("越界"))

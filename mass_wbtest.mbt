@@ -46,20 +46,21 @@ fn box_mesh(a : Double, b : Double, c : Double) -> Mesh {
   let v111 = Vec3::new(a, b, c)
   let v011 = Vec3::new(0.0, b, c)
   let triangles : Array[Triangle] = []
-  for t in [
-    (v000, v010, v110),
-    (v000, v110, v100),
-    (v001, v101, v111),
-    (v001, v111, v011),
-    (v000, v100, v101),
-    (v000, v101, v001),
-    (v010, v011, v111),
-    (v010, v111, v110),
-    (v000, v001, v011),
-    (v000, v011, v010),
-    (v100, v110, v111),
-    (v100, v111, v101),
-  ] {
+  for
+    t in [
+      (v000, v010, v110),
+      (v000, v110, v100),
+      (v001, v101, v111),
+      (v001, v111, v011),
+      (v000, v100, v101),
+      (v000, v101, v001),
+      (v010, v011, v111),
+      (v010, v111, v110),
+      (v000, v001, v011),
+      (v000, v011, v010),
+      (v100, v110, v111),
+      (v100, v111, v101),
+    ] {
     let (x, y, z) = t
     triangles.push(Triangle::from_vertices(x, y, z))
   }
@@ -93,11 +94,13 @@ test "重心不在原点也能算对" {
   let mesh = box_mesh(10.0, 20.0, 30.0)
   let shifted : Array[Triangle] = []
   for t in mesh.triangles {
-    shifted.push(Triangle::from_vertices(
-      Vec3::new(t.a.x + 100.0, t.a.y - 50.0, t.a.z),
-      Vec3::new(t.b.x + 100.0, t.b.y - 50.0, t.b.z),
-      Vec3::new(t.c.x + 100.0, t.c.y - 50.0, t.c.z),
-    ))
+    shifted.push(
+      Triangle::from_vertices(
+        Vec3::new(t.a.x + 100.0, t.a.y - 50.0, t.a.z),
+        Vec3::new(t.b.x + 100.0, t.b.y - 50.0, t.b.z),
+        Vec3::new(t.c.x + 100.0, t.c.y - 50.0, t.c.z),
+      ),
+    )
   }
   let c = Mesh::new(shifted).center_mass()
   assert_true(close(c.x, 105.0))
@@ -158,11 +161,13 @@ test "平行轴定理：转动惯量不随平移变，重心才变" {
   let before = mesh.moment_inertia()
   let shifted : Array[Triangle] = []
   for t in mesh.triangles {
-    shifted.push(Triangle::from_vertices(
-      Vec3::new(t.a.x + 100.0, t.a.y - 50.0, t.a.z),
-      Vec3::new(t.b.x + 100.0, t.b.y - 50.0, t.b.z),
-      Vec3::new(t.c.x + 100.0, t.c.y - 50.0, t.c.z),
-    ))
+    shifted.push(
+      Triangle::from_vertices(
+        Vec3::new(t.a.x + 100.0, t.a.y - 50.0, t.a.z),
+        Vec3::new(t.b.x + 100.0, t.b.y - 50.0, t.b.z),
+        Vec3::new(t.c.x + 100.0, t.c.y - 50.0, t.c.z),
+      ),
+    )
   }
   let after = Mesh::new(shifted).moment_inertia()
   for k = 0; k < 9; k = k + 1 {

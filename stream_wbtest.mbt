@@ -18,7 +18,9 @@ fn assert_same_as_full(
   assert_eq(stream.boundary_edge_count, full.boundary_edge_count)
   assert_eq(stream.non_manifold_edge_count, full.non_manifold_edge_count)
   if !close(stream.volume, mesh.volume()) {
-    fail("\{label}：体积对不上，流式 \{stream.volume} vs 全量 \{mesh.volume()}")
+    fail(
+      "\{label}：体积对不上，流式 \{stream.volume} vs 全量 \{mesh.volume()}",
+    )
   }
   if !close(stream.surface_area, mesh.surface_area()) {
     fail(
@@ -63,7 +65,7 @@ test "流式扫描二进制立方体和全量结果一致" {
 ///
 /// 不用仓库里的示例文件，是因为库包不能 import `@fs`；
 /// 而且生成的网格参数可控，想看多大就多大。
-fn grid_mesh(n : Int) -> Mesh {
+fn grid_mesh(n : Int32) -> Mesh {
   let triangles : Array[Triangle] = []
   for i = 0; i < n; i = i + 1 {
     for j = 0; j < n; j = j + 1 {
@@ -181,7 +183,7 @@ test "流式扫描退化三角形" {
 
 ///|
 /// 从字节数组里切一段出来。
-fn slice_bytes(data : Bytes, from : Int, to : Int) -> Bytes {
+fn slice_bytes(data : Bytes, from : Int32, to : Int32) -> Bytes {
   let out : Array[Byte] = []
   for i = from; i < to; i = i + 1 {
     out.push(data[i])
@@ -191,7 +193,7 @@ fn slice_bytes(data : Bytes, from : Int, to : Int) -> Bytes {
 
 ///|
 /// 按指定的块大小喂给分块扫描器。
-fn scan_in_chunks(data : Bytes, chunk : Int) -> Result[StreamReport, String] {
+fn scan_in_chunks(data : Bytes, chunk : Int32) -> Result[StreamReport, String] {
   let scanner = StlScanner::new()
   let mut pos = 0
   while pos < data.length() {

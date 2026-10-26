@@ -14,11 +14,13 @@ fn shifted_cube(
   let out : Array[(Vec3, Vec3, Vec3)] = []
   for t in unit_cube_triangles() {
     let (a, b, c) = t
-    out.push((
-      Vec3::new(a.x + dx, a.y + dy, a.z + dz),
-      Vec3::new(b.x + dx, b.y + dy, b.z + dz),
-      Vec3::new(c.x + dx, c.y + dy, c.z + dz),
-    ))
+    out.push(
+      (
+        Vec3::new(a.x + dx, a.y + dy, a.z + dz),
+        Vec3::new(b.x + dx, b.y + dy, b.z + dz),
+        Vec3::new(c.x + dx, c.y + dy, c.z + dz),
+      ),
+    )
   }
   out
 }
@@ -61,7 +63,9 @@ test "空网格是零个零件" {
 
 ///|
 test "分开的两个立方体是两个零件" {
-  let mesh = mesh_of(concat(shifted_cube(0.0, 0.0, 0.0), shifted_cube(5.0, 0.0, 0.0)))
+  let mesh = mesh_of(
+    concat(shifted_cube(0.0, 0.0, 0.0), shifted_cube(5.0, 0.0, 0.0)),
+  )
   assert_eq(count_parts_default(mesh), 2)
   // 顺便确认它们各自都是水密的——分开并不等于坏
   let check = validate_default(mesh)
@@ -88,7 +92,9 @@ test "面对面贴住算一个零件（共用了边）" {
   //
   // 注意几何上它们也是水密的、能打印的——两个立方体拼成一个长方体，
   // 只是中间多了一层内壁。这里只关心连通性判得对不对
-  let mesh = mesh_of(concat(shifted_cube(0.0, 0.0, 0.0), shifted_cube(1.0, 0.0, 0.0)))
+  let mesh = mesh_of(
+    concat(shifted_cube(0.0, 0.0, 0.0), shifted_cube(1.0, 0.0, 0.0)),
+  )
   assert_eq(count_parts_default(mesh), 1)
 }
 
@@ -102,7 +108,9 @@ test "只碰到一个角不算连在一起" {
   //
   // 这条是「用共边而不是共顶点判断」的关键用例：
   // 判据要是写成「顶点相同就算连着」，这里就会错报成 1
-  let mesh = mesh_of(concat(shifted_cube(0.0, 0.0, 0.0), shifted_cube(1.0, 1.0, 1.0)))
+  let mesh = mesh_of(
+    concat(shifted_cube(0.0, 0.0, 0.0), shifted_cube(1.0, 1.0, 1.0)),
+  )
   assert_eq(count_parts_default(mesh), 2)
 }
 
@@ -138,7 +146,9 @@ test "退化面不会把零件数算错" {
   assert_eq(count_parts_default(degenerate), 1)
 
   // 把它和一个正常的立方体放一起，应该是 2（那个退化面自己一块）
-  let mesh = mesh_of(concat(shifted_cube(0.0, 0.0, 0.0), shifted_cube(5.0, 0.0, 0.0)))
+  let mesh = mesh_of(
+    concat(shifted_cube(0.0, 0.0, 0.0), shifted_cube(5.0, 0.0, 0.0)),
+  )
   assert_eq(count_parts_default(concat_mesh(mesh, degenerate)), 3)
 }
 
@@ -161,7 +171,9 @@ fn concat_mesh(a : Mesh, b : Mesh) -> Mesh {
 test "零件数和绕向检查的分块对得上" {
   // 绕向检查内部也是按连通块分别遍历的。两个零件分开测：
   // 每个都自洽，整体就不该报「绕向不一致」
-  let mesh = mesh_of(concat(shifted_cube(0.0, 0.0, 0.0), shifted_cube(5.0, 0.0, 0.0)))
+  let mesh = mesh_of(
+    concat(shifted_cube(0.0, 0.0, 0.0), shifted_cube(5.0, 0.0, 0.0)),
+  )
   assert_eq(count_parts_default(mesh), 2)
   let winding = check_winding_default(mesh)
   assert_eq(winding.flipped_faces, 0)
@@ -181,7 +193,9 @@ test "欧拉示性数：立方体是 2" {
 
 ///|
 test "欧拉示性数：两个分开的立方体是 4" {
-  let mesh = mesh_of(concat(shifted_cube(0.0, 0.0, 0.0), shifted_cube(5.0, 0.0, 0.0)))
+  let mesh = mesh_of(
+    concat(shifted_cube(0.0, 0.0, 0.0), shifted_cube(5.0, 0.0, 0.0)),
+  )
   let check = validate_default(mesh)
   // V = 16、E = 36、F = 24 → 16 − 36 + 24 = 4
   assert_eq(check.unique_vertex_count, 16)
@@ -209,7 +223,9 @@ test "面对面贴住的两个立方体是非流形的（5 条边各被 4 个面
   // 结论：**「把两个模型拼起来」不是把顶点对齐就完事**。中间那层
   // 必须真的处理掉（合并掉内部面），否则切片软件在这里判不出该往
   // 哪一侧填材料。模型看起来是完好的，导出来却是个坏网格
-  let mesh = mesh_of(concat(shifted_cube(0.0, 0.0, 0.0), shifted_cube(1.0, 0.0, 0.0)))
+  let mesh = mesh_of(
+    concat(shifted_cube(0.0, 0.0, 0.0), shifted_cube(1.0, 0.0, 0.0)),
+  )
   let check = validate_default(mesh)
   // 连是连着的：共用边了，所以算一个零件
   assert_eq(count_parts_default(mesh), 1)

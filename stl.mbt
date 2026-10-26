@@ -181,7 +181,7 @@ fn parse_vec3(
   x : StringView,
   y : StringView,
   z : StringView,
-  line_no : Int,
+  line_no : Int32,
 ) -> Result[Vec3, String] {
   let x = match parse_coord(x, line_no) {
     Ok(v) => v
@@ -200,7 +200,7 @@ fn parse_vec3(
 
 ///|
 /// 解析一个坐标。解析器的错误是英文的，这里换成带行号的中文提示。
-fn parse_coord(s : StringView, line_no : Int) -> Result[Double, String] {
+fn parse_coord(s : StringView, line_no : Int32) -> Result[Double, String] {
   let value = @string.parse_double(s) catch {
     _ =>
       return Err("第 \{line_no} 行：『\{s}』不是一个合法的数字")
@@ -213,7 +213,7 @@ fn parse_coord(s : StringView, line_no : Int) -> Result[Double, String] {
 
 ///|
 /// 从字节里读一个小端 32 位无符号整数。
-fn read_u32_le(data : Bytes, offset : Int) -> UInt {
+fn read_u32_le(data : Bytes, offset : Int32) -> UInt32 {
   let b0 = data[offset].to_int() & 0xFF
   let b1 = data[offset + 1].to_int() & 0xFF
   let b2 = data[offset + 2].to_int() & 0xFF
@@ -226,14 +226,14 @@ fn read_u32_le(data : Bytes, offset : Int) -> UInt {
 ///
 /// 用 `Float::reinterpret_from_uint` 按位重新解释，而不是做数值转换——
 /// 文件里存的就是 IEEE 754 的位模式，直接搬过来就行，不需要任何换算。
-fn read_f32_le(data : Bytes, offset : Int) -> Double {
+fn read_f32_le(data : Bytes, offset : Int32) -> Double {
   let bits = read_u32_le(data, offset)
   Float::reinterpret_from_uint(bits).to_double()
 }
 
 ///|
 /// 连读三个 float32 组成一个向量。
-fn read_vec3_f32(data : Bytes, offset : Int) -> Vec3 {
+fn read_vec3_f32(data : Bytes, offset : Int32) -> Vec3 {
   Vec3::new(
     read_f32_le(data, offset),
     read_f32_le(data, offset + 4),

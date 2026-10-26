@@ -133,7 +133,7 @@ fn parse_face(
   vertices : Array[Vec3],
   normals : Array[Vec3],
   textures : Array[Vec3],
-  line_no : Int,
+  line_no : Int32,
 ) -> Result[Array[Triangle], String] {
   if refs.length() < 3 {
     return Err(
@@ -142,7 +142,7 @@ fn parse_face(
   }
 
   // 先把这个面的所有顶点解出来
-  let mut reference_shape : Int? = None
+  let mut reference_shape : Int32? = None
   let face_vertices : Array[Vec3] = []
   let face_normals : Array[Vec3] = []
   for vref in refs {
@@ -212,7 +212,7 @@ fn parse_face_ref(
   vertices : Array[Vec3],
   normals : Array[Vec3],
   textures : Array[Vec3],
-  line_no : Int,
+  line_no : Int32,
 ) -> Result[(Vec3, Vec3), String] {
   // 按 `/` 切开，最多三段：顶点[/纹理][/法线]
   let parts : Array[StringView] = []
@@ -278,7 +278,7 @@ fn parse_face_ref(
 fn[T] lookup(
   token : StringView,
   table : Array[T],
-  line_no : Int,
+  line_no : Int32,
   what : String,
 ) -> Result[T, String] {
   let index = match parse_int(token, line_no, what) {
@@ -305,9 +305,9 @@ fn[T] lookup(
 /// 解析一个整数，失败时给出中文提示。
 fn parse_int(
   token : StringView,
-  line_no : Int,
+  line_no : Int32,
   what : String,
-) -> Result[Int, String] {
+) -> Result[Int32, String] {
   if !profile_integer_token(token) {
     return Err("第 \{line_no} 行：OBJ 编号必须为十进制整数")
   }

@@ -10,7 +10,7 @@ fn assert_orthonormal_pca(axes : Array[Vec3]) -> Unit raise {
 }
 
 ///|
-fn pca_component(v : Vec3, i : Int) -> Double {
+fn pca_component(v : Vec3, i : Int32) -> Double {
   if i == 0 {
     v.x
   } else if i == 1 {

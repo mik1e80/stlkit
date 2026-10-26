@@ -81,7 +81,7 @@ fn command() -> @argparse.Command {
 /// - 文件字节：读进来之后一直在内存里
 /// - 每个三角形是 4 个 Vec3 = 12 个 Double = 96 字节
 /// 不计容器、对象头、顶点焊接与绕向分析的附加存储。
-fn full_memory(file_size : Int, triangles : Int) -> Int64 {
+fn full_memory(file_size : Int32, triangles : Int32) -> Int64 {
   file_size.to_int64() + triangles.to_int64() * 96L
 }
 
@@ -92,7 +92,11 @@ fn full_memory(file_size : Int, triangles : Int) -> Int64 {
 /// - 顶点字段：三个 Double 坐标与一个 Int 编号，28 字节/项
 /// - 边记录：每个三角形存三条 UInt64，24 字节/三角形，含重复边
 /// 不计坐标键标签、哈希索引、对象头、容器与分配器开销。
-fn stream_memory(file_size : Int, vertices : Int, triangles : Int) -> Int64 {
+fn stream_memory(
+  file_size : Int32,
+  vertices : Int32,
+  triangles : Int32,
+) -> Int64 {
   file_size.to_int64() + vertices.to_int64() * 28L + triangles.to_int64() * 24L
 }
 
@@ -367,7 +371,7 @@ fn help_text(cmd : @argparse.Command) -> String {
 ///
 /// 直接用 Double 的默认输出会得到 0.9999999999999999 这种，对看报告的
 /// 人没有意义——网格数据本身就带浮点误差，显示上保留几位就够。
-fn fmt(value : Double, digits : Int) -> String {
+fn fmt(value : Double, digits : Int32) -> String {
   let mut scale = 1.0
   for _i = 0; _i < digits; _i = _i + 1 {
     scale = scale * 10.0
@@ -390,7 +394,7 @@ fn report(
   svg_path : String,
   fix_path : String,
   min_thickness : Double,
-  samples : Int,
+  samples : Int32,
 ) -> Result[Bool, String] {
   if fix_path != "" && svg_path != "" {
     // 使用宿主平台规则解析绝对路径，处理 .、..、重复分隔符与 Windows 大小写。
@@ -533,7 +537,7 @@ fn report(
 /// 每一条「不通过」都要说清楚**为什么这是问题**，不能只报一个数字。
 /// 看到「有 3 条边界边」的人不知道这意味着什么，看到「切片软件分不清
 /// 哪里是外面」才知道要修。
-fn print_findings(review : @stlkit.PrintabilityReport, parts : Int) -> Unit {
+fn print_findings(review : @stlkit.PrintabilityReport, parts : Int32) -> Unit {
   println("  \{@stlkit.review_scope()}")
   for component in review.winding.components {
     println(
@@ -597,7 +601,7 @@ fn fix_and_save(
   winding : @stlkit.WindingReport,
   fix_path : String,
   min_thickness : Double,
-  samples : Int,
+  samples : Int32,
 ) -> Result[(@stlkit.Mesh, Bool), String] {
   if before.is_watertight() &&
     before.degenerate_count == 0 &&

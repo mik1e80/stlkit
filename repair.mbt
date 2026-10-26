@@ -65,19 +65,19 @@ pub(all) struct RepairResult {
   /// 修好的网格
   mesh : Mesh
   /// 删掉的退化面数量
-  removed_degenerate : Int
+  removed_degenerate : Int32
   /// 删掉的重复面数量
-  removed_duplicates : Int
+  removed_duplicates : Int32
   /// 补上的洞的数量（按边界环计）
-  filled_holes : Int
+  filled_holes : Int32
   /// 为了补洞新增的三角形数量
-  added_triangles : Int
+  added_triangles : Int32
   /// 重算过法线的三角形数量
-  recomputed_normals : Int
+  recomputed_normals : Int32
   /// 相邻绕向一致性调整的面数，不含分量整体翻转。
-  flipped_faces : Int
+  flipped_faces : Int32
   /// Isolated closed components whose entire direction was reversed.
-  reoriented_components : Int
+  reoriented_components : Int32
 }
 
 ///|
@@ -101,7 +101,7 @@ pub fn repair(mesh : Mesh, options : RepairOptions) -> RepairResult {
   // 找边界边都要用这个，算一次就够了。
   let weld = weld_vertices(mesh, options.tolerance)
   let kept : Array[Triangle] = []
-  let kept_ids : Array[(Int, Int, Int)] = []
+  let kept_ids : Array[(Int32, Int32, Int32)] = []
   let seen : Map[String, Unit] = Map([])
 
   for i, triangle in mesh.triangles {
@@ -196,7 +196,7 @@ pub fn repair(mesh : Mesh, options : RepairOptions) -> RepairResult {
 
 ///|
 /// 三个下标排序后拼成字符串。用来判断两个面是不是同一个。
-fn canonical_key(a : Int, b : Int, c : Int) -> String {
+fn canonical_key(a : Int32, b : Int32, c : Int32) -> String {
   let (x, y, z) = if a <= b && a <= c {
     if b <= c {
       (a, b, c)
@@ -229,12 +229,12 @@ fn canonical_key(a : Int, b : Int, c : Int) -> String {
 /// 共用」，也就是水密。方向搞反的话补完还是不通。
 fn fill_holes(
   triangles : Array[Triangle],
-  ids : Array[(Int, Int, Int)],
+  ids : Array[(Int32, Int32, Int32)],
   tolerance : Double,
-) -> (Array[Triangle], Int) {
+) -> (Array[Triangle], Int32) {
   // 数每条边被几个面用。方向要记下来——补洞时要用反向的。
   // 键是「去的方向」：'a>b'，值是出现次数。
-  let counts : Map[String, Int] = Map([])
+  let counts : Map[String, Int32] = Map([])
   for id in ids {
     let (a, b, c) = id
     for edge in [(a, b), (b, c), (c, a)] {
@@ -252,7 +252,7 @@ fn fill_holes(
   // 收集边界边：这个方向只出现过一次，而且反向一次都没出现过。
   // 后面那个条件是防御性的——正常网格里不该出现「a→b 和 b→a 各一次」，
   // 那说明两个面背对背贴着，是坏数据。
-  let boundary : Array[(Int, Int)] = []
+  let boundary : Array[(Int32, Int32)] = []
   for key, count in counts {
     if count != 1 {
       continue
@@ -291,20 +291,20 @@ fn fill_holes(
   // 一个顶点上如果有两条以上的边界边（比如两个洞共用了一个点），
   // 这里可能串错。实际模型里很少见，串错了下面的绕向检查会把它挡下来。
   let used : Map[String, Unit] = Map([])
-  let rings : Array[Array[Int]] = []
+  let rings : Array[Array[Int32]] = []
   for start_edge in boundary {
     let start = start_edge.0
     let first_key = "\{start_edge.0}>\{start_edge.1}"
     if used.contains(first_key) {
       continue
     }
-    let ring : Array[Int] = []
+    let ring : Array[Int32] = []
     let mut current = start
     let mut steps = 0
     while steps < boundary.length() + 1 {
       steps = steps + 1
       // 找一条从 current 出发、还没用过的边
-      let mut next : Int? = None
+      let mut next : Int32? = None
       let mut next_key = ""
       for edge in boundary {
         if edge.0 == current {
@@ -390,8 +390,8 @@ fn fill_holes(
 /// 的顶点就当它的位置——同一个编号的所有顶点位置本来就一样（差在容差内）。
 fn vertex_of(
   triangles : Array[Triangle],
-  ids : Array[(Int, Int, Int)],
-  target : Int,
+  ids : Array[(Int32, Int32, Int32)],
+  target : Int32,
 ) -> Vec3 {
   for i, id in ids {
     if id.0 == target {
@@ -409,7 +409,7 @@ fn vertex_of(
 
 ///|
 /// 解析整数，失败返回 None。给内部用，不产生错误信息。
-fn parse_int_quiet(s : StringView) -> Int? {
+fn parse_int_quiet(s : StringView) -> Int32? {
   Some(@string.parse_int(s)) catch {
     _ => None
   }

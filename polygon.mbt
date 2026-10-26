@@ -44,7 +44,7 @@ fn polygon_edges_cross(
 ///|
 fn triangulate_polygon(
   vertices : Array[Vec3],
-) -> Result[Array[(Int, Int, Int)], String] {
+) -> Result[Array[(Int32, Int32, Int32)], String] {
   let n = vertices.length()
   if n < 3 {
     return Err("一个面至少要有三个顶点")
@@ -120,7 +120,7 @@ fn triangulate_polygon(
     }
   }
   let sign = if area > 0.0 { 1.0 } else { -1.0 }
-  let result : Array[(Int, Int, Int)] = []
+  let result : Array[(Int32, Int32, Int32)] = []
   let mut convex = true
   for i = 0; i < n; i = i + 1 {
     if polygon_turn(points[(i + n - 1) % n], points[i], points[(i + 1) % n]) *
@@ -135,13 +135,13 @@ fn triangulate_polygon(
     }
     return Ok(result)
   }
-  let mut live : Array[Int] = []
+  let mut live : Array[Int32] = []
   for i = 0; i < n; i = i + 1 {
     live.push(i)
   }
   while live.length() > 3 {
     let count = live.length()
-    let mut ear : Int? = None
+    let mut ear : Int32? = None
     for i = 0; i < count; i = i + 1 {
       let a = live[(i + count - 1) % count]
       let b = live[i]
@@ -172,7 +172,7 @@ fn triangulate_polygon(
         result.push(
           (live[(i + count - 1) % count], live[i], live[(i + 1) % count]),
         )
-        let next : Array[Int] = []
+        let next : Array[Int32] = []
         for j = 0; j < count; j = j + 1 {
           if j != i {
             next.push(live[j])

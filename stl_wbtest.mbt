@@ -297,7 +297,7 @@ test "解析二进制 STL" {
 
 ///|
 /// 把二进制 STL 头部的「三角形数量」改成别的值，用来伪造损坏文件。
-fn with_claimed_count(data : Bytes, count : Int) -> Bytes {
+fn with_claimed_count(data : Bytes, count : Int32) -> Bytes {
   let arr = data.to_fixedarray()
   arr[80] = (count & 0xFF).to_byte()
   arr[81] = ((count >> 8) & 0xFF).to_byte()

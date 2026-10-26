@@ -12,7 +12,7 @@ pub(all) struct RayHit {
   /// 从射线起点到命中点的欧氏距离，单位与网格坐标相同。
   distance : Double
   /// 打中的是第几个三角形
-  triangle : Int
+  triangle : Int32
   /// 命中点的坐标
   point : Vec3
 }
@@ -166,34 +166,22 @@ fn point_triangle_distance(
   if vc <= 0.0 && d1 >= 0.0 && d3 <= 0.0 {
     let denom = d1 - d3
     let t = if denom == 0.0 { 0.0 } else { d1 / denom }
-    let q = Vec3::new(
-      a.x + ab.x * t,
-      a.y + ab.y * t,
-      a.z + ab.z * t,
-    )
+    let q = Vec3::new(a.x + ab.x * t, a.y + ab.y * t, a.z + ab.z * t)
     return (p.sub(q).length(), q)
   }
   let vb = d5 * d2 - d1 * d6
   if vb <= 0.0 && d2 >= 0.0 && d6 <= 0.0 {
     let denom = d2 - d6
     let t = if denom == 0.0 { 0.0 } else { d2 / denom }
-    let q = Vec3::new(
-      a.x + ac.x * t,
-      a.y + ac.y * t,
-      a.z + ac.z * t,
-    )
+    let q = Vec3::new(a.x + ac.x * t, a.y + ac.y * t, a.z + ac.z * t)
     return (p.sub(q).length(), q)
   }
   let va = d3 * d6 - d5 * d4
-  if va <= 0.0 && (d4 - d3) >= 0.0 && (d5 - d6) >= 0.0 {
-    let denom = (d4 - d3) + (d5 - d6)
+  if va <= 0.0 && d4 - d3 >= 0.0 && d5 - d6 >= 0.0 {
+    let denom = d4 - d3 + (d5 - d6)
     let t = if denom == 0.0 { 0.0 } else { (d4 - d3) / denom }
     let bc = c.sub(b)
-    let q = Vec3::new(
-      b.x + bc.x * t,
-      b.y + bc.y * t,
-      b.z + bc.z * t,
-    )
+    let q = Vec3::new(b.x + bc.x * t, b.y + bc.y * t, b.z + bc.z * t)
     return (p.sub(q).length(), q)
   }
 

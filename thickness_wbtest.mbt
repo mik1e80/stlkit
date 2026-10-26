@@ -32,9 +32,7 @@ fn box_at(lo : Double, hi : Double, flip : Bool) -> Array[Triangle] {
   let s = hi - lo
   let out : Array[Triangle] = []
   for t in box_mesh(s, s, s).triangles {
-    let shift = fn(v : Vec3) -> Vec3 {
-      Vec3::new(v.x + lo, v.y + lo, v.z + lo)
-    }
+    let shift = fn(v : Vec3) -> Vec3 { Vec3::new(v.x + lo, v.y + lo, v.z + lo) }
     if flip {
       out.push(Triangle::from_vertices(shift(t.a), shift(t.c), shift(t.b)))
     } else {

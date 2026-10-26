@@ -145,11 +145,7 @@ pub fn Mesh::moment_inertia(self : Mesh) -> FixedArray[Double] {
   let i_yz_c = i_yz - mass * (0.0 - center.y * center.z)
   let i_zx_c = i_zx - mass * (0.0 - center.z * center.x)
 
-  [
-    i_xx_c, i_xy_c, i_zx_c,
-    i_xy_c, i_yy_c, i_yz_c,
-    i_zx_c, i_yz_c, i_zz_c,
-  ]
+  [i_xx_c, i_xy_c, i_zx_c, i_xy_c, i_yy_c, i_yz_c, i_zx_c, i_yz_c, i_zz_c]
 }
 
 ///|

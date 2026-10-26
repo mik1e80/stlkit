@@ -74,7 +74,8 @@ test "旋转过的长方体，OBB 的尺寸不变" {
   //   轴对齐包围盒会虚胖成 10·cos30+20·sin30 之类的尺寸
   //   OBB 应该**一点都不变**，还是 10 / 20 / 30
   let mesh = box_mesh(10.0, 20.0, 30.0)
-  let obb = match rotate_z(mesh, 3.141592653589793 / 6.0).oriented_bounding_box() {
+  let obb = match
+    rotate_z(mesh, 3.141592653589793 / 6.0).oriented_bounding_box() {
     Some(o) => o
     None => fail("不该是空的")
   }
@@ -121,7 +122,9 @@ test "所有顶点都在盒子里" {
     for t in mesh.triangles {
       for v in [t.a, t.b, t.c] {
         if !inside_obb(obb, v) {
-          fail("角度 \{angle}：顶点 \{v.x}, \{v.y}, \{v.z} 跑到盒子外面了")
+          fail(
+            "角度 \{angle}：顶点 \{v.x}, \{v.y}, \{v.z} 跑到盒子外面了",
+          )
         }
       }
     }
@@ -131,7 +134,8 @@ test "所有顶点都在盒子里" {
 ///|
 test "三个轴互相垂直而且是单位长度" {
   // PCA 求出来的主轴应该是一组标准正交基。歪了的话「包围盒」就不是长方体了
-  let obb = match rotate_z(box_mesh(3.0, 7.0, 11.0), 0.9).oriented_bounding_box() {
+  let obb = match
+    rotate_z(box_mesh(3.0, 7.0, 11.0), 0.9).oriented_bounding_box() {
     Some(o) => o
     None => fail("不该是空的")
   }

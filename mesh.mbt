@@ -115,7 +115,7 @@ pub fn Mesh::empty() -> Mesh {
 
 ///|
 /// 三角形数量。
-pub fn Mesh::triangle_count(self : Mesh) -> Int {
+pub fn Mesh::triangle_count(self : Mesh) -> Int32 {
   self.triangles.length()
 }
 

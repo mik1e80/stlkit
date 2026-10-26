@@ -41,6 +41,9 @@ jobs:
       - name: 解析依赖
         run: moon update
 
+      - name: 格式检查
+        run: moon fmt --check
+
       - name: 检查（全目标，零警告才算过）
         run: moon check --target all --deny-warn
 

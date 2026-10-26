@@ -13,9 +13,9 @@
 /// 渲染参数。
 pub(all) struct PreviewOptions {
   /// 输出宽度（像素）
-  width : Int
+  width : Int32
   /// 输出高度（像素）
-  height : Int
+  height : Int32
   /// 绕竖直轴旋转的角度（度）。调这个能从不同侧面看模型
   yaw : Double
   /// 俯仰角（度）。0 是正对着看，90 是从正上方往下看

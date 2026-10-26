@@ -6,10 +6,10 @@
 /// 壁厚检查的结果。
 pub(all) struct ThicknessReport {
   /// 一共打了多少条射线
-  samples : Int
+  samples : Int32
   /// 有多少条打到了对面的表面。
   /// 明显偏少说明模型有开放面，或者朝向不一致，结论不可信
-  hits : Int
+  hits : Int32
   /// 采到的最薄处有多厚（打到对面的那些里最小的）
   min_thickness : Double
   /// 最薄处的位置
@@ -21,7 +21,7 @@ pub(all) struct ThicknessReport {
 ///|
 /// 默认样本预算，不保证覆盖全部面或薄处。
 /// 每条射线遍历所有面，运行成本取决于输入规模。
-const DEFAULT_THICKNESS_SAMPLES : Int = 1000
+const DEFAULT_THICKNESS_SAMPLES : Int32 = 1000
 
 ///|
 /// 用默认采样数检查壁厚。
@@ -35,7 +35,7 @@ pub fn check_thickness_default(mesh : Mesh) -> ThicknessReport {
 /// 采样是**确定性**的：同一个模型每次跑出来的数一样。
 /// 用黄金比之类的低差异序列把采样点铺开，而不是伪随机数——
 /// 「上次跑 0.42，这次跑 0.38」这种报告没法用来对比修复前后的变化。
-pub fn check_thickness(mesh : Mesh, samples : Int) -> ThicknessReport {
+pub fn check_thickness(mesh : Mesh, samples : Int32) -> ThicknessReport {
   let n = mesh.triangle_count()
   if n == 0 || samples <= 0 {
     return {

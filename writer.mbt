@@ -23,7 +23,7 @@ fn push_f32(buf : Array[Byte], value : Double) -> Unit {
 
 ///|
 /// 追加一个小端 32 位无符号整数。
-fn push_u32(buf : Array[Byte], value : Int) -> Unit {
+fn push_u32(buf : Array[Byte], value : Int32) -> Unit {
   buf.push((value & 0xFF).to_byte())
   buf.push(((value >> 8) & 0xFF).to_byte())
   buf.push(((value >> 16) & 0xFF).to_byte())
@@ -108,7 +108,7 @@ pub fn write_stl_ascii(mesh : Mesh, name : String) -> String {
 /// 「有多少重复顶点」那条校验信息就跟原来不一样了。这是格式本身的
 /// 差别，不是数据丢了。
 pub fn write_obj(mesh : Mesh) -> String {
-  let lookup : Map[String, Int] = Map([])
+  let lookup : Map[String, Int32] = Map([])
   // OBJ 的编号从 1 开始
   let vertex_lines : Array[String] = []
   let face_lines : Array[String] = []
@@ -117,7 +117,7 @@ pub fn write_obj(mesh : Mesh) -> String {
   let key_of = fn(v : Vec3) -> String { "\{v.x},\{v.y},\{v.z}" }
 
   for triangle in mesh.triangles {
-    let ids : Array[Int] = []
+    let ids : Array[Int32] = []
     for v in triangle.vertices() {
       let key = key_of(v)
       let id = match lookup.get(key) {
