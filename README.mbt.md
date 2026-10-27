@@ -1,6 +1,6 @@
 # stlkit：接口与实现
 
-MoonBit 的 STL / OBJ / 3MF / PLY 三角网格工具链。本次版本 **0.1.5**；安装 `moon add mik1e80/stlkit@0.1.5`，源码固定 [v0.1.5](https://github.com/mik1e80/stlkit/tree/v0.1.5)。新增可配置解析预算、确定性变异和独立发布包安装验证；见 [资源限制](docs/resource-limits.md)、[格式兼容性](docs/format-compatibility.md) 及 [发布说明](docs/releases/0.1.5.md)。
+MoonBit 的 STL / OBJ / 3MF / PLY 三角网格工具链。本次版本 **0.1.6**；安装 `moon add mik1e80/stlkit@0.1.6`，源码固定 [v0.1.6](https://github.com/mik1e80/stlkit/tree/v0.1.6)。新增可配置解析预算、确定性变异和独立发布包安装验证；见 [资源限制](docs/resource-limits.md)、[格式兼容性](docs/format-compatibility.md) 及 [发布说明](docs/releases/0.1.6.md)。
 
 ## 数据与单位
 

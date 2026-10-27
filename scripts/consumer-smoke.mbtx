@@ -10,7 +10,7 @@ import {
 // SPDX-License-Identifier: Apache-2.0
 async fn main {
   let args = @env.args()
-  let version = if args.length() > 1 { args[1] } else { "0.1.4" }
+  let version = if args.length() > 1 { args[1] } else { "0.1.6" }
   guard version.length() > 0 && version.iter().all(c => (c >= '0' && c <= '9') || c == '.') else { fail("numeric package version required") }
   let base = @env.get_env_var("TEMP").unwrap_or(@env.get_env_var("TMPDIR").unwrap_or("/tmp"))
   let dir = base + "/stlkit-consumer-" + @env.now().to_string()
@@ -19,9 +19,11 @@ async fn main {
   for file in ["moon.mod", "moon.pkg", "main.mbt"] {
     @fs.write_string_to_file(dir + "/" + file, @fs.read_file_to_string("tests/consumer-smoke/" + file))
   }
-  let install = @shell.Cmd("moon", ["add", "--no-update", "mik1e80/stlkit@" + version], cwd=dir).output(timeout_ms=120000)
+  let install = @shell.Cmd("moon", ["add", "--upgrade", "--no-update", "mik1e80/stlkit@" + version], cwd=dir).output(timeout_ms=120000)
   guard install.exit_code() == 0 else { fail("consumer install failed: " + install.stderr()) }
   @shell.Cmd("moon", ["check", "--target", "all", "--deny-warn"], cwd=dir).run(timeout_ms=120000)
+  let installed = @fs.read_file_to_string(dir + "/.mooncakes/mik1e80/stlkit/moon.mod")
+  guard installed.split("\n").any(line => line.trim() == "version = \"" + version + "\"") else { fail("consumer resolved a different package version; requested " + version) }
   let mut reference : String? = None
   for target in ["wasm", "wasm-gc", "js", "native"] {
     let output = @shell.Cmd("moon", ["run", "--target", target, "."], cwd=dir).output(timeout_ms=120000)

@@ -4,14 +4,14 @@ MoonBit 三维网格检查与修复库。读取 STL、OBJ、3MF、PLY 的支持�
 
 [在线演示](https://mik1e80.github.io/stlkit/) · [库接口](README.mbt.md) · [范围与复现案例](docs/review-cases.md) · [项目对比](COMPARISON.md) · [变更记录](CHANGELOG.md)
 
-本次版本 **0.1.5**：新增可配置解析预算、确定性变异测试与独立发布包安装测试。[Mooncakes](https://mooncakes.io/docs/mik1e80/stlkit@0.1.5/) · [固定源码 v0.1.5](https://github.com/mik1e80/stlkit/tree/v0.1.5) · [发布说明](docs/releases/0.1.5.md)。历史 v0.1.4 保留不动。
+本次版本 **0.1.6**：新增可配置解析预算、确定性变异测试与独立发布包安装测试。[Mooncakes](https://mooncakes.io/docs/mik1e80/stlkit@0.1.6/) · [固定源码 v0.1.6](https://github.com/mik1e80/stlkit/tree/v0.1.6) · [发布说明](docs/releases/0.1.6.md)。历史 v0.1.4 保留不动。
 
 [资源预算与兼容变化](docs/resource-limits.md) · [变异测试报告](docs/fuzz-testing.md) · [后续路线](docs/roadmap.md)。CLI / 网页可设置资源上限；这些预算不保证进程内存或时限。IndexedMesh、BVH 和自相交仍属后续计划。
 
 在已有 MoonBit 项目中安装指定版本：
 
 ```sh
-moon add mik1e80/stlkit@0.1.5
+moon add mik1e80/stlkit@0.1.6
 ```
 
 ## 快速运行
@@ -19,7 +19,7 @@ moon add mik1e80/stlkit@0.1.5
 安装 [MoonBit 工具链](https://www.moonbitlang.com/download/)，获取源码后执行：
 
 ```sh
-git clone --branch v0.1.5 --depth 1 https://github.com/mik1e80/stlkit
+git clone --branch v0.1.6 --depth 1 https://github.com/mik1e80/stlkit
 cd stlkit
 moon update
 moon run cmd/main examples/cube.obj --strict
