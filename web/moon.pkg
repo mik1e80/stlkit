@@ -13,6 +13,7 @@ options(
   link: {
     "js": {
       "exports": [
+        "configure_limits",
         "analyze",
         "analyze_with_threshold",
         "analyze_error",

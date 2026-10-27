@@ -8,6 +8,39 @@
 // JS 边界（它是编译器的内部表示），而字符串两边都认。
 
 ///|
+priv struct WebLimits {
+  mut input_bytes : Int32
+  mut triangles : Int32
+}
+
+///|
+let settings : WebLimits = { input_bytes: 67108864, triangles: 2000000, }
+
+///|
+/// Configure the next local analysis. Empty means success; rejected settings
+/// leave the previous valid configuration intact. Other library budgets apply.
+pub fn configure_limits(
+  max_input_bytes : Int32,
+  max_triangles : Int32,
+) -> String {
+  if max_input_bytes < 1 || max_triangles < 1 || max_triangles > 715827882 {
+    return "资源上限必须为正整数，三角形上限不能超过 715827882"
+  }
+  settings.input_bytes = max_input_bytes
+  settings.triangles = max_triangles
+  ""
+}
+
+///|
+fn web_limits() -> @stlkit.ParseLimits {
+  {
+    ..@stlkit.ParseLimits::default(),
+    max_input_bytes: settings.input_bytes,
+    max_triangles: settings.triangles,
+  }
+}
+
+///|
 /// 分析一个模型文件，返回一份「每行一个 `字段|值`」的报告。
 ///
 /// 为什么不用 JSON：库这边没有公开的 JSON 造值构造器（core/json 只有
@@ -68,7 +101,7 @@ fn analyze_mesh(file_base64 : String) -> Result[@stlkit.Mesh, String] {
   let data = decode(file_base64)
   match data {
     Err(msg) => Err(msg)
-    Ok(data) => @stlkit.parse_mesh(data)
+    Ok(data) => @stlkit.parse_mesh(data, limits=web_limits())
   }
 }
 
@@ -82,7 +115,7 @@ fn analyze_inner(
     Ok(data) => data
     Err(msg) => return Err(msg)
   }
-  let mesh = match @stlkit.parse_mesh(data) {
+  let mesh = match @stlkit.parse_mesh(data, limits=web_limits()) {
     Ok(mesh) => mesh
     Err(msg) => return Err(msg)
   }
@@ -189,12 +222,20 @@ fn format_name(data : Bytes) -> String {
 ///|
 /// 把 base64 解成字节，失败时给中文错误。
 fn decode(file_base64 : String) -> Result[Bytes, String] {
+  if file_base64.length().to_int64() >
+    (settings.input_bytes.to_int64() + 2L) / 3L * 4L {
+    return Err("resource_limit: max_input_bytes (max=\{settings.input_bytes})")
+  }
   if file_base64.length() == 0 {
     return Err("没有收到文件内容")
   }
-  Ok(@base64.decode(file_base64)) catch {
-    _ => Err("文件内容解码失败，可能上传时出错了")
+  let bytes = @base64.decode(file_base64) catch {
+    _ => return Err("文件内容解码失败，可能上传时出错了")
   }
+  if bytes.length() > settings.input_bytes {
+    return Err("resource_limit: max_input_bytes (max=\{settings.input_bytes})")
+  }
+  Ok(bytes)
 }
 
 ///|

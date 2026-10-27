@@ -8,6 +8,8 @@ pub fn analyze_error(String) -> String
 
 pub fn analyze_with_threshold(String, Double) -> String
 
+pub fn configure_limits(Int32, Int32) -> String
+
 pub fn fix_error(String) -> String
 
 pub fn fix_report(String) -> String

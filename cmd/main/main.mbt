@@ -25,6 +25,22 @@ fn command() -> @argparse.Command {
     ],
     options=[
       @argparse.OptionArg(
+        "max-input-bytes",
+        about="输入字节上限，默认 67108864",
+      ),
+      @argparse.OptionArg(
+        "max-triangles",
+        about="解析或展开三角形上限，默认 2000000",
+      ),
+      @argparse.OptionArg(
+        "max-vertices",
+        about="顶点记录上限，默认 6000000",
+      ),
+      @argparse.OptionArg(
+        "max-uncompressed-bytes",
+        about="3MF 总解压字节上限，默认 104857600",
+      ),
+      @argparse.OptionArg(
         "nozzle",
         about="喷嘴直径（毫米），仅记录，不参与工艺判定",
       ),
@@ -124,6 +140,7 @@ fn fmt_bytes(n : Int64) -> String {
 /// `read_file_to_bytes`（一次读完），没有带偏移量的读取。
 async fn scan_chunked_storage(
   path : String,
+  limits~ : @stlkit.ParseLimits = @stlkit.ParseLimits::default(),
 ) -> Result[(@stlkit.StreamReport, @stlkit.ScanStorage), String] {
   let file = @asyncfs.open(path, mode=@asyncfs.Mode::ReadOnly) catch {
     err => return Err("打不开文件「\{path}」：\{err}")
@@ -134,7 +151,13 @@ async fn scan_chunked_storage(
       return Err("读不了文件大小：\{err}")
     }
   }
-  let scanner = @stlkit.StlScanner::new()
+  if size < 0L || size > limits.max_input_bytes.to_int64() {
+    let _ = file.close()
+    return Err(
+      "resource_limit: max_input_bytes (max=\{limits.max_input_bytes})",
+    )
+  }
+  let scanner = @stlkit.StlScanner::new(limits~)
   // 256 KB 一块。这是权衡：太小了系统调用次数多，太大了缓冲区本身占内存。
   // 关键是它**固定**——文件再大也不会变大
   let chunk = 262144
@@ -159,6 +182,9 @@ async fn scan_chunked_storage(
       part.push(buf[i])
     }
     scanner.feed(Bytes::from_array(part))
+    if scanner.error() is Some(message) {
+      failure = Some(message)
+    }
     pos = pos + n.to_int64()
   }
   let _ = file.close()
@@ -173,16 +199,22 @@ async fn scan_chunked_storage(
 }
 
 ///|
-async fn scan_chunked(path : String) -> Result[@stlkit.StreamReport, String] {
-  match scan_chunked_storage(path) {
+async fn scan_chunked(
+  path : String,
+  limits~ : @stlkit.ParseLimits = @stlkit.ParseLimits::default(),
+) -> Result[@stlkit.StreamReport, String] {
+  match scan_chunked_storage(path, limits~) {
     Ok((report, _)) => Ok(report)
     Err(msg) => Err(msg)
   }
 }
 
 ///|
-async fn stream_only(path : String) -> Result[Bool, String] {
-  match scan_chunked_storage(path) {
+async fn stream_only(
+  path : String,
+  limits~ : @stlkit.ParseLimits = @stlkit.ParseLimits::default(),
+) -> Result[Bool, String] {
+  match scan_chunked_storage(path, limits~) {
     Err(msg) => Err("分块入口只支持二进制 STL：\{msg}")
     Ok((report, storage)) => {
       println("二进制 STL 分块统计；不构造完整 Mesh")
@@ -207,7 +239,10 @@ async fn stream_only(path : String) -> Result[Bool, String] {
 /// 跑三种解析方式，记录耗时与主要字段数据量估算。
 ///
 /// 估算公式见 `full_memory` / `stream_memory`，不是进程内存实测。
-async fn bench(path : String) -> Result[Bool, String] {
+async fn bench(
+  path : String,
+  limits~ : @stlkit.ParseLimits = @stlkit.ParseLimits::default(),
+) -> Result[Bool, String] {
   // ── 先做分块流式：这一步不碰整个文件，测出来的才是真流式 ──
   //
   // 分块扫描目前只支持**二进制** STL——那边每个三角形固定 50 字节，
@@ -215,15 +250,16 @@ async fn bench(path : String) -> Result[Bool, String] {
   // 所以先试一下，不是二进制就跳过这一档，并在报告里说明原因，
   // 而不是让整个基准测试失败。
   let t2 = @bench.monotonic_clock_start()
-  let chunked : @stlkit.StreamReport? = match scan_chunked(path) {
+  let chunked : @stlkit.StreamReport? = match scan_chunked(path, limits~) {
     Ok(r) => Some(r)
     Err(_) => None
   }
   let chunked_us = @bench.monotonic_clock_end(t2)
 
   // ── 后面两种都要整个文件在内存里 ──
-  let data = @fs.read_file_to_bytes(path) catch {
-    @fs.IOError(msg) => return Err("读不了文件「\{path}」：\{msg}")
+  let data = match read_input(path, limits) {
+    Ok(data) => data
+    Err(error) => return Err(error)
   }
   let file_size = data.length()
 
@@ -237,7 +273,7 @@ async fn bench(path : String) -> Result[Bool, String] {
 
   // 全量：解析出完整网格，能校验、能修复
   let t0 = @bench.monotonic_clock_start()
-  let mesh = match @stlkit.parse_mesh(data) {
+  let mesh = match @stlkit.parse_mesh(data, limits~) {
     Ok(mesh) => mesh
     Err(msg) => return Err(msg)
   }
@@ -249,12 +285,12 @@ async fn bench(path : String) -> Result[Bool, String] {
   let t1 = @bench.monotonic_clock_start()
   let stream = match @stlkit.detect_format(data) {
     @stlkit.Ascii =>
-      match @stlkit.stream_stl_ascii(@utf8.decode_lossy(data)) {
+      match @stlkit.stream_stl_ascii(@utf8.decode_lossy(data), limits~) {
         Ok(r) => r
         Err(msg) => return Err(msg)
       }
     _ =>
-      match @stlkit.stream_stl_binary(data) {
+      match @stlkit.stream_stl_binary(data, limits~) {
         Ok(r) => r
         Err(msg) => return Err(msg)
       }
@@ -389,12 +425,13 @@ fn fmt(value : Double, digits : Int32) -> String {
 /// 返回值里的 `Bool` 是「这个模型有没有问题」——`--strict` 模式要靠它定退出码。
 /// 分开放而不是塞进错误里，是因为「模型有问题」不是**程序出错**：报告已经
 /// 正常打印出来了，只是结论是负面的。
-fn report(
+async fn report(
   path : String,
   svg_path : String,
   fix_path : String,
   min_thickness : Double,
   samples : Int32,
+  limits : @stlkit.ParseLimits,
 ) -> Result[Bool, String] {
   if fix_path != "" && svg_path != "" {
     // 使用宿主平台规则解析绝对路径，处理 .、..、重复分隔符与 Windows 大小写。
@@ -406,8 +443,9 @@ fn report(
       )
     }
   }
-  let data = @fs.read_file_to_bytes(path) catch {
-    @fs.IOError(msg) => return Err("读不了文件「\{path}」：\{msg}")
+  let data = match read_input(path, limits) {
+    Ok(data) => data
+    Err(error) => return Err(error)
   }
   let format_name = match @stlkit.detect_format(data) {
     @stlkit.Binary => "二进制 STL"
@@ -418,7 +456,7 @@ fn report(
     @stlkit.Obj => "OBJ"
     @stlkit.Unknown => "未知格式"
   }
-  let mesh = match @stlkit.parse_mesh(data) {
+  let mesh = match @stlkit.parse_mesh(data, limits~) {
     Ok(mesh) => mesh
     Err(msg) => return Err(msg)
   }
@@ -697,7 +735,14 @@ fn save_mesh(mesh : @stlkit.Mesh, path : String) -> Result[Unit, String] {
 
 ///|
 /// 常规检查路径。
-fn run(matches : @argparse.Matches, path : String) -> Result[Bool, String] {
+async fn run(
+  matches : @argparse.Matches,
+  path : String,
+) -> Result[Bool, String] {
+  let limits = match cli_limits(matches) {
+    Ok(limits) => limits
+    Err(error) => return Err(error)
+  }
   let nozzle = match matches.values.get("nozzle") {
     Some([raw, ..]) => {
       let value = @string.parse_double(raw) catch {
@@ -755,7 +800,7 @@ fn run(matches : @argparse.Matches, path : String) -> Result[Bool, String] {
     "场景记录：喷嘴 \{nozzle}；支撑 \{supports}（仅记录，不参与通过/失败判定）",
   )
   let has_problem = match
-    report(path, svg_path, fix_path, min_thickness, samples) {
+    report(path, svg_path, fix_path, min_thickness, samples, limits) {
     Ok(v) => v
     Err(msg) => return Err(msg)
   }
@@ -786,17 +831,29 @@ async fn main {
       println(help_text(cmd))
       Ok(false)
     } else if matches.flags.get("stream-only") == Some(true) {
+      let mut geometry_options = false
+      for name, _ in matches.values {
+        if name != "file" && !name.has_prefix("max-") {
+          geometry_options = true
+        }
+      }
       if matches.flags.get("bench") == Some(true) ||
         matches.flags.get("strict") == Some(true) ||
-        matches.values.length() > 1 {
+        geometry_options {
         Err(
           "--stream-only 只接受文件路径，不与几何检查或基准参数组合",
         )
       } else {
-        stream_only(path)
+        match cli_limits(matches) {
+          Ok(limits) => stream_only(path, limits~)
+          Err(error) => Err(error)
+        }
       }
     } else if matches.flags.get("bench") == Some(true) {
-      bench(path)
+      match cli_limits(matches) {
+        Ok(limits) => bench(path, limits~)
+        Err(error) => Err(error)
+      }
     } else {
       run(matches, path)
     }

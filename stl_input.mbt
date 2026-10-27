@@ -167,7 +167,11 @@ fn StlAsciiReader::read_line(
 fn walk_stl_ascii(
   text : String,
   emit : (Triangle) -> Unit,
+  limits~ : ParseLimits = ParseLimits::default(),
 ) -> Result[Int32, String] {
+  if text_limit_error(text, limits) is Some(error) {
+    return Err(error)
+  }
   let reader : StlAsciiReader = {
     stage: Outside,
     normal: Vec3::zero(),
@@ -179,6 +183,9 @@ fn walk_stl_ascii(
     match reader.read_line(line) {
       Err(message) => return Err(message)
       Ok(Some(triangle)) => {
+        if triangle_limit_error(count + 1, limits) is Some(error) {
+          return Err(error)
+        }
         emit(triangle)
         count = count + 1
       }

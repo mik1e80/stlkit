@@ -416,6 +416,18 @@ async function handleFile(file) {
   currentFields = {};
   statusEl.textContent = "分析中…";
   statusEl.className = "status";
+  const maxInput = Number(document.getElementById("max-input-bytes").value || 67108864);
+  const maxTriangles = Number(document.getElementById("max-triangles").value || 2000000);
+  if (!Number.isInteger(maxInput) || maxInput < 1 || maxInput > 2147483647 ||
+      !Number.isInteger(maxTriangles) || maxTriangles < 1 || maxTriangles > 715827882) {
+    showError("资源上限必须为范围内的正整数");
+    return;
+  }
+  const limitError = configure_limits(maxInput, maxTriangles);
+  if (limitError || file.size > maxInput) {
+    showError(limitError || `resource_limit: max_input_bytes (max=${maxInput})`);
+    return;
+  }
 
   let base64;
   try {

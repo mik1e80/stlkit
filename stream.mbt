@@ -46,10 +46,19 @@ pub fn StreamReport::is_watertight(self : StreamReport) -> Bool {
 ///
 /// 二进制格式天生适合流式：每个三角形固定 50 字节，顺序读就行，
 /// 不需要回头。ASCII 格式要逐行扫，见 `stream_stl_ascii`。
-pub fn stream_stl_binary(data : Bytes) -> Result[StreamReport, String] {
+pub fn stream_stl_binary(
+  data : Bytes,
+  limits~ : ParseLimits = ParseLimits::default(),
+) -> Result[StreamReport, String] {
+  if input_limit_error(data, limits) is Some(error) {
+    return Err(error)
+  }
   let count = match stl_binary_count(data) {
     Ok(count) => count
     Err(message) => return Err(message)
+  }
+  if triangle_limit_error(count, limits) is Some(error) {
+    return Err(error)
   }
 
   // 累加器。这些都不需要保留中间结果，扫到哪算到哪
@@ -219,7 +228,10 @@ fn count_edges(edges : Array[UInt64]) -> (Int32, Int32) {
 ///
 /// 逐行扫，同样是累加不保留。ASCII 文件本身比二进制大好几倍，
 /// 流式的意义反而更大。
-pub fn stream_stl_ascii(text : String) -> Result[StreamReport, String] {
+pub fn stream_stl_ascii(
+  text : String,
+  limits~ : ParseLimits = ParseLimits::default(),
+) -> Result[StreamReport, String] {
   let mut volume = 0.0
   let mut area = 0.0
   let mut min : Vec3? = None
@@ -228,29 +240,33 @@ pub fn stream_stl_ascii(text : String) -> Result[StreamReport, String] {
   let edges : Array[UInt64] = []
   let mut unique_vertices = 0
   let triangles = match
-    walk_stl_ascii(text, t => {
-      let (va, vb, vc) = (t.a, t.b, t.c)
-      volume = volume + va.dot(vb.cross(vc)) / 6.0
-      area = area + vb.sub(va).cross(vc.sub(va)).length() / 2.0
-      for v in [va, vb, vc] {
-        let (lo, hi) = expand_bbox(min, max, v)
-        min = lo
-        max = hi
-      }
-      let ia = weld_vertex(weld, va)
-      let ib = weld_vertex(weld, vb)
-      let ic = weld_vertex(weld, vc)
-      unique_vertices = weld.length()
-      if ia != ib {
-        edges.push(pack_edge(ia, ib))
-      }
-      if ib != ic {
-        edges.push(pack_edge(ib, ic))
-      }
-      if ic != ia {
-        edges.push(pack_edge(ic, ia))
-      }
-    }) {
+    walk_stl_ascii(
+      text,
+      t => {
+        let (va, vb, vc) = (t.a, t.b, t.c)
+        volume = volume + va.dot(vb.cross(vc)) / 6.0
+        area = area + vb.sub(va).cross(vc.sub(va)).length() / 2.0
+        for v in [va, vb, vc] {
+          let (lo, hi) = expand_bbox(min, max, v)
+          min = lo
+          max = hi
+        }
+        let ia = weld_vertex(weld, va)
+        let ib = weld_vertex(weld, vb)
+        let ic = weld_vertex(weld, vc)
+        unique_vertices = weld.length()
+        if ia != ib {
+          edges.push(pack_edge(ia, ib))
+        }
+        if ib != ic {
+          edges.push(pack_edge(ib, ic))
+        }
+        if ic != ia {
+          edges.push(pack_edge(ic, ia))
+        }
+      },
+      limits~,
+    ) {
     Ok(count) => count
     Err(message) => return Err(message)
   }
@@ -287,6 +303,7 @@ pub fn stream_stl_ascii(text : String) -> Result[StreamReport, String] {
 /// 内部只保留「没凑够一个完整记录的零头」和统计需要的那两张表，
 /// 不保留文件和三角形本身；顶点表、边表仍随网格规模增长。
 pub(all) struct StlScanner {
+  priv limits : ParseLimits
   /// 上一次喂进来、还没凑够一个完整记录的零头
   priv tail : Array[Byte]
   /// 文件头读完了没有
@@ -318,8 +335,11 @@ const STL_HEADER_SIZE : Int32 = 84
 const STL_RECORD_SIZE : Int32 = 50
 
 ///|
-pub fn StlScanner::new() -> StlScanner {
+pub fn StlScanner::new(
+  limits~ : ParseLimits = ParseLimits::default(),
+) -> StlScanner {
   StlScanner::{
+    limits,
     tail: [],
     started: false,
     declared: 0,
@@ -331,7 +351,7 @@ pub fn StlScanner::new() -> StlScanner {
     weld: Map([]),
     edges: [],
     consumed: 0UL,
-    failure: None,
+    failure: parse_limits_error(limits),
     peak_buffered_bytes: 0,
   }
 }
@@ -346,6 +366,13 @@ pub fn StlScanner::feed(self : StlScanner, chunk : Bytes) -> Unit {
     return
   }
   self.consumed = self.consumed + chunk.length().to_uint64()
+  if self.consumed > self.limits.max_input_bytes.to_uint64() {
+    self.failure = Some(
+      resource_error("max_input_bytes", self.limits.max_input_bytes),
+    )
+    self.tail.clear()
+    return
+  }
   for i = 0; i < chunk.length(); i = i + 1 {
     self.tail.push(chunk[i])
   }
@@ -373,6 +400,12 @@ pub fn StlScanner::storage(self : StlScanner) -> ScanStorage {
 }
 
 ///|
+/// Sticky failure: callers can stop reading a file as soon as this is Some.
+pub fn StlScanner::error(self : StlScanner) -> String? {
+  self.failure
+}
+
+///|
 /// 把 tail 里已经凑够整记录的部分处理掉。
 fn StlScanner::drain(self : StlScanner) -> Unit {
   let mut pos = 0
@@ -391,6 +424,11 @@ fn StlScanner::drain(self : StlScanner) -> Unit {
       return
     }
     self.declared = count.reinterpret_as_int()
+    if triangle_limit_error(self.declared, self.limits) is Some(error) {
+      self.failure = Some(error)
+      self.tail.clear()
+      return
+    }
     self.started = true
     pos = STL_HEADER_SIZE
   }
@@ -408,6 +446,10 @@ fn StlScanner::drain(self : StlScanner) -> Unit {
   while self.done < self.declared && self.tail.length() - pos >= STL_RECORD_SIZE {
     let rec = Bytes::from_array(self.tail[pos:pos + STL_RECORD_SIZE])
     self.absorb(rec)
+    if self.failure is Some(_) {
+      self.tail.clear()
+      return
+    }
     self.done = self.done + 1
     pos = pos + STL_RECORD_SIZE
   }

@@ -13,11 +13,17 @@
 
 ///|
 /// 自动读取 STL；格式探测只是路由提示，几何仍由解析器验证。
-pub fn parse_stl(data : Bytes) -> Result[Mesh, String] {
+pub fn parse_stl(
+  data : Bytes,
+  limits~ : ParseLimits = ParseLimits::default(),
+) -> Result[Mesh, String] {
+  if input_limit_error(data, limits) is Some(error) {
+    return Err(error)
+  }
   match detect_format(data) {
-    Binary => parse_stl_binary(data)
+    Binary => parse_stl_binary(data, limits~)
     Ascii | Unknown =>
-      match parse_stl_ascii(@utf8.decode_lossy(data)) {
+      match parse_stl_ascii(@utf8.decode_lossy(data), limits~) {
         Ok(mesh) => Ok(mesh)
         Err(message) => Err("认不出或无法解析 STL：\{message}")
       }
@@ -39,19 +45,25 @@ pub fn parse_stl(data : Bytes) -> Result[Mesh, String] {
 ///|
 /// 按内容提示选择 STL / OBJ / 3MF / PLY 解析器，不使用文件扩展名。
 /// 无提示的文本依次尝试 ASCII STL 和 OBJ，均失败时返回组合诊断。
-pub fn parse_mesh(data : Bytes) -> Result[Mesh, String] {
+pub fn parse_mesh(
+  data : Bytes,
+  limits~ : ParseLimits = ParseLimits::default(),
+) -> Result[Mesh, String] {
+  if input_limit_error(data, limits) is Some(error) {
+    return Err(error)
+  }
   match detect_format(data) {
-    ThreeMF => parse_3mf(data)
-    Ply => parse_ply(data)
-    Binary => parse_stl_binary(data)
-    Ascii => parse_stl_ascii(@utf8.decode_lossy(data))
-    Obj => parse_obj(@utf8.decode_lossy(data))
+    ThreeMF => parse_3mf(data, limits~)
+    Ply => parse_ply(data, limits~)
+    Binary => parse_stl_binary(data, limits~)
+    Ascii => parse_stl_ascii(@utf8.decode_lossy(data), limits~)
+    Obj => parse_obj(@utf8.decode_lossy(data), limits~)
     Unknown => {
       let text = @utf8.decode_lossy(data)
-      match parse_stl_ascii(text) {
+      match parse_stl_ascii(text, limits~) {
         Ok(mesh) => Ok(mesh)
         Err(stl_error) =>
-          match parse_obj(text) {
+          match parse_obj(text, limits~) {
             Ok(mesh) => Ok(mesh)
             Err(obj_error) =>
               Err(
@@ -76,22 +88,24 @@ pub(all) enum MeshFormat {
 }
 
 ///|
-/// 先识别 ZIP/3MF 和 PLY，再检查二进制 STL 长度。
+/// 先检查非空二进制 STL 精确长度，再识别 ZIP/3MF 和 PLY。
 /// 其余文本按行首记录探测，直到找到几何记录或读完，不设 512 字节上限。
 /// 关键字在注释、对象名称或 solid 名称中出现时不作为几何记录。
 pub fn detect_format(data : Bytes) -> MeshFormat {
+  // STL's opaque 80-byte header may itself start with PK or ply. Prefer an
+  // exact nonempty binary layout over a leading signature routing hint.
+  if data.length() >= 84 {
+    let count = read_u32_le(data, 80)
+    if count > 0U &&
+      84UL + count.to_uint64() * 50UL == data.length().to_uint64() {
+      return Binary
+    }
+  }
   if is_3mf(data) {
     return ThreeMF
   }
   if is_ply(data) {
     return Ply
-  }
-  if data.length() >= 84 {
-    let count = read_u32_le(data, 80)
-    let expected = 84UL + count.to_uint64() * 50UL
-    if expected == data.length().to_uint64() {
-      return Binary
-    }
   }
   let text = @utf8.decode_lossy(data)
   let mut stl_header = false
@@ -138,9 +152,12 @@ fn strip_cr(s : StringView) -> StringView {
 ///|
 /// 解析 ASCII STL；与流式入口共用逐面状态机。
 /// solid / endsolid 包装可省略；每个 facet 必须有完整 loop 和恰好三个有限顶点。
-pub fn parse_stl_ascii(text : String) -> Result[Mesh, String] {
+pub fn parse_stl_ascii(
+  text : String,
+  limits~ : ParseLimits = ParseLimits::default(),
+) -> Result[Mesh, String] {
   let triangles : Array[Triangle] = []
-  match walk_stl_ascii(text, triangle => triangles.push(triangle)) {
+  match walk_stl_ascii(text, triangle => triangles.push(triangle), limits~) {
     Ok(_) => Ok(Mesh::new(triangles))
     Err(message) => Err(message)
   }
@@ -148,10 +165,19 @@ pub fn parse_stl_ascii(text : String) -> Result[Mesh, String] {
 
 ///|
 /// 解析二进制 STL。
-pub fn parse_stl_binary(data : Bytes) -> Result[Mesh, String] {
+pub fn parse_stl_binary(
+  data : Bytes,
+  limits~ : ParseLimits = ParseLimits::default(),
+) -> Result[Mesh, String] {
+  if input_limit_error(data, limits) is Some(error) {
+    return Err(error)
+  }
   let count = match stl_binary_count(data) {
     Ok(count) => count
     Err(message) => return Err(message)
+  }
+  if triangle_limit_error(count, limits) is Some(error) {
+    return Err(error)
   }
   let triangles : Array[Triangle] = []
   for i = 0; i < count; i = i + 1 {

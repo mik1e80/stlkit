@@ -50,24 +50,47 @@ pub fn is_3mf(data : Bytes) -> Bool {
 pub fn parse_3mf(
   data : Bytes,
   compatibility~ : Bool = false,
+  limits~ : ParseLimits = ParseLimits::default(),
 ) -> Result[Mesh, String] {
+  if input_limit_error(data, limits) is Some(error) {
+    return Err(error)
+  }
+  let archive = data.to_fixedarray()
+  // Read validated central-directory metadata before allocating extracted parts.
+  // fzip's fixed output buffer also rejects streams larger than declared sizes.
+  let metadata = @fzip.unzip_list(archive) catch {
+    @fzip.FzipError(message~, ..) =>
+      return Err("这不是一个合法的 3MF：ZIP 解不开——\{message}")
+  }
+  if metadata.length() > limits.max_zip_entries {
+    return Err(resource_error("max_zip_entries", limits.max_zip_entries))
+  }
+  let mut uncompressed = 0L
+  for info in metadata {
+    uncompressed += info.original_size.to_int64()
+    if uncompressed > limits.max_uncompressed_bytes.to_int64() {
+      return Err(
+        resource_error("max_uncompressed_bytes", limits.max_uncompressed_bytes),
+      )
+    }
+  }
   // 解 ZIP。fzip 自带 zip bomb 防护（解压比超过 1000 倍直接拒绝）
   // 和不安全路径拒绝（绝对路径、`..` 一律不收）——解析用户传上来的文件，
   // 这两道防线是必须的，自己写很容易漏。
-  let entries = @fzip.unzip_sync(data.to_fixedarray()) catch {
+  let entries = @fzip.unzip_sync(archive, opts={ verify_checksum: true, }) catch {
     @fzip.FzipError(message~, ..) =>
       return Err("这不是一个合法的 3MF：ZIP 解不开——\{message}")
   }
   let located = if compatibility {
-    find_model_part(entries)
+    find_model_part(entries, limits~)
   } else {
-    mf_strict_model_part(entries)
+    mf_strict_model_part(entries, limits~)
   }
   let xml = match located {
     Ok(text) => text
     Err(msg) => return Err(msg)
   }
-  parse_model_xml(xml)
+  parse_model_xml(xml, limits~)
 }
 
 ///|
@@ -78,9 +101,11 @@ pub fn parse_3mf(
 /// 「找唯一一个 .model 文件」——有些导出器写的关系表不规范，但文件名是对的。
 fn find_model_part(
   entries : Array[(String, FixedArray[Byte])],
+  limits~ : ParseLimits = ParseLimits::default(),
 ) -> Result[String, String] {
   let target = match find_entry(entries, "_rels/.rels") {
-    Some(raw) => rels_model_target(@utf8.decode_lossy(Bytes::from_array(raw)))
+    Some(raw) =>
+      rels_model_target(@utf8.decode_lossy(Bytes::from_array(raw)), limits~)
     None => None
   }
   match target {
@@ -130,10 +155,18 @@ fn find_model_part(
 /// ```
 ///
 /// 认的是 Type 后缀而不是 Id——Id 是随便起的。
-fn rels_model_target(xml : String) -> String? {
+fn rels_model_target(
+  xml : String,
+  limits~ : ParseLimits = ParseLimits::default(),
+) -> String? {
   let reader = @xml.Reader::from_string(xml)
   let mut found : String? = None
+  let mut events = 0
   while found is None {
+    events += 1
+    if events > limits.max_records {
+      break
+    }
     let event = reader.read_event() catch {
       // 关系表坏了不该让整个解析失败，退回去按文件名找就行
       _ => break
@@ -296,7 +329,10 @@ fn mf_parent_of(tag : String) -> String? {
 /// `component`（装配体引用）、`item`（build 里列出要打印的对象）。
 /// 其余（metadata、basematerials、切片信息……）全部跳过——
 /// 这些语义不进入 Mesh；忽略不代表已验证制造语义或可打印。
-fn parse_model_xml(xml : String) -> Result[Mesh, String] {
+fn parse_model_xml(
+  xml : String,
+  limits~ : ParseLimits = ParseLimits::default(),
+) -> Result[Mesh, String] {
   let reader = @xml.Reader::from_string(xml)
   let objects : Map[Int32, MfObject] = Map([])
   // build 里列出的 (对象 id, 变换)
@@ -319,8 +355,15 @@ fn parse_model_xml(xml : String) -> Result[Mesh, String] {
   let mut cur_vertices : Array[Vec3] = []
   let mut cur_triangles : Array[(Int32, Int32, Int32)] = []
   let mut cur_components : Array[(Int32, FixedArray[Double]?)] = []
+  let mut vertex_count = 0
+  let mut triangle_count = 0
+  let mut event_count = 0
 
   while !reader.is_eof() {
+    event_count += 1
+    if event_count > limits.max_records {
+      return Err(resource_error("max_records", limits.max_records))
+    }
     let event = reader.read_event() catch {
       err =>
         return Err(
@@ -367,6 +410,9 @@ fn parse_model_xml(xml : String) -> Result[Mesh, String] {
         continue
       }
       _ => continue
+    }
+    if scopes.length() >= limits.max_xml_depth {
+      return Err(resource_error("max_xml_depth", limits.max_xml_depth))
     }
     let parent = if scopes.length() > 0 {
       scopes[scopes.length() - 1].tag
@@ -429,6 +475,9 @@ fn parse_model_xml(xml : String) -> Result[Mesh, String] {
       geometry_seen = true
     }
     if event.kind is @xml.EventKind::Start(_) {
+      if scopes.length() >= limits.max_xml_depth {
+        return Err(resource_error("max_xml_depth", limits.max_xml_depth))
+      }
       scopes.push({ name: element.name, tag, bindings, })
     }
     if tag == "" {
@@ -470,12 +519,20 @@ fn parse_model_xml(xml : String) -> Result[Mesh, String] {
       cur_triangles = []
       cur_components = []
     } else if tag == "vertex" {
+      if vertex_count >= limits.max_vertices {
+        return Err(resource_error("max_vertices", limits.max_vertices))
+      }
+      vertex_count += 1
       let v = match attribute_vec3(element) {
         Ok(v) => v
         Err(msg) => return Err(msg)
       }
       cur_vertices.push(v)
     } else if tag == "triangle" {
+      if triangle_count >= limits.max_triangles {
+        return Err(resource_error("max_triangles", limits.max_triangles))
+      }
+      triangle_count += 1
       // 三角形存的是顶点表下标，不是坐标
       let a = match attribute_int(element, "v1", "triangle") {
         Ok(v) => v
@@ -529,18 +586,16 @@ fn parse_model_xml(xml : String) -> Result[Mesh, String] {
 
   // 按 build 列出的对象拼出最终网格
   let triangles : Array[Triangle] = []
+  let visits = [0]
   for (id, tf) in build {
     // item 不带 transform 就是原样放进去
     let transform = match tf {
       Some(t) => t
       None => identity_transform()
     }
-    let body = match build_object(objects, id, transform, 0) {
-      Ok(v) => v
+    match append_object(objects, id, transform, 0, triangles, visits, limits) {
+      Ok(_) => ()
       Err(msg) => return Err(msg)
-    }
-    for tri in body {
-      triangles.push(tri)
     }
   }
 
@@ -607,22 +662,34 @@ fn scale_mesh(triangles : Array[Triangle], scale : Double) -> Array[Triangle] {
 ///
 /// `depth` 是递归深度。3MF 允许对象互相引用，**引用成环是坏文件，
 /// 但真会出现**，不设上限就会栈溢出。
-fn build_object(
+fn append_object(
   objects : Map[Int32, MfObject],
   id : Int32,
   transform : FixedArray[Double],
   depth : Int32,
-) -> Result[Array[Triangle], String] {
-  if depth > 32 {
+  out : Array[Triangle],
+  visits : Array[Int32],
+  limits : ParseLimits,
+) -> Result[Unit, String] {
+  if depth > limits.max_component_depth {
     return Err(
-      "3MF 的对象引用套得太深（超过 32 层），可能是循环引用",
+      resource_error("max_component_depth", limits.max_component_depth) +
+      "；3MF 对象引用套得太深，可能是循环引用",
     )
   }
+  if visits[0] >= limits.max_component_instances {
+    return Err(
+      resource_error("max_component_instances", limits.max_component_instances),
+    )
+  }
+  visits[0] += 1
   let obj = match objects.get(id) {
     Some(o) => o
     None => return Err("3MF 里引用了不存在的对象 id=\{id}")
   }
-  let out : Array[Triangle] = []
+  if obj.triangles.length() > limits.max_triangles - out.length() {
+    return Err(resource_error("max_triangles", limits.max_triangles))
+  }
   if obj.triangles.length() > 0 {
     // 共享顶点表：三角形存的是下标，到这里才真正取出坐标
     let n = obj.vertices.length()
@@ -653,15 +720,13 @@ fn build_object(
         return Err("3MF 对象 id=\{child_id} 的嵌套变换溢出")
       }
     }
-    let sub = match build_object(objects, child_id, combined, depth + 1) {
-      Ok(v) => v
+    match
+      append_object(objects, child_id, combined, depth + 1, out, visits, limits) {
+      Ok(_) => ()
       Err(msg) => return Err(msg)
     }
-    for tri in sub {
-      out.push(tri)
-    }
   }
-  Ok(out)
+  Ok(())
 }
 
 ///|

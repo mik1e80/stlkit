@@ -30,6 +30,13 @@
           <input type="file" id="file" accept=".stl,.obj,.3mf,.ply" hidden />
         </div>
         <div class="preview" id="preview"></div>
+        <label class="threshold-setting" for="max-input-bytes">输入字节上限
+          <input id="max-input-bytes" type="number" min="1" max="2147483647" step="1" value="67108864" />
+        </label>
+        <label class="threshold-setting" for="max-triangles">三角形上限
+          <input id="max-triangles" type="number" min="1" max="715827882" step="1" value="2000000" />
+          <small>下一次选择文件时生效。其他解析预算仍独立生效；上限不等于浏览器内存保证。</small>
+        </label>
       </section>
 
       <section class="pane">

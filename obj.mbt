@@ -18,7 +18,13 @@
 /// 只认几何相关的关键字：`v`（顶点）、`f`（面）、`vn`（法线）会读，
 /// `vt` 读取并检查面引用，纹理值不保存在 Mesh；其余（`g`、`o`、`s`、`mtllib`、`usemtl`、注释）跳过——
 /// 这些语义不进入 Mesh；跳过不表示已验证材质或工艺。
-pub fn parse_obj(text : String) -> Result[Mesh, String] {
+pub fn parse_obj(
+  text : String,
+  limits~ : ParseLimits = ParseLimits::default(),
+) -> Result[Mesh, String] {
+  if text_limit_error(text, limits) is Some(error) {
+    return Err(error)
+  }
   // 顶点表。OBJ 的编号是 1 基的，为了少一次减法，这里在下标 0 处
   // 塞一个占位，让 vertices[1] 就是文件里的第 1 号顶点。
   let vertices : Array[Vec3] = [Vec3::zero()]
@@ -27,6 +33,7 @@ pub fn parse_obj(text : String) -> Result[Mesh, String] {
   let textures : Array[Vec3] = [Vec3::zero()]
   let triangles : Array[Triangle] = []
   let mut line_no = 0
+  let mut list_items = 0L
 
   for raw_line in text.split("\n") {
     line_no = line_no + 1
@@ -38,6 +45,30 @@ pub fn parse_obj(text : String) -> Result[Mesh, String] {
           break
         }
         tokens.push(token)
+      }
+    }
+    if tokens is [head, ..] && (head == "v" || head == "vn" || head == "vt") {
+      if vertices.length().to_int64() +
+        normals.length().to_int64() +
+        textures.length().to_int64() -
+        3L >=
+        limits.max_vertices.to_int64() {
+        return Err(resource_error("max_vertices", limits.max_vertices))
+      }
+    }
+    if tokens is ["f", .. refs] {
+      if refs.length() > limits.max_polygon_vertices {
+        return Err(
+          resource_error("max_polygon_vertices", limits.max_polygon_vertices),
+        )
+      }
+      list_items += refs.length().to_int64()
+      if list_items > limits.max_list_items.to_int64() {
+        return Err(resource_error("max_list_items", limits.max_list_items))
+      }
+      if refs.length() >= 3 &&
+        refs.length() - 2 > limits.max_triangles - triangles.length() {
+        return Err(resource_error("max_triangles", limits.max_triangles))
       }
     }
     match tokens {

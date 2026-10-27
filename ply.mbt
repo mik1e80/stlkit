@@ -80,7 +80,11 @@ pub fn is_ply(data : Bytes) -> Bool {
 pub fn parse_ply(
   data : Bytes,
   lenient_ascii~ : Bool = false,
+  limits~ : ParseLimits = ParseLimits::default(),
 ) -> Result[Mesh, String] {
+  if input_limit_error(data, limits) is Some(error) {
+    return Err(error)
+  }
   if !is_ply(data) {
     return Err("这不是 PLY 文件（开头不是 ply）")
   }
@@ -96,6 +100,32 @@ pub fn parse_ply(
     Ok(_) => ()
     Err(message) => return Err(message)
   }
+  let mut records = 0L
+  let mut vertices = 0L
+  let mut faces = 0L
+  for element in header.elements {
+    records += element.count.to_int64()
+    if element.name == "vertex" {
+      vertices += element.count.to_int64()
+    }
+    if element.name == "face" {
+      faces += element.count.to_int64()
+    }
+  }
+  if records > limits.max_records.to_int64() {
+    return Err(resource_error("max_records", limits.max_records))
+  }
+  if vertices > limits.max_vertices.to_int64() {
+    return Err(resource_error("max_vertices", limits.max_vertices))
+  }
+  if faces > limits.max_triangles.to_int64() {
+    return Err(resource_error("max_triangles", limits.max_triangles))
+  }
+  if !header.binary {
+    if text_limit_error(@utf8.decode_lossy(data), limits) is Some(error) {
+      return Err(error)
+    }
+  }
   let cursor = match
     PlyCursor::new(
       data,
@@ -107,7 +137,7 @@ pub fn parse_ply(
     Ok(c) => c
     Err(msg) => return Err(msg)
   }
-  read_body(cursor, header)
+  read_body(cursor, header, limits~)
 }
 
 ///|
@@ -654,10 +684,15 @@ fn u64_at(data : Bytes, at : Int32, big : Bool) -> UInt64 {
 ///
 /// 只认 `vertex` 和 `face` 两种元素，别的一律跳过——**但跳过也得
 /// 按声明把值读出来**，不然游标会错位，后面全乱。
-fn read_body(cursor : PlyCursor, header : PlyHeader) -> Result[Mesh, String] {
+fn read_body(
+  cursor : PlyCursor,
+  header : PlyHeader,
+  limits~ : ParseLimits = ParseLimits::default(),
+) -> Result[Mesh, String] {
   let vertices : Array[Vec3] = []
   let polygons : Array[Array[Int32]] = []
   let triangles : Array[(Int32, Int32, Int32)] = []
+  let mut list_items = 0L
 
   for element in header.elements {
     let is_vertex = element.name == "vertex"
@@ -694,7 +729,21 @@ fn read_body(cursor : PlyCursor, header : PlyHeader) -> Result[Mesh, String] {
             if n < 0 {
               return Err("PLY 的列表长度是个负数：\{n}")
             }
+            list_items += n.to_int64()
+            if list_items > limits.max_list_items.to_int64() {
+              return Err(
+                resource_error("max_list_items", limits.max_list_items),
+              )
+            }
             if is_face && (name == "vertex_indices" || name == "vertex_index") {
+              if n > limits.max_polygon_vertices {
+                return Err(
+                  resource_error(
+                    "max_polygon_vertices",
+                    limits.max_polygon_vertices,
+                  ),
+                )
+              }
               if ply_integer_range(item_ty[:]) is None {
                 return Err(
                   "PLY face 顶点索引的列表项必须声明为整数类型",
@@ -746,7 +795,7 @@ fn read_body(cursor : PlyCursor, header : PlyHeader) -> Result[Mesh, String] {
   }
   // 所有元素仍按 header 顺序消费；延后解析面索引，允许 face 在 vertex 之前声明。
   for corners in polygons {
-    match append_polygon(vertices, corners, triangles) {
+    match append_polygon(vertices, corners, triangles, limits~) {
       Ok(_) => ()
       Err(msg) => return Err(msg)
     }
@@ -783,9 +832,18 @@ fn append_polygon(
   vertices : Array[Vec3],
   corners : Array[Int32],
   triangles : Array[(Int32, Int32, Int32)],
+  limits~ : ParseLimits = ParseLimits::default(),
 ) -> Result[Unit, String] {
   if corners.length() < 3 {
     return Err("PLY face 至少需要三个顶点，不能静默丢弃")
+  }
+  if corners.length() > limits.max_polygon_vertices {
+    return Err(
+      resource_error("max_polygon_vertices", limits.max_polygon_vertices),
+    )
+  }
+  if corners.length() - 2 > limits.max_triangles - triangles.length() {
+    return Err(resource_error("max_triangles", limits.max_triangles))
   }
   let n = vertices.length()
   for k in corners {

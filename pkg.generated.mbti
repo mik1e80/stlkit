@@ -24,19 +24,19 @@ pub fn is_3mf(Bytes) -> Bool
 
 pub fn is_ply(Bytes) -> Bool
 
-pub fn parse_3mf(Bytes, compatibility? : Bool) -> Result[Mesh, String]
+pub fn parse_3mf(Bytes, compatibility? : Bool, limits? : ParseLimits) -> Result[Mesh, String]
 
-pub fn parse_mesh(Bytes) -> Result[Mesh, String]
+pub fn parse_mesh(Bytes, limits? : ParseLimits) -> Result[Mesh, String]
 
-pub fn parse_obj(String) -> Result[Mesh, String]
+pub fn parse_obj(String, limits? : ParseLimits) -> Result[Mesh, String]
 
-pub fn parse_ply(Bytes, lenient_ascii? : Bool) -> Result[Mesh, String]
+pub fn parse_ply(Bytes, lenient_ascii? : Bool, limits? : ParseLimits) -> Result[Mesh, String]
 
-pub fn parse_stl(Bytes) -> Result[Mesh, String]
+pub fn parse_stl(Bytes, limits? : ParseLimits) -> Result[Mesh, String]
 
-pub fn parse_stl_ascii(String) -> Result[Mesh, String]
+pub fn parse_stl_ascii(String, limits? : ParseLimits) -> Result[Mesh, String]
 
-pub fn parse_stl_binary(Bytes) -> Result[Mesh, String]
+pub fn parse_stl_binary(Bytes, limits? : ParseLimits) -> Result[Mesh, String]
 
 pub fn ray_triangle(Vec3, Vec3, Vec3, Vec3, Vec3) -> Double?
 
@@ -46,9 +46,9 @@ pub fn repair(Mesh, RepairOptions) -> RepairResult
 
 pub fn review_scope() -> String
 
-pub fn stream_stl_ascii(String) -> Result[StreamReport, String]
+pub fn stream_stl_ascii(String, limits? : ParseLimits) -> Result[StreamReport, String]
 
-pub fn stream_stl_binary(Bytes) -> Result[StreamReport, String]
+pub fn stream_stl_binary(Bytes, limits? : ParseLimits) -> Result[StreamReport, String]
 
 pub fn symmetric_eigendecomposition(FixedArray[Double]) -> SymmetricEigen
 
@@ -120,6 +120,22 @@ pub(all) struct Obb {
 pub fn Obb::size(Self) -> Vec3
 pub fn Obb::volume(Self) -> Double
 
+pub(all) struct ParseLimits {
+  max_input_bytes : Int32
+  max_vertices : Int32
+  max_triangles : Int32
+  max_list_items : Int32
+  max_polygon_vertices : Int32
+  max_uncompressed_bytes : Int32
+  max_zip_entries : Int32
+  max_component_depth : Int32
+  max_component_instances : Int32
+  max_records : Int32
+  max_line_bytes : Int32
+  max_xml_depth : Int32
+}
+pub fn ParseLimits::default() -> Self
+
 pub(all) struct PreviewOptions {
   width : Int32
   height : Int32
@@ -183,9 +199,10 @@ pub(all) struct ScanStorage {
 pub(all) struct StlScanner {
   // private fields
 }
+pub fn StlScanner::error(Self) -> String?
 pub fn StlScanner::feed(Self, Bytes) -> Unit
 pub fn StlScanner::finish(Self) -> Result[StreamReport, String]
-pub fn StlScanner::new() -> Self
+pub fn StlScanner::new(limits? : ParseLimits) -> Self
 pub fn StlScanner::storage(Self) -> ScanStorage
 
 pub(all) struct StreamReport {

@@ -14,18 +14,27 @@ fn mf_opc_nodes(
   text : String,
   root_name : String,
   ns_uri : String,
+  limits~ : ParseLimits = ParseLimits::default(),
 ) -> Result[Array[@xml.XmlElement], String] {
   let reader = @xml.Reader::from_string(text)
   let scopes : Array[MfXmlScope] = []
   let inherited : Map[String, String] = Map([])
   let nodes : Array[@xml.XmlElement] = []
   let mut seen = false
+  let mut events = 0
   while !reader.is_eof() {
+    events += 1
+    if events > limits.max_records {
+      return Err(resource_error("max_records", limits.max_records))
+    }
     let event = reader.read_event() catch {
       _ => return Err("3MF OPC XML 结构非法")
     }
     match event.kind {
       @xml.EventKind::Start(e) | @xml.EventKind::Empty(e) => {
+        if scopes.length() >= limits.max_xml_depth {
+          return Err(resource_error("max_xml_depth", limits.max_xml_depth))
+        }
         let parent = if scopes.is_empty() {
           inherited
         } else {
@@ -48,6 +57,9 @@ fn mf_opc_nodes(
           return Err("3MF OPC 中存在不支持的嵌套结构")
         }
         if event.kind is @xml.EventKind::Start(_) {
+          if scopes.length() >= limits.max_xml_depth {
+            return Err(resource_error("max_xml_depth", limits.max_xml_depth))
+          }
           scopes.push({ name: e.name, tag: name, bindings, })
         }
       }
@@ -100,6 +112,7 @@ fn mf_package_path(raw : String) -> Result[String, String] {
 ///|
 fn mf_strict_model_part(
   entries : Array[(String, FixedArray[Byte])],
+  limits~ : ParseLimits = ParseLimits::default(),
 ) -> Result[String, String] {
   let names : Map[String, Bool] = Map([])
   for (name, _) in entries {
@@ -125,7 +138,10 @@ fn mf_strict_model_part(
   }
   let links = match
     mf_opc_nodes(
-      rels, "Relationships", "http://schemas.openxmlformats.org/package/2006/relationships",
+      rels,
+      "Relationships",
+      "http://schemas.openxmlformats.org/package/2006/relationships",
+      limits~,
     ) {
     Ok(v) => v
     Err(e) => return Err(e)
@@ -189,7 +205,10 @@ fn mf_strict_model_part(
   }
   let types = match
     mf_opc_nodes(
-      types_text, "Types", "http://schemas.openxmlformats.org/package/2006/content-types",
+      types_text,
+      "Types",
+      "http://schemas.openxmlformats.org/package/2006/content-types",
+      limits~,
     ) {
     Ok(v) => v
     Err(e) => return Err(e)
