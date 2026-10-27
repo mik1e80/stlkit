@@ -1,6 +1,6 @@
 # stlkit：接口与实现
 
-MoonBit 的 STL / OBJ / 3MF / PLY 三角网格工具链。本次版本 **0.1.4**；安装 `moon add mik1e80/stlkit@0.1.4`，源码固定 [v0.1.4](https://github.com/mik1e80/stlkit/tree/v0.1.4)。本轮收紧 OBJ 纹理引用、PLY 声明类型和坏面、3MF 包结构；精确格式参考、输入契约和未实现语义见 [格式兼容性说明](docs/format-compatibility.md)，代码与申报修改分项见 [0.1.4 发布说明](docs/releases/0.1.4.md)。
+MoonBit 的 STL / OBJ / 3MF / PLY 三角网格工具链。本次版本 **0.1.5**；安装 `moon add mik1e80/stlkit@0.1.5`，源码固定 [v0.1.5](https://github.com/mik1e80/stlkit/tree/v0.1.5)。新增可配置解析预算、确定性变异和独立发布包安装验证；见 [资源限制](docs/resource-limits.md)、[格式兼容性](docs/format-compatibility.md) 及 [发布说明](docs/releases/0.1.5.md)。
 
 ## 数据与单位
 
@@ -38,7 +38,7 @@ PLY 的每个 `vertex` 元素（含 count=0 的声明）必须分别包含且只
 
 `detect_format(data)` 返回 `Ascii`（ASCII STL）、`Binary`（二进制 STL）、`Obj`、`ThreeMF`、`Ply` 或 `Unknown`。它依据内容提供解析路由提示，不使用文件后缀，也不证明文件有效或完整符合规范。
 
-探测先检查 ZIP/3MF 候选与 PLY 文件头，再检查二进制 STL 的计数和精确文件长度。其余文本逐行查找行首几何记录：STL 的 `facet/vertex/endfacet` 或 OBJ 的 `v/vn/f`；仅有 `solid/endsolid` 时作为 ASCII STL 候选。注释和对象名称中嵌入这些单词不会被当成几何记录。文本扫描直到找到提示或到达末尾，最坏为 O(n)，不以 512 字节作为识别上限。
+探测先检查非空二进制 STL 的计数和精确文件长度，再检查 ZIP/3MF 候选与 PLY 文件头；STL 的 80 字节 header 可含任意魔数，不据此前缀误判。其余文本逐行查找行首几何记录：STL 的 `facet/vertex/endfacet` 或 OBJ 的 `v/vn/f`；仅有 `solid/endsolid` 时作为 ASCII STL 候选。注释和对象名称中嵌入这些单词不会被当成几何记录。文本扫描直到找到提示或到达末尾，最坏为 O(n)，不以 512 字节作为识别上限。
 
 `parse_mesh()` 将已识别格式送到对应解析器；`Unknown` 文本依次尝试 ASCII STL 和 OBJ，均失败时返回“无法识别网格格式”并附两者原因。已识别格式的解析错误直接保留，不因文件损坏而换一种格式蒙混通过。`Unknown` 不再是 OBJ 的别名；`parse_stl()` 明确拒绝 OBJ、PLY 和 3MF。
 

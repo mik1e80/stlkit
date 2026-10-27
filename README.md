@@ -4,12 +4,14 @@ MoonBit 三维网格检查与修复库。读取 STL、OBJ、3MF、PLY 的支持�
 
 [在线演示](https://mik1e80.github.io/stlkit/) · [库接口](README.mbt.md) · [范围与复现案例](docs/review-cases.md) · [项目对比](COMPARISON.md) · [变更记录](CHANGELOG.md)
 
-本次修订版本 **0.1.4**。使用 [Mooncakes 0.1.4](https://mooncakes.io/docs/mik1e80/stlkit@0.1.4/) 或固定的 [v0.1.4 标签](https://github.com/mik1e80/stlkit/tree/v0.1.4) 复核本轮格式输入修复；0.1.3 及以前不包含这些新边界。[发布说明](docs/releases/0.1.4.md) 分开列明文档、代码和申报材料的调整。
+本次版本 **0.1.5**：新增可配置解析预算、确定性变异测试与独立发布包安装测试。[Mooncakes](https://mooncakes.io/docs/mik1e80/stlkit@0.1.5/) · [固定源码 v0.1.5](https://github.com/mik1e80/stlkit/tree/v0.1.5) · [发布说明](docs/releases/0.1.5.md)。历史 v0.1.4 保留不动。
+
+[资源预算与兼容变化](docs/resource-limits.md) · [变异测试报告](docs/fuzz-testing.md) · [后续路线](docs/roadmap.md)。CLI / 网页可设置资源上限；这些预算不保证进程内存或时限。IndexedMesh、BVH 和自相交仍属后续计划。
 
 在已有 MoonBit 项目中安装指定版本：
 
 ```sh
-moon add mik1e80/stlkit@0.1.4
+moon add mik1e80/stlkit@0.1.5
 ```
 
 ## 快速运行
@@ -17,7 +19,7 @@ moon add mik1e80/stlkit@0.1.4
 安装 [MoonBit 工具链](https://www.moonbitlang.com/download/)，获取源码后执行：
 
 ```sh
-git clone --branch v0.1.4 --depth 1 https://github.com/mik1e80/stlkit
+git clone --branch v0.1.5 --depth 1 https://github.com/mik1e80/stlkit
 cd stlkit
 moon update
 moon run cmd/main examples/cube.obj --strict
@@ -65,7 +67,7 @@ OBJ 的 `vn` 是逐顶点数据。本库只在一个三角形的三个顶点法�
 
 `detect_format(data)` 返回 `Ascii`（ASCII STL）、`Binary`（二进制 STL）、`Obj`、`ThreeMF`、`Ply` 或 `Unknown`。它依据内容提供解析路由提示，不使用文件后缀，也不证明文件有效或完整符合规范。
 
-探测先检查 ZIP/3MF 候选与 PLY 文件头，再检查二进制 STL 的计数和精确文件长度。其余文本逐行查找行首几何记录：STL 的 `facet/vertex/endfacet` 或 OBJ 的 `v/vn/f`；仅有 `solid/endsolid` 时作为 ASCII STL 候选。注释和对象名称中嵌入这些单词不会被当成几何记录。文本扫描直到找到提示或到达末尾，最坏为 O(n)，不以 512 字节作为识别上限。
+探测先检查非空二进制 STL 的计数和精确文件长度，再检查 ZIP/3MF 候选与 PLY 文件头；STL 的 80 字节 header 可含任意魔数，不据此前缀误判。其余文本逐行查找行首几何记录：STL 的 `facet/vertex/endfacet` 或 OBJ 的 `v/vn/f`；仅有 `solid/endsolid` 时作为 ASCII STL 候选。注释和对象名称中嵌入这些单词不会被当成几何记录。文本扫描直到找到提示或到达末尾，最坏为 O(n)，不以 512 字节作为识别上限。
 
 `parse_mesh()` 将已识别格式送到对应解析器；`Unknown` 文本依次尝试 ASCII STL 和 OBJ，均失败时返回“无法识别网格格式”并附两者原因。已识别格式的解析错误直接保留，不因文件损坏而换一种格式蒙混通过。`Unknown` 不再是 OBJ 的别名；`parse_stl()` 明确拒绝 OBJ、PLY 和 3MF。
 
