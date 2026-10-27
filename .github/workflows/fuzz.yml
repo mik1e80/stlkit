@@ -1,0 +1,36 @@
+name: Deterministic parser mutations
+on:
+  push:
+    branches: [main]
+    paths: ['**/*.mbt', 'scripts/fuzz.mbtx', '.github/workflows/fuzz.yml']
+  pull_request:
+    paths: ['**/*.mbt', 'scripts/fuzz.mbtx', '.github/workflows/fuzz.yml']
+  workflow_dispatch:
+    inputs:
+      cases:
+        description: Cases per backend
+        type: choice
+        options: ['1000', '10000']
+        default: '1000'
+permissions:
+  contents: read
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+      - run: moon update
+      - name: Compare four backends with bounded child processes
+        env:
+          FUZZ_CASES: ${{ inputs.cases || '1000' }}
+        run: moon run scripts/fuzz.mbtx all "$FUZZ_CASES"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mutation-logs
+          path: _build/fuzz-*.log

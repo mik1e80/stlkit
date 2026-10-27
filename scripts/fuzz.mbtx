@@ -1,0 +1,34 @@
+----
+import {
+  "moonbitlang/async",
+  "moonbitlang/async/shell",
+  "moonbitlang/core/env",
+  "moonbitlang/x/fs",
+}
+----
+
+// SPDX-License-Identifier: Apache-2.0
+// Each backend runs in a timed child process; logs identify a failing case.
+async fn main {
+  let args = @env.args()
+  let target = if args.length() > 1 { args[1] } else { "all" }
+  let count = if args.length() > 2 { args[2] } else { "1000" }
+  let start = if args.length() > 3 { args[3] } else { "0" }
+  let targets = if target == "all" { ["wasm", "wasm-gc", "js", "native"] } else { [target] }
+  let mut reference : String? = None
+  for backend in targets {
+    guard ["wasm", "wasm-gc", "js", "native"].contains(backend) else { fail("unknown backend") }
+    let log = "_build/fuzz-\{backend}.log"
+    let code = @shell.Cmd("moon", ["run", "--target", backend, "tools/fuzz", "--", count, start], stdout=@shell.ToFile(log), stderr=@shell.ToFile("_build/fuzz-\{backend}-stderr.log")).status(timeout_ms=120000) catch {
+      error => fail("fuzz timeout/process failure: \{backend}; retained log \{log}; \{error}")
+    }
+    guard code == 0 else { fail("fuzz failed: \{backend}; see \{log}") }
+    let mut summary : String? = None
+    for line in @fs.read_file_to_string(log).split("\n") {
+      if line.has_prefix("FUZZ_RESULT ") { summary = Some(line.trim().to_owned()) }
+    }
+    guard summary is Some(summary) else { fail("missing fuzz summary: \{log}") }
+    match reference { Some(old) => assert_eq(summary, old); None => reference = Some(summary) }
+    println("\{backend}: \{summary}")
+  }
+}

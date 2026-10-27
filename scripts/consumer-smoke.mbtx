@@ -1,0 +1,35 @@
+----
+import {
+  "moonbitlang/async",
+  "moonbitlang/async/shell",
+  "moonbitlang/core/env",
+  "moonbitlang/x/fs",
+}
+----
+
+// SPDX-License-Identifier: Apache-2.0
+async fn main {
+  let args = @env.args()
+  let version = if args.length() > 1 { args[1] } else { "0.1.4" }
+  guard version.length() > 0 && version.iter().all(c => (c >= '0' && c <= '9') || c == '.') else { fail("numeric package version required") }
+  let base = @env.get_env_var("TEMP").unwrap_or(@env.get_env_var("TMPDIR").unwrap_or("/tmp"))
+  let dir = base + "/stlkit-consumer-" + @env.now().to_string()
+  guard !@fs.path_exists(dir) else { fail("fresh consumer path already exists") }
+  @fs.create_dir(dir)
+  for file in ["moon.mod", "moon.pkg", "main.mbt"] {
+    @fs.write_string_to_file(dir + "/" + file, @fs.read_file_to_string("tests/consumer-smoke/" + file))
+  }
+  let install = @shell.Cmd("moon", ["add", "--no-update", "mik1e80/stlkit@" + version], cwd=dir).output(timeout_ms=120000)
+  guard install.exit_code() == 0 else { fail("consumer install failed: " + install.stderr()) }
+  @shell.Cmd("moon", ["check", "--target", "all", "--deny-warn"], cwd=dir).run(timeout_ms=120000)
+  let mut reference : String? = None
+  for target in ["wasm", "wasm-gc", "js", "native"] {
+    let output = @shell.Cmd("moon", ["run", "--target", target, "."], cwd=dir).output(timeout_ms=120000)
+    guard output.exit_code() == 0 else { fail("consumer run failed: " + target + "\n" + output.stderr()) }
+    let text = output.stdout().trim().to_owned()
+    guard text.has_prefix("CONSUMER_OK ") else { fail("unexpected consumer output") }
+    match reference { Some(old) => assert_eq(old, text); None => reference = Some(text) }
+    println("\{target}: \{text}")
+  }
+  println("Installed mik1e80/stlkit@\{version} in fresh directory: \{dir}")
+}

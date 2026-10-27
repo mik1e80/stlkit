@@ -3,3 +3,6 @@ examples/external/** -text -whitespace
 # Generated binary analytic fixtures are not text.
 examples/corpus/*.stl -text
 examples/corpus/*.3mf -text
+# This deliberately missing-format header cannot be classified as ASCII by the
+# corpus harness; keep its raw-byte hash identical across Git checkouts.
+examples/missing-format.ply -text

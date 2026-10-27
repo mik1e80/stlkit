@@ -1,0 +1,2 @@
+import { "mik1e80/stlkit" }
+pkgtype(kind: "executable")

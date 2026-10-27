@@ -1,0 +1,27 @@
+----
+import {
+  "moonbitlang/async",
+  "moonbitlang/async/shell",
+  "moonbitlang/x/fs",
+}
+----
+
+// SPDX-License-Identifier: Apache-2.0
+async fn main {
+  for args in [
+    ["examples/cube.obj", "--max-input-bytes", "1"],
+    ["examples/cube.obj", "--max-triangles", "1"],
+    ["examples/box.3mf", "--max-uncompressed-bytes", "1"],
+    ["examples/review/cubes-1.stl", "--stream-only", "--max-triangles", "1"],
+    ["examples/cube.obj", "--max-triangles", "invalid"],
+  ] {
+    let output = @shell.Cmd("moon", ["run", "cmd/main"] + args).output(timeout_ms=60000)
+    assert_eq(output.exit_code(), 1)
+    assert_true(output.stdout().contains("resource_limit:") || output.stdout().contains("必须是非负"), msg=output.stdout() + output.stderr())
+  }
+  let output = @shell.Cmd("moon", ["run", "cmd/main", "examples/cube.obj", "--max-triangles", "12", "--max-vertices", "36", "--strict"]).output(timeout_ms=60000)
+  assert_eq(output.exit_code(), 0)
+  assert_true(output.stdout().contains("12 个"))
+  @fs.write_string_to_file("_build/limits-smoke.log", "CLI_LIMITS_OK: input, triangles, ZIP output, chunked, invalid limits, raised limits\n")
+  println("CLI_LIMITS_OK")
+}

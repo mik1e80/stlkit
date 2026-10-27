@@ -1,0 +1,9 @@
+import {
+  "mik1e80/stlkit",
+  "moonbitlang/core/env",
+  "moonbitlang/core/string",
+  "moonbitlang/core/encoding/utf8",
+  "hustcer/fzip",
+}
+
+pkgtype(kind: "executable")
