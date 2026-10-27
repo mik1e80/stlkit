@@ -10,6 +10,9 @@ import {
 // SPDX-License-Identifier: Apache-2.0
 // Each backend runs in a timed child process; logs identify a failing case.
 async fn main {
+  // Standalone scripts build outside the package; a fresh checkout has no
+  // project _build directory yet when the child log redirection is opened.
+  if !@fs.path_exists("_build") { @fs.create_dir("_build") }
   let args = @env.args()
   let target = if args.length() > 1 { args[1] } else { "all" }
   let count = if args.length() > 2 { args[2] } else { "1000" }
