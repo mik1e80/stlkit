@@ -1,0 +1,19 @@
+# Publishing policy; this replaces the root .gitignore for packaging.
+.mooncakes/
+_build/
+_coverage/
+moonbit-coverage-*.txt
+CLAUDE.md
+.claude/
+*.swp
+*.swo
+
+# The complete licensed model corpus remains in the fixed GitHub source tag.
+# Keep provenance and full license texts in the installable library package.
+/examples/external/*
+!/examples/external/licenses/
+!/examples/external/manifest.json
+
+# Browser build is available via GitHub Pages/source; consumers compile the lib.
+/web/dist/
+!/.moonignore
