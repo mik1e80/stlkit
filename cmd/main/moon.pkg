@@ -3,6 +3,8 @@ import {
   "moonbitlang/core/string",
   "moonbitlang/core/bench",
   "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/json",
+  "moonbitlang/core/env",
   "moonbitlang/async",
   "moonbitlang/async/fs" @asyncfs,
   "moonbitlang/x/fs",

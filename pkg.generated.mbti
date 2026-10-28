@@ -20,6 +20,8 @@ pub fn default_weld_tolerance() -> Double
 
 pub fn detect_format(Bytes) -> MeshFormat
 
+pub fn inspection_json(Mesh, format? : MeshFormat, min_thickness? : Double, samples? : Int32) -> Result[Json, String]
+
 pub fn is_3mf(Bytes) -> Bool
 
 pub fn is_ply(Bytes) -> Bool
@@ -27,6 +29,8 @@ pub fn is_ply(Bytes) -> Bool
 pub fn parse_3mf(Bytes, compatibility? : Bool, limits? : ParseLimits) -> Result[Mesh, String]
 
 pub fn parse_mesh(Bytes, limits? : ParseLimits) -> Result[Mesh, String]
+
+pub fn parse_mesh_checked(Bytes, limits? : ParseLimits) -> Result[Mesh, ParseError]
 
 pub fn parse_obj(String, limits? : ParseLimits) -> Result[Mesh, String]
 
@@ -85,6 +89,28 @@ pub(all) struct Aabb {
 }
 pub fn Aabb::size(Self) -> Vec3
 
+pub(all) struct Face3 {
+  a : Int32
+  b : Int32
+  c : Int32
+}
+
+pub struct IndexedMesh {
+  // private fields
+}
+pub fn IndexedMesh::bounding_box(Self) -> Aabb?
+pub fn IndexedMesh::declared_normals(Self) -> Array[Vec3]
+pub fn IndexedMesh::faces(Self) -> Array[Face3]
+pub fn IndexedMesh::new(Array[Vec3], Array[Face3], normals? : Array[Vec3]) -> Result[Self, String]
+pub fn IndexedMesh::surface_area(Self) -> Double
+pub fn IndexedMesh::to_mesh(Self) -> Mesh
+pub fn IndexedMesh::triangle_count(Self) -> Int32
+pub fn IndexedMesh::unused_vertex_count(Self) -> Int32
+pub fn IndexedMesh::validate(Self, tolerance? : Double) -> ValidationReport
+pub fn IndexedMesh::vertex_count(Self) -> Int32
+pub fn IndexedMesh::vertices(Self) -> Array[Vec3]
+pub fn IndexedMesh::volume(Self) -> Double
+
 pub(all) struct Mesh {
   triangles : Array[Triangle]
 }
@@ -99,6 +125,7 @@ pub fn Mesh::oriented_bounding_box(Self) -> Obb?
 pub fn Mesh::principal_moments(Self) -> FixedArray[Double]
 pub fn Mesh::ray_cast(Self, Vec3, Vec3) -> RayHit?
 pub fn Mesh::surface_area(Self) -> Double
+pub fn Mesh::to_indexed(Self) -> Result[IndexedMesh, String]
 pub fn Mesh::triangle_count(Self) -> Int32
 pub fn Mesh::vertices(Self) -> Array[Vec3]
 pub fn Mesh::volume(Self) -> Double
@@ -111,6 +138,7 @@ pub(all) enum MeshFormat {
   Ply
   Unknown
 }
+pub fn MeshFormat::id(Self) -> String
 
 pub(all) struct Obb {
   center : Vec3
@@ -119,6 +147,16 @@ pub(all) struct Obb {
 }
 pub fn Obb::size(Self) -> Vec3
 pub fn Obb::volume(Self) -> Double
+
+pub(all) enum ParseError {
+  InvalidLimits(String)
+  ResourceLimitExceeded(String)
+  UnknownFormat(String)
+  InvalidData(MeshFormat, String)
+}
+pub fn ParseError::code(Self) -> String
+pub fn ParseError::message(Self) -> String
+pub fn ParseError::to_json(Self) -> Json
 
 pub(all) struct ParseLimits {
   max_input_bytes : Int32

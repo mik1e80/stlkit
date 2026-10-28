@@ -67,6 +67,10 @@ fn command() -> @argparse.Command {
     ],
     flags=[
       @argparse.FlagArg(
+        "json",
+        about="输出 schema_version=1 JSON；可与 --strict、阈值及限额组合",
+      ),
+      @argparse.FlagArg(
         "stream-only",
         about="只分块统计二进制 STL；顶点和边记录仍增长",
       ),
@@ -820,6 +824,10 @@ async fn run(
 /// 写成 `async fn main` 是因为基准测试要分块读文件，走的是
 /// `moonbitlang/async/fs`。其余路径都是同步的，只是借了这个入口分派。
 async fn main {
+  if json_requested() {
+    json_main()
+    return
+  }
   let result = try {
     let cmd = command()
     let matches = cmd.parse()

@@ -2,6 +2,7 @@ import {
   "moonbitlang/core/string",
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/math",
+  "moonbitlang/core/json",
   // 3MF 是个 ZIP 包，里面装的是 XML。这两样都不该自己造：
   // ZIP 要写 inflate（几百行，还得考虑 zip bomb），XML 的实体、命名空间、
   // 属性引号也全是坑。两个库都是纯 MoonBit 实现、没有 FFI，

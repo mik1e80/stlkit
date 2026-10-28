@@ -63,12 +63,20 @@ pub fn parse_mesh(
       match parse_stl_ascii(text, limits~) {
         Ok(mesh) => Ok(mesh)
         Err(stl_error) =>
-          match parse_obj(text, limits~) {
-            Ok(mesh) => Ok(mesh)
-            Err(obj_error) =>
-              Err(
-                "无法识别网格格式；ASCII STL：\{stl_error}；OBJ：\{obj_error}",
-              )
+          if stl_error.has_prefix("resource_limit: ") {
+            Err(stl_error)
+          } else {
+            match parse_obj(text, limits~) {
+              Ok(mesh) => Ok(mesh)
+              Err(obj_error) =>
+                if obj_error.has_prefix("resource_limit: ") {
+                  Err(obj_error)
+                } else {
+                  Err(
+                    "无法识别网格格式；ASCII STL：\{stl_error}；OBJ：\{obj_error}",
+                  )
+                }
+            }
           }
       }
     }
