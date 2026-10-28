@@ -1,8 +1,10 @@
 # stlkit：接口与实现
 
-MoonBit 的 STL / OBJ / 3MF / PLY 三角网格工具链。本次版本 **0.1.6**；安装 `moon add mik1e80/stlkit@0.1.6`，源码固定 [v0.1.6](https://github.com/mik1e80/stlkit/tree/v0.1.6)。新增可配置解析预算、确定性变异和独立发布包安装验证；见 [资源限制](docs/resource-limits.md)、[格式兼容性](docs/format-compatibility.md) 及 [发布说明](docs/releases/0.1.6.md)。
+MoonBit 的 STL / OBJ / 3MF / PLY 三角网格工具链。本次版本 **0.2.0**；安装 `moon add mik1e80/stlkit@0.2.0`，源码固定 [v0.2.0](https://github.com/mik1e80/stlkit/tree/v0.2.0)。新增 JSON 检查协议、结构化解析错误和独立索引网格；见 [JSON 协议](docs/json-report.md) 与 [IndexedMesh](docs/indexed-mesh.md)。旧接口保留；见 [资源限制](docs/resource-limits.md)、[格式兼容性](docs/format-compatibility.md) 及 [发布说明](docs/releases/0.2.0.md)。
 
 ## 数据与单位
+
+新增 API：`parse_mesh_checked` 返回粗粒度 `ParseError`；`inspection_json` 返回版本化 JSON；`Mesh::to_indexed` / `IndexedMesh::new` / `to_mesh` 提供独立索引表示。JSON 参数、字段、null 和退出码见协议文档；索引构造检查全部有限坐标/法线与索引范围，数组接口返回快照。拓扑兼容接口仍临时展开旧 Mesh，不承诺内存优化。
 
 `Vec3` 使用 Double；`Triangle` 保存三个点及声明法线；`Mesh` 保存三角形数组。解析阶段展开 OBJ / PLY / 3MF 的索引和对象引用，不保留原文件的独立顶点身份。
 

@@ -1,5 +1,12 @@
 # 变更记录
 
+## 0.2.0（2026-10-28）
+
+- 新增 inspection_json、parse_mesh_checked / ParseError 与 CLI --json；规定 null/未评估/计算非有限值、schema_version 和 JSON 退出码，保留旧中文报告和字符串 API。
+- 新增独立 IndexedMesh 快照、Face3、精确坐标去重、法线保留、往返与统计；拓扑验证暂时展开旧 Mesh，未宣传性能优化。
+- 100k 转换内存实测约 40 MB，高于 full 的约 23–24 MB；逻辑字段量不是实际堆大小。
+- 新增 JSON 协议、索引不变量、内存报告与真实 CLI 回归；公开包 consumer 覆盖新增 API。详见 [发布说明](docs/releases/0.2.0.md)。
+
 ## 0.1.6（2026-10-28）
 
 - 修正独立 consumer 脚本：`moon add --upgrade` 明确升级示例中原有依赖，检查已安装包的版本后才运行四后端。避免命令指定新版本但实际测试旧版本。

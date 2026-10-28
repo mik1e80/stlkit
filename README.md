@@ -2,16 +2,18 @@
 
 MoonBit 三维网格检查与修复库。读取 STL、OBJ、3MF、PLY 的支持子集，提供拓扑检查、射线厚度采样、几何统计、简单修复和 SVG 预览。CLI 和浏览器复用同一份 MoonBit 核心代码。
 
+STLKit is a MoonBit library for mesh ingestion, diagnostics, analysis and simple repair. It includes a CLI and a local browser interface, supports documented format subsets, and provides JSON reports and an indexed geometry representation. It does not certify printability.
+
 [在线演示](https://mik1e80.github.io/stlkit/) · [库接口](README.mbt.md) · [范围与复现案例](docs/review-cases.md) · [项目对比](COMPARISON.md) · [变更记录](CHANGELOG.md)
 
-本次版本 **0.1.6**：新增可配置解析预算、确定性变异测试与独立发布包安装测试。[Mooncakes](https://mooncakes.io/docs/mik1e80/stlkit@0.1.6/) · [固定源码 v0.1.6](https://github.com/mik1e80/stlkit/tree/v0.1.6) · [发布说明](docs/releases/0.1.6.md)。历史 v0.1.4 保留不动。
+本次版本 **0.2.0**：新增 JSON 检查协议、结构化解析错误与 IndexedMesh 初版。[Mooncakes](https://mooncakes.io/docs/mik1e80/stlkit@0.2.0/) · [固定源码 v0.2.0](https://github.com/mik1e80/stlkit/tree/v0.2.0) · [发布说明](docs/releases/0.2.0.md)。历史 v0.1.4 保留不动。
 
-[资源预算与兼容变化](docs/resource-limits.md) · [变异测试报告](docs/fuzz-testing.md) · [后续路线](docs/roadmap.md)。CLI / 网页可设置资源上限；这些预算不保证进程内存或时限。IndexedMesh、BVH 和自相交仍属后续计划。
+[资源预算与兼容变化](docs/resource-limits.md) · [变异测试报告](docs/fuzz-testing.md) · [后续路线](docs/roadmap.md)。CLI / 网页可设置资源上限；这些预算不保证进程内存或时限。[JSON 协议](docs/json-report.md) 和 [IndexedMesh](docs/indexed-mesh.md) 已有实现；BVH 和自相交仍属后续计划。索引转换的峰值内存没有下降，见实测。
 
 在已有 MoonBit 项目中安装指定版本：
 
 ```sh
-moon add mik1e80/stlkit@0.1.6
+moon add mik1e80/stlkit@0.2.0
 ```
 
 ## 快速运行
@@ -19,10 +21,11 @@ moon add mik1e80/stlkit@0.1.6
 安装 [MoonBit 工具链](https://www.moonbitlang.com/download/)，获取源码后执行：
 
 ```sh
-git clone --branch v0.1.6 --depth 1 https://github.com/mik1e80/stlkit
+git clone --branch v0.2.0 --depth 1 https://github.com/mik1e80/stlkit
 cd stlkit
 moon update
 moon run cmd/main examples/cube.obj --strict
+moon run cmd/main examples/cube.obj --json --samples 32 --min-thickness 0 --strict
 moon run cmd/main examples/broken.stl --fix fixed.stl --strict
 moon run cmd/main examples/broken.stl --fix fixed.stl --svg fixed.svg --strict
 moon run cmd/main examples/torus.obj --svg torus.svg
@@ -47,6 +50,7 @@ OBJ 读取并验证 `vt` 及面引用，UV 不进入 Mesh；没有 `vt` 的 `v/v
 | 网格检查 | 边界边、非流形边、退化面、已保留声明面法线方向是否与三角形绕向相反；按共享边连通分量报告绕向、有符号体积和朝向状态 |
 | 厚度采样 | 从确定性表面样本沿内法线取射线命中距离，报告样本最小值、命中数和参考阈值提醒 |
 | 几何统计 | 面积、体积、AABB、PCA 定向包围盒、共享边连通部分、欧拉数、重心与转动惯量 |
+| 机器报告 / 索引表示 | JSON schema_version=1、稳定退出码与粗粒度 ParseError；独立 IndexedMesh 快照、几何统计及拓扑兼容接口 |
 | 简单修复 | 删除退化 / 重复面、简单边界环补洞、统一绕向和重算法线；修复后重新检查 |
 | 输出 | ASCII / 二进制 STL、OBJ、ASCII / 二进制 PLY、SVG 和检查报告 |
 | 流式统计 | 二进制 STL 分块处理，不构造完整 Mesh；仍保存顶点去重表与三角形边记录 |

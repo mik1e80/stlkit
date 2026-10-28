@@ -7,14 +7,15 @@
 ```sh
 moon update
 moon fmt --check
-moon fmt scripts/fuzz.mbtx scripts/consumer-smoke.mbtx scripts/limits-smoke.mbtx --check
+moon fmt scripts/fuzz.mbtx scripts/consumer-smoke.mbtx scripts/limits-smoke.mbtx scripts/json-smoke.mbtx scripts/indexed-memory.mbtx --check
 moon check --target all --deny-warn
 moon test --target wasm
 moon test --target wasm-gc
 moon test --target js
 moon test --target native
 moon run scripts/limits-smoke.mbtx
+moon run scripts/json-smoke.mbtx
 moon run scripts/fuzz.mbtx all 1000
 ```
 
-完整模型、真实 CLI、100k 和网页回归命令见 CI。发布前在干净目录验证真实 Mooncakes 包：`moon run scripts/consumer-smoke.mbtx 0.1.6`；工作区测试通过不代表发布包安装成功。自动化新增脚本使用 `.mbtx`，既有外部工具脚本可继续维护；生成网页后检查页面功能及许可证随附情况。
+完整模型、真实 CLI、100k 和网页回归命令见 CI。发布前在干净目录验证真实 Mooncakes 包：`moon run scripts/consumer-smoke.mbtx 0.2.0`；工作区测试通过不代表发布包安装成功。自动化新增脚本使用 `.mbtx`，既有外部工具脚本可继续维护；生成网页后检查页面功能及许可证随附情况。
