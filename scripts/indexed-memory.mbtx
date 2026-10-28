@@ -1,0 +1,29 @@
+----
+import {
+  "moonbitlang/async",
+  "moonbitlang/async/shell",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+  "moonbitlang/x/fs",
+}
+----
+
+// SPDX-License-Identifier: Apache-2.0
+// Reuses the repository's existing OS measurement helper; no new Python code.
+async fn main {
+  @shell.Cmd("moon", ["build", "--target", "native", "--release", "tools/indexed_bench"]).run(timeout_ms=120000)
+  let exe = if @fs.path_exists("_build/native/release/build/tools/indexed_bench/indexed_bench.exe") { "_build/native/release/build/tools/indexed_bench/indexed_bench.exe" } else { "_build/native/release/build/tools/indexed_bench/indexed_bench" }
+  let python = @env.get_env_var("PYTHON").unwrap_or("python3")
+  let results : Array[Json] = []
+  for mode in ["full", "convert"] {
+    for run in 1..<4 {
+      let file = "_build/indexed-memory/\{mode}-\{run}.txt"
+      let measured = @shell.Cmd(python, ["scripts/measure-process.py", file, "--", exe, mode]).output(timeout_ms=60000)
+      guard measured.exit_code() == 0 else { fail(measured.stdout() + measured.stderr()) }
+      let entry = Json::object({ "mode": Json(mode), "run": Json(run), "measurement": @json.parse(measured.stdout()), "geometry": @json.parse(@fs.read_file_to_string(file)) })
+      results.push(entry)
+      println(entry.stringify())
+    }
+  }
+  @fs.write_string_to_file("_build/indexed-memory/results.json", Json::array(results).stringify(indent=2))
+}

@@ -1,0 +1,8 @@
+import {
+  "mik1e80/stlkit",
+  "moonbitlang/core/env",
+}
+
+supported_targets = "+native"
+
+pkgtype(kind: "executable")

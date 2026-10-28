@@ -1,0 +1,82 @@
+----
+import {
+  "moonbitlang/async",
+  "moonbitlang/async/shell",
+  "moonbitlang/core/json",
+  "moonbitlang/x/fs",
+}
+----
+
+// SPDX-License-Identifier: Apache-2.0
+fn value(document : Json, path : Array[String]) -> Json raise {
+  let mut result = document
+  for key in path {
+    guard result is Object(fields) else { fail("missing JSON object " + key) }
+    result = fields.get(key).unwrap()
+  }
+  result
+}
+
+async fn main {
+  @shell.Cmd("moon", ["build", "--target", "native", "--release", "cmd/main"]).run(timeout_ms=120000)
+  let executable = if @fs.path_exists("_build/native/release/build/cmd/main/main.exe") { "_build/native/release/build/cmd/main/main.exe" } else { "_build/native/release/build/cmd/main/main" }
+  if !@fs.path_exists("_build/json-smoke") { @fs.create_dir("_build/json-smoke") }
+  let unicode = "_build/json-smoke/模型 copy.obj"
+  @fs.write_string_to_file(unicode, @fs.read_file_to_string("examples/cube.obj"))
+  let mut checked = 0
+  for (args, status, code) in [
+    (["examples/cube.obj", "--json", "--samples", "8", "--min-thickness", "0", "--strict"], 0, ""),
+    ([unicode, "--json", "--samples", "2", "--min-thickness", "0", "--nozzle", "0.4", "--supports", "on"], 0, ""),
+    (["examples/broken.stl", "--json", "--samples", "2"], 0, ""),
+    (["examples/broken.stl", "--json", "--samples", "2", "--strict"], 4, ""),
+    (["examples/missing-format.ply", "--json"], 3, "invalid_data"),
+    (["_build/json-smoke/no-such-input", "--json"], 3, "input_read_error"),
+    (["examples/cube.obj", "--json", "--max-triangles", "1"], 3, "resource_limit"),
+    (["examples/cube.obj", "--json", "--max-input-bytes", "1"], 3, "resource_limit"),
+    (["examples/cube.obj", "--json", "--samples", "0"], 2, "invalid_arguments"),
+    (["examples/cube.obj", "--json", "--supports", "maybe"], 2, "invalid_arguments"),
+    (["examples/cube.obj", "--json", "--nozzle", "nan"], 2, "invalid_arguments"),
+    (["examples/cube.obj", "--json", "--unknown-option"], 2, "invalid_arguments"),
+    (["--json"], 2, "invalid_arguments"),
+    (["--json", "--help"], 2, "invalid_arguments"),
+    (["examples/cube.obj", "--json", "--fix", "_build/json-smoke/must-not-write.stl"], 2, "invalid_arguments"),
+    (["examples/cube.obj", "--json", "--svg", "_build/json-smoke/must-not-write.svg"], 2, "invalid_arguments"),
+    (["examples/cube.obj", "--json", "--bench"], 2, "invalid_arguments"),
+    (["examples/cube.obj", "--json", "--stream-only"], 2, "invalid_arguments"),
+  ] {
+    let output = @shell.Cmd(executable, args).output(timeout_ms=60000)
+    assert_eq(output.exit_code(), status, msg=output.stdout() + output.stderr())
+    assert_eq(output.stderr(), "")
+    let document = @json.parse(output.stdout())
+    assert_eq(value(document, ["schema_version"]), Json(1))
+    if code != "" {
+      assert_eq(value(document, ["ok"]), Json(false))
+      assert_eq(value(document, ["error", "code"]), Json(code))
+    } else {
+      assert_eq(value(document, ["ok"]), Json(true))
+      assert_eq(value(document, ["review", "printability_certified"]), Json(false))
+      if args[0].contains("broken") {
+        assert_eq(value(document, ["review", "needs_review"]), Json(true))
+        assert_eq(value(document, ["geometry", "volume_mm3"]), Json::null())
+      } else {
+        assert_eq(value(document, ["review", "needs_review"]), Json(false))
+      }
+    }
+    checked += 1
+  }
+  assert_true(!@fs.path_exists("_build/json-smoke/must-not-write.stl"))
+  assert_true(!@fs.path_exists("_build/json-smoke/must-not-write.svg"))
+  // Exercise the Wasm launcher as well as the real Native executable.
+  for (args, status) in [
+    (["examples/broken.stl", "--json", "--strict", "--samples", "2"], 4),
+    (["--json"], 2),
+  ] {
+    let output = @shell.Cmd("moon", ["run", "--target", "wasm", "cmd/main"] + args).output(timeout_ms=60000)
+    assert_eq(output.exit_code(), status, msg=output.stdout() + output.stderr())
+    let document = @json.parse(output.stdout())
+    assert_eq(value(document, ["schema_version"]), Json(1))
+    assert_eq(value(document, ["ok"]), Json(status == 4))
+    checked += 1
+  }
+  println("JSON_CLI_OK: \{checked} real-process cases; stdout is one JSON document; no export side effects")
+}

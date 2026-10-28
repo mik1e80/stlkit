@@ -45,7 +45,7 @@ jobs:
         run: moon fmt --check
 
       - name: 独立 MoonBit 脚本格式检查
-        run: moon fmt scripts/fuzz.mbtx scripts/consumer-smoke.mbtx scripts/limits-smoke.mbtx --check
+        run: moon fmt scripts/fuzz.mbtx scripts/consumer-smoke.mbtx scripts/limits-smoke.mbtx scripts/json-smoke.mbtx scripts/indexed-memory.mbtx --check
 
       - name: 检查（全目标，零警告才算过）
         run: moon check --target all --deny-warn
@@ -70,6 +70,9 @@ jobs:
 
       - name: CLI 资源限制真实入口
         run: moon run scripts/limits-smoke.mbtx
+
+      - name: JSON 协议与退出码真实入口
+        run: moon run scripts/json-smoke.mbtx
 
       - name: 验证审查案例和报告未过期
         run: |

@@ -109,6 +109,12 @@ fn main raise {
     println("CASE \{index} kind=\{kind} word=\{random} bytes=\{input.length()}")
     let result = direct(input, kind, limits)
     let automatic = @stlkit.parse_mesh(input, limits~)
+    match (automatic, @stlkit.parse_mesh_checked(input, limits~)) {
+      (Ok(mesh), Ok(checked)) =>
+        assert_eq(mesh.triangle_count(), checked.triangle_count())
+      (Err(_), Err(error)) => assert_true(error.code().length() > 0)
+      _ => fail("checked and legacy parser acceptance differ")
+    }
     let value = match result {
       Ok(mesh) => {
         accepted += 1
