@@ -1,0 +1,25 @@
+{
+  "delivery_state": "unreleased_working_tree",
+  "base_commit": "3a98e234c5507bb2a4273917d12a4aafdaf22a2e",
+  "final_delivery_commit": null,
+  "toolchain": {"moon": "0.1.20261023", "moonc": "0.10.17+d971670cd"},
+  "unit_tests": {"wasm": 395, "wasm-gc": 395, "js": 395, "native": 395, "failed": 0},
+  "checks": ["format", "script-format", "api", "check-all-deny-warn", "build", "cli", "json", "acceptance", "web-build", "web", "corpus", "review-cases"],
+  "json_real_process_cases": 20,
+  "corpus": {"reads": 67, "repair_reload_cases": 5, "thickness_cases": 10, "source_license_hash_checks": "passed"},
+  "new_fixture_license": "Apache-2.0",
+  "new_fixture_source": "self-authored analytic meshes and the project's Apache-2.0 cube",
+  "performance": {
+    "model": "generated connected stress-100k.stl",
+    "faces": 100000,
+    "backend": "Native release, Windows",
+    "ray_triangle_budget": 20000000,
+    "runs": [
+      {"samples": 1, "exit": 0, "elapsed_ms": 1662.3481},
+      {"samples": 1000, "exit": 1, "elapsed_ms": 63.9669, "outcome": "resource_limit before analysis"},
+      {"samples": 200, "exit": 0, "elapsed_ms": 4947.6322}
+    ],
+    "limitations": "Single observations with other regressions running; not a statistical benchmark or wall-time guarantee. Rejection is not completed analysis."
+  },
+  "release_requirement": "Freeze a new commit/tag/package and rerun verification before treating this summary as final acceptance evidence."
+}

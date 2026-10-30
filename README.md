@@ -6,7 +6,9 @@ STLKit is a MoonBit library for mesh ingestion, diagnostics, analysis and simple
 
 [在线演示](https://mik1e80.github.io/stlkit/) · [库接口](README.mbt.md) · [范围与复现案例](docs/review-cases.md) · [项目对比](COMPARISON.md) · [变更记录](CHANGELOG.md)
 
-本次版本 **0.2.0**：新增 JSON 检查协议、结构化解析错误与 IndexedMesh 初版。[Mooncakes](https://mooncakes.io/docs/mik1e80/stlkit@0.2.0/) · [固定源码 v0.2.0](https://github.com/mik1e80/stlkit/tree/v0.2.0) · [发布说明](docs/releases/0.2.0.md)。历史 v0.1.4 保留不动。
+最新已发布参考版本 **0.2.0**：新增 JSON 检查协议、结构化解析错误与 IndexedMesh 初版。[Mooncakes](https://mooncakes.io/docs/mik1e80/stlkit@0.2.0/) · [固定源码 v0.2.0](https://github.com/mik1e80/stlkit/tree/v0.2.0) · [发布说明](docs/releases/0.2.0.md)。历史 v0.1.4 保留不动。
+
+当前工作区另含 **未发布的验收修订**：修正大坐标下的体积、重心与惯量计算；检查 Float32 导出精度损失；重读实际导出文件；保护输入路径；为 CLI / 网页限制射线计算预算。这些修订尚不属于已发布的 0.2.0 包或旧标签，交付状态及复核命令见 [验收交付说明](docs/acceptance-delivery.md)。
 
 [资源预算与兼容变化](docs/resource-limits.md) · [变异测试报告](docs/fuzz-testing.md) · [后续路线](docs/roadmap.md)。CLI / 网页可设置资源上限；这些预算不保证进程内存或时限。[JSON 协议](docs/json-report.md) 和 [IndexedMesh](docs/indexed-mesh.md) 已有实现；BVH 和自相交仍属后续计划。索引转换的峰值内存没有下降，见实测。
 
@@ -33,7 +35,9 @@ moon run cmd/main examples/torus.obj --svg torus.svg
 
 网页支持本地打开 `web/index.html`，或访问在线演示。文件在浏览器本地处理，不上传；网页使用仓库内的编译产物，修改代码后需重建。
 
-`--fix` 与 `--svg` 可同时使用：先写出最终网格，再由修复后的网格生成 SVG；无需自动修复时也按指定路径导出网格和预览。`--strict` 根据最终网格的复核结果退出，仍有薄壁等问题时两个输出仍会生成，并以 1 退出。输出路径按宿主平台规则转换为规范化绝对路径后比较（包括 .、..、分隔符和 Windows 大小写）；相同则在写入前拒绝。此词法比较不识别符号链接或硬链接别名。写入网格失败时不继续生成 SVG；SVG 写入失败时以 1 退出，已经写出的网格保留。
+`--fix` 与 `--svg` 可同时使用：写盘前检查并解析序列化数据，写盘后重读实际文件，再用重读网格生成 SVG 和最终严格结论；无需自动修复时也执行这条路径。仍有薄壁等问题时两个输出仍会生成，并以 1 退出。两个输出彼此之间、以及每个输出与输入模型之间，均按宿主平台规则比较规范化绝对路径（包括 .、..、分隔符和 Windows 大小写）；相同则在写入前拒绝。此词法比较不识别符号链接或硬链接别名。网格写入或重读失败时不继续 SVG；SVG 写入失败时以 1 退出，已经写出的网格保留。文件写入不提供事务或原子替换保证。
+
+中文与 JSON 检查入口在分析前要求 `面数 × --samples ≤ 20000000`，默认仍为 1000 次采样；超限会明确拒绝并建议较小的 `--samples`，不偷偷降低 CLI 的请求数。网页按 `min(1000, floor(20000000 / 面数))` 设置预算，并在报告中显示。预算仅约束厚度射线与面的遍历估计，不保证解析、拓扑检查或整个进程的时限；直接库接口保持由调用方选择预算。只需统计大文件时可使用 `--stream-only` 或 `--bench`。
 
 ## 格式参考与支持范围
 
@@ -182,7 +186,7 @@ moon test --target wasm-gc
 moon test --target js
 moon test --target native
 node cmd/main/smoke.cjs
-bash web/build.sh
+moon run scripts/build-web.mbtx
 node web/smoke.cjs
 node scripts/review-cases.cjs
 ```

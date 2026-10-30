@@ -1,5 +1,7 @@
 # stlkit：接口与实现
 
+当前工作区包含未发布的验收修订，和下列已发布 0.2.0 包、旧标签不同；见 [验收交付说明](docs/acceptance-delivery.md)。
+
 MoonBit 的 STL / OBJ / 3MF / PLY 三角网格工具链。本次版本 **0.2.0**；安装 `moon add mik1e80/stlkit@0.2.0`，源码固定 [v0.2.0](https://github.com/mik1e80/stlkit/tree/v0.2.0)。新增 JSON 检查协议、结构化解析错误和独立索引网格；见 [JSON 协议](docs/json-report.md) 与 [IndexedMesh](docs/indexed-mesh.md)。旧接口保留；见 [资源限制](docs/resource-limits.md)、[格式兼容性](docs/format-compatibility.md) 及 [发布说明](docs/releases/0.2.0.md)。
 
 ## 数据与单位
@@ -137,7 +139,13 @@ STL 输入契约：`parse_stl_binary()`、`stream_stl_binary()` 和 `StlScanner:
 
 CLI 和网页修复后都再次运行统一复核入口。水密性改善不等于其他风险已消除。
 
-CLI 支持 `--fix fixed.stl --svg fixed.svg` 组合：保存最终网格后，由同一个最终网格导出 SVG。没有可修复改动时也保存所请求的网格；`--strict` 在导出后依据最终复核结果退出，仍有问题时退出 1。网格写入失败则不继续 SVG；SVG 写入失败则退出 1，保留已写出的网格。两个输出在写入前按宿主平台规则比较规范化绝对路径（含 .、..、分隔符和 Windows 大小写），相同则拒绝；此词法比较不识别符号链接或硬链接别名。
+CLI 支持 `--fix fixed.stl --svg fixed.svg` 组合：写盘前解析导出字节，写盘后重读实际文件，SVG 和最终严格结论均使用重读网格。没有可修复改动时也保存并复核。网格写入或重读失败不继续 SVG；SVG 写入失败保留已写出的网格。输出之间、每个输出与输入之间均比较规范化绝对路径，相同则拒绝；不识别符号链接或硬链接别名，不保证原子写入。
+
+`write_stl_binary_checked(mesh)` 和 `write_mesh(mesh, path)` 检查有限坐标；二进制 STL / PLY 还拒绝 Float32 溢出及量化新增的退化面或反向面。旧 `write_stl_binary()` / `write_ply_binary()` 保留为不做精度检查的底层编码器。通过检查仍不保证坐标完全一致、拓扑完全保真或可制造。网页修复报告、下载和修复预览基于重读后的二进制 STL。
+
+体积和重心改用局部参考点及补偿求和，惯量直接在重心附近积分。`Mesh::mass_properties_numeric_valid()` 检查有限正体积、有限重心和惯量的必要物理条件；必须同时满足同一网格的 `PrintabilityReport::mass_properties_available()`，不能当成误差界或完整几何认证。开放网格的贡献绝对值依赖参考点，可能与旧版不同，仍不作实体体积。
+
+CLI 的中文和 JSON 分析要求 `面数 × --samples ≤ 20000000`，超出时拒绝并提示减小样本数。网页按面数降低预算（最多 1000），并在报告中明示。此估计不限制解析或拓扑工作，不保证运行时长；底层库接口的预算仍由调用方选择。
 
 ## 流式路径
 
@@ -158,7 +166,7 @@ moon test --target wasm-gc
 moon test --target js
 moon test --target native
 node cmd/main/smoke.cjs
-bash web/build.sh
+moon run scripts/build-web.mbtx
 node web/smoke.cjs
 ```
 

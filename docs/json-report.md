@@ -1,5 +1,7 @@
 # JSON 检查协议 v1
 
+未发布验收修订：CLI 在网格解析后、厚度分析前检查 `面数 × --samples ≤ 20000000`；超限返回 `resource_limit`、退出 3，并建议较小样本数。库 `inspection_json` 不自动施加该入口策略。有限但不符合惯量必要物理条件的结果也会置 `numeric_failure=true` / `needs_review=true`，质量属性为 `not_evaluated`、数值为 null；真正的非有限计算仍为 `non_finite`，未更改 schema_version。
+
 0.2.0 新增库接口 `inspection_json(mesh, format=Obj, min_thickness=0.8, samples=1000)` 和 CLI `--json`。库返回 `Result[Json, String]`；非法选项或手工网格中的非有限坐标/法线报错。CLI 标准输出恰好一个 JSON 文档，运行时不夹带中文报告。下面从源码克隆目录执行，完整模型语料不随 Mooncakes 库包安装。
 
 ```sh
