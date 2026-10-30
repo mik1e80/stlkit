@@ -2,7 +2,7 @@
 //
 // 对应 trimesh 的 `mesh.center_mass` 和 `mesh.moment_inertia`。
 //
-// 算法和体积用的是同一套：把网格拆成一堆「原点 + 三角形」的四面体，
+// 算法和体积用的是同一套：把网格拆成一堆「局部参考点 + 三角形」的四面体，
 // 用散度定理把体积分变成面积分。体积是零阶矩，重心是一阶矩，
 // 转动惯量是二阶矩——同一个套路往下走而已：
 //
@@ -19,6 +19,42 @@
 // PrintabilityReport::mass_properties_available()；它仍不证明无自相交。
 
 ///|
+// Neumaier compensated summation, including cancellation between signed tetrahedra.
+priv struct MomentSum {
+  mut sum : Double
+  mut correction : Double
+}
+
+///|
+fn MomentSum::new() -> MomentSum {
+  { sum: 0.0, correction: 0.0, }
+}
+
+///|
+fn MomentSum::add(self : MomentSum, value : Double) -> Unit {
+  let next = self.sum + value
+  self.correction += if self.sum.abs() >= value.abs() {
+    self.sum - next + value
+  } else {
+    value - next + self.sum
+  }
+  self.sum = next
+}
+
+///|
+fn MomentSum::value(self : MomentSum) -> Double {
+  self.sum + self.correction
+}
+
+///|
+fn mass_reference(mesh : Mesh) -> Vec3 {
+  match mesh.triangles {
+    [] => Vec3::zero()
+    [first, ..] => first.a
+  }
+}
+
+///|
 /// 一个四面体（原点 + 三角形 a b c）的有符号体积。
 fn tet_volume(a : Vec3, b : Vec3, c : Vec3) -> Double {
   a.dot(b.cross(c)) / 6.0
@@ -31,26 +67,31 @@ fn tet_volume(a : Vec3, b : Vec3, c : Vec3) -> Double {
 /// 返回的是绝对坐标。网格不水密时这个数不可信——一阶矩和体积一样，
 /// 靠各面的正负抵消算出来，有破洞就抵消不干净。
 pub fn Mesh::center_mass(self : Mesh) -> Vec3 {
-  let mut volume = 0.0
-  let mut mx = 0.0
-  let mut my = 0.0
-  let mut mz = 0.0
+  let origin = mass_reference(self)
+  let volume = MomentSum::new()
+  let mx = MomentSum::new()
+  let my = MomentSum::new()
+  let mz = MomentSum::new()
   for t in self.triangles {
-    let (a, b, c) = (t.a, t.b, t.c)
+    let (a, b, c) = (t.a.sub(origin), t.b.sub(origin), t.c.sub(origin))
     let vol = tet_volume(a, b, c)
-    volume = volume + vol
+    volume.add(vol)
     // 四面体的重心是四个顶点的平均，原点是 (0,0,0)，
     // 所以是 (a+b+c)/4。乘上体积就是这个四面体的一阶矩
-    mx = mx + vol * (a.x + b.x + c.x) / 4.0
-    my = my + vol * (a.y + b.y + c.y) / 4.0
-    mz = mz + vol * (a.z + b.z + c.z) / 4.0
+    mx.add(vol * (a.x + b.x + c.x) / 4.0)
+    my.add(vol * (a.y + b.y + c.y) / 4.0)
+    mz.add(vol * (a.z + b.z + c.z) / 4.0)
   }
   // 朝向整体反了的话（体积为负），三个分量一起是负的，
   // 相除仍然得到正确的位置——这里不用特殊处理
-  if volume == 0.0 {
+  if volume.value() == 0.0 {
     return Vec3::zero()
   }
-  Vec3::new(mx / volume, my / volume, mz / volume)
+  Vec3::new(
+    origin.x + mx.value() / volume.value(),
+    origin.y + my.value() / volume.value(),
+    origin.z + mz.value() / volume.value(),
+  )
 }
 
 ///|
@@ -71,19 +112,20 @@ pub fn Mesh::center_mass(self : Mesh) -> Vec3 {
 ///
 /// 对应 trimesh 的 `mesh.moment_inertia`（`density=1` 时的结果）。
 pub fn Mesh::moment_inertia(self : Mesh) -> FixedArray[Double] {
-  // 关于原点的二阶矩。四个顶点是「原点 + a + b + c」
-  let mut volume = 0.0
-  let mut s_xx = 0.0
-  let mut s_yy = 0.0
-  let mut s_zz = 0.0
-  let mut s_xy = 0.0
-  let mut s_yz = 0.0
-  let mut s_zx = 0.0
+  // 直接以重心为参考积分，避免绝对坐标二阶矩减去巨大的平行轴项。
+  let origin = self.center_mass()
+  let volume_sum = MomentSum::new()
+  let xx = MomentSum::new()
+  let yy = MomentSum::new()
+  let zz = MomentSum::new()
+  let xy = MomentSum::new()
+  let yz = MomentSum::new()
+  let zx = MomentSum::new()
 
   for t in self.triangles {
-    let (a, b, c) = (t.a, t.b, t.c)
+    let (a, b, c) = (t.a.sub(origin), t.b.sub(origin), t.c.sub(origin))
     let vol = tet_volume(a, b, c)
-    volume = volume + vol
+    volume_sum.add(vol)
     // 四个顶点各分量之和。原点是 0，所以只要 a+b+c
     let sx = a.x + b.x + c.x
     let sy = a.y + b.y + c.y
@@ -106,46 +148,67 @@ pub fn Mesh::moment_inertia(self : Mesh) -> FixedArray[Double] {
     // （一开始我推错了，写成「对角 V/10、非对角 V/20」，那只有在
     //  「原点 + 坐标轴上的三个点」这种特殊四面体上才凑巧对得上。
     //   用长方体一测就露馅了：算出来 12/60，正确答案是 20/60）
-    s_xx = s_xx + vol * (sq_x + sx * sx) / 20.0
-    s_yy = s_yy + vol * (sq_y + sy * sy) / 20.0
-    s_zz = s_zz + vol * (sq_z + sz * sz) / 20.0
-    s_xy = s_xy + vol * (sq_xy + sx * sy) / 20.0
-    s_yz = s_yz + vol * (sq_yz + sy * sz) / 20.0
-    s_zx = s_zx + vol * (sq_zx + sz * sx) / 20.0
+    xx.add(vol * (sq_x + sx * sx) / 20.0)
+    yy.add(vol * (sq_y + sy * sy) / 20.0)
+    zz.add(vol * (sq_z + sz * sz) / 20.0)
+    xy.add(vol * (sq_xy + sx * sy) / 20.0)
+    yz.add(vol * (sq_yz + sy * sz) / 20.0)
+    zx.add(vol * (sq_zx + sz * sx) / 20.0)
   }
 
-  // 朝向整体反了的话，所有矩都是负的。翻转过来，
-  // 这样「顶点顺序写反了的模型」也能算出正确的物理量
-  if volume < 0.0 {
-    s_xx = -s_xx
-    s_yy = -s_yy
-    s_zz = -s_zz
-    s_xy = -s_xy
-    s_yz = -s_yz
-    s_zx = -s_zx
+  let sign = if volume_sum.value() < 0.0 { -1.0 } else { 1.0 }
+  let ixx = sign * (yy.value() + zz.value())
+  let iyy = sign * (xx.value() + zz.value())
+  let izz = sign * (xx.value() + yy.value())
+  let ixy = -sign * xy.value()
+  let iyz = -sign * yz.value()
+  let izx = -sign * zx.value()
+  [ixx, ixy, izx, ixy, iyy, iyz, izx, iyz, izz]
+}
+
+///|
+fn inertia_numeric_valid(tensor : FixedArray[Double]) -> Bool {
+  if tensor.any(not_finite) ||
+    tensor[0] < 0.0 ||
+    tensor[4] < 0.0 ||
+    tensor[8] < 0.0 {
+    return false
   }
+  let mut scale = 0.0
+  for value in tensor {
+    scale = scale.max(value.abs())
+  }
+  if scale == 0.0 {
+    return false
+  }
+  let normalized : FixedArray[Double] = [
+    tensor[0] / scale,
+    tensor[1] / scale,
+    tensor[2] / scale,
+    tensor[3] / scale,
+    tensor[4] / scale,
+    tensor[5] / scale,
+    tensor[6] / scale,
+    tensor[7] / scale,
+    tensor[8] / scale,
+  ]
+  let eigenvalues = symmetric_eigenvalues(normalized)
+  !eigenvalues.any(not_finite) &&
+  eigenvalues[2] >= -1.0e-12 &&
+  eigenvalues[0] <= eigenvalues[1] + eigenvalues[2] + 1.0e-12
+}
 
-  // 关于原点的惯性张量：I = 迹(二阶矩)·单位阵 − 二阶矩
-  let trace = s_xx + s_yy + s_zz
-  let i_xx = trace - s_xx
-  let i_yy = trace - s_yy
-  let i_zz = trace - s_zz
-  let i_xy = -s_xy
-  let i_yz = -s_yz
-  let i_zx = -s_zx
-
-  // 平移到重心：平行轴定理。m = |V|（密度取 1）
-  let center = self.center_mass()
-  let mass = if volume < 0.0 { -volume } else { volume }
-  let cc = center.dot(center)
-  let i_xx_c = i_xx - mass * (cc - center.x * center.x)
-  let i_yy_c = i_yy - mass * (cc - center.y * center.y)
-  let i_zz_c = i_zz - mass * (cc - center.z * center.z)
-  let i_xy_c = i_xy - mass * (0.0 - center.x * center.y)
-  let i_yz_c = i_yz - mass * (0.0 - center.y * center.z)
-  let i_zx_c = i_zx - mass * (0.0 - center.z * center.x)
-
-  [i_xx_c, i_xy_c, i_zx_c, i_xy_c, i_yy_c, i_yz_c, i_zx_c, i_yz_c, i_zz_c]
+///|
+/// Necessary numeric checks for mass properties: positive finite volume,
+/// finite centroid, and physically admissible inertia. This does not prove
+/// geometric validity or bound the numerical error; check the report's
+/// mass_properties_available() separately on the same mesh.
+pub fn Mesh::mass_properties_numeric_valid(self : Mesh) -> Bool {
+  let volume = self.volume()
+  !not_finite(volume) &&
+  volume > 0.0 &&
+  finite_vertex(self.center_mass()) &&
+  inertia_numeric_valid(self.moment_inertia())
 }
 
 ///|

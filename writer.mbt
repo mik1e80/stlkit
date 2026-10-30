@@ -10,7 +10,7 @@
 ///
 /// 用 `reinterpret_as_uint` 按位取，而不是做数值换算——IEEE 754 的位
 /// 模式直接搬过去就行。注意这里会把双精度截成单精度，因为 STL 二进制
-/// 格式里就是 32 位。这是格式本身的限制，不是我们丢精度。
+/// 格式里就是 32 位。checked 导出入口会先检查量化是否损坏三角形。
 fn push_f32(buf : Array[Byte], value : Double) -> Unit {
   let bits = Float::from_double(value)
     .reinterpret_as_uint()
@@ -78,6 +78,65 @@ pub fn write_stl_binary(mesh : Mesh) -> Bytes {
   }
 
   Bytes::from_array(buf)
+}
+
+///|
+fn float32_vertex(v : Vec3) -> Vec3 {
+  Vec3::new(
+    Float::from_double(v.x).to_double(),
+    Float::from_double(v.y).to_double(),
+    Float::from_double(v.z).to_double(),
+  )
+}
+
+///|
+fn check_export_coordinates(
+  mesh : Mesh,
+  float32~ : Bool,
+) -> Result[Unit, String] {
+  for i, triangle in mesh.triangles {
+    for vertex in triangle.vertices() {
+      if !finite_vertex(vertex) {
+        return Err("导出拒绝：第 \{i} 个三角形含非有限坐标")
+      }
+    }
+    if float32 {
+      let rounded = Triangle::from_vertices(
+        float32_vertex(triangle.a),
+        float32_vertex(triangle.b),
+        float32_vertex(triangle.c),
+      )
+      if !finite_vertex(rounded.a) ||
+        !finite_vertex(rounded.b) ||
+        !finite_vertex(rounded.c) {
+        return Err(
+          "导出拒绝：第 \{i} 个三角形坐标超出 Float32 范围",
+        )
+      }
+      if !triangle_is_degenerate(triangle) &&
+        (
+          triangle_is_degenerate(rounded) ||
+          triangle.computed_normal().dot(rounded.computed_normal()) <= 0.0
+        ) {
+        return Err(
+          "导出拒绝：Float32 精度损失使第 \{i} 个三角形退化或翻转；请平移到局部坐标或使用 OBJ",
+        )
+      }
+    }
+  }
+  Ok(())
+}
+
+///|
+/// Export Binary STL after rejecting non-finite coordinates, Float32 overflow,
+/// and quantization that introduces degenerate or reversed triangles.
+/// This does not guarantee exact coordinates, topology, or printability.
+/// The legacy write_stl_binary() remains an unchecked low-level encoder.
+pub fn write_stl_binary_checked(mesh : Mesh) -> Result[Bytes, String] {
+  match check_export_coordinates(mesh, float32=true) {
+    Err(message) => Err(message)
+    Ok(_) => Ok(write_stl_binary(mesh))
+  }
 }
 
 ///|
@@ -155,13 +214,19 @@ pub fn write_obj(mesh : Mesh) -> String {
 /// 没有内容可看。
 pub fn write_mesh(mesh : Mesh, path : String) -> Result[Bytes, String] {
   if ends_with_ignore_case(path, ".obj") {
-    Ok(@utf8.encode(write_obj(mesh)))
+    match check_export_coordinates(mesh, float32=false) {
+      Err(message) => Err(message)
+      Ok(_) => Ok(@utf8.encode(write_obj(mesh)))
+    }
   } else if ends_with_ignore_case(path, ".stl") {
-    Ok(write_stl_binary(mesh))
+    write_stl_binary_checked(mesh)
   } else if ends_with_ignore_case(path, ".ply") {
     // 二进制 PLY。ASCII 版也有（write_ply_ascii），但那是给人看的，
     // 命令行导出走默认的二进制
-    Ok(write_ply_binary(mesh))
+    match check_export_coordinates(mesh, float32=true) {
+      Err(message) => Err(message)
+      Ok(_) => Ok(write_ply_binary(mesh))
+    }
   } else {
     Err(
       "认不出要导出成什么格式：文件名「\{path}」既不以 .stl、.obj 结尾，也不以 .ply 结尾",

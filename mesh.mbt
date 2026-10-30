@@ -143,18 +143,26 @@ pub fn Mesh::vertices(self : Mesh) -> Array[Vec3] {
 ///|
 /// 网格围出的体积。
 ///
-/// 把每个三角形的有符号体积加起来。这个算法**要求网格是水密的**：
+/// 以首个顶点为局部参考点，补偿累加有符号四面体体积，降低绝对位置
+/// 引起的抵消误差。这个算法**要求网格是水密的**：
 /// 闭合曲面上各面的贡献会正负抵消，只留下包围的那块空间；有破洞就
 /// 抵消不干净，算出来的数没有意义。
 ///
-/// 所以调用方在报这个数之前，应该先看水密性校验的结果。现在还没有
-/// 校验环节，先直接算；等做校验那一步，报告里会注明这个前提。
+/// 调用方应先检查闭合性、退化性和绕向。开放网格只返回依赖参考点的
+/// 有符号贡献绝对值，不能解释为实体体积；旧版本的开放网格数值可能不同。
 pub fn Mesh::volume(self : Mesh) -> Double {
-  let mut total = 0.0
+  let origin = mass_reference(self)
+  let total = MomentSum::new()
   for triangle in self.triangles {
-    total = total + triangle.signed_volume()
+    total.add(
+      tet_volume(
+        triangle.a.sub(origin),
+        triangle.b.sub(origin),
+        triangle.c.sub(origin),
+      ),
+    )
   }
-  total.abs()
+  total.value().abs()
 }
 
 ///|

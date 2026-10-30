@@ -80,6 +80,8 @@ pub fn write_stl_ascii(Mesh, String) -> String
 
 pub fn write_stl_binary(Mesh) -> Bytes
 
+pub fn write_stl_binary_checked(Mesh) -> Result[Bytes, String]
+
 // Errors
 
 // Types and methods
@@ -118,6 +120,7 @@ pub fn Mesh::bounding_box(Self) -> Aabb?
 pub fn Mesh::center_mass(Self) -> Vec3
 pub fn Mesh::empty() -> Self
 pub fn Mesh::is_empty(Self) -> Bool
+pub fn Mesh::mass_properties_numeric_valid(Self) -> Bool
 pub fn Mesh::moment_inertia(Self) -> FixedArray[Double]
 pub fn Mesh::nearest_point(Self, Vec3) -> (Double, Vec3)
 pub fn Mesh::new(Array[Triangle]) -> Self

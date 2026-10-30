@@ -65,9 +65,13 @@ pub fn inspection_json(
     Json::null()
   }
   let mut numeric_failure = not_finite(area) || not_finite(volume)
+  let mut mass_non_finite = not_finite(volume) || center is Null
   let inertia : Json = if mass_ready {
     let tensor = mesh.moment_inertia()
     if tensor.any(not_finite) {
+      mass_non_finite = true
+    }
+    if !inertia_numeric_valid(tensor) {
       numeric_failure = true
       Json::null()
     } else {
@@ -81,6 +85,7 @@ pub fn inspection_json(
   }
   let mass_usable = mass_ready &&
     !not_finite(volume) &&
+    volume > 0.0 &&
     !(center is Null) &&
     !(inertia is Null)
   let bbox = match mesh.bounding_box() {
@@ -179,7 +184,11 @@ pub fn inspection_json(
           if !mass_ready {
             "not_evaluated"
           } else if !mass_usable {
-            "non_finite"
+            if mass_non_finite {
+              "non_finite"
+            } else {
+              "not_evaluated"
+            }
           } else {
             "available"
           },
