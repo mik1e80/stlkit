@@ -199,7 +199,7 @@ function renderReport(fields) {
 
   const thicknessNote = document.createElement("p");
   thicknessNote.className = "report-note";
-  thicknessNote.textContent = "壁厚为表面采样结果，可能漏掉局部薄处；STL、OBJ、PLY 按毫米解释，请先确认模型单位。";
+  thicknessNote.textContent = `壁厚为表面采样结果，可能漏掉局部薄处；本次采样预算 ${fields["采样预算"] || "未知"}（最多1000，大模型按面数降低）；STL、OBJ、PLY 按毫米解释，请先确认模型单位。`;
   box.append(thicknessNote);
   const scope = document.createElement("p");
   scope.className = "report-note";

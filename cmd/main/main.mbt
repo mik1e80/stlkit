@@ -50,7 +50,7 @@ fn command() -> @argparse.Command {
       ),
       @argparse.OptionArg(
         "samples",
-        about="壁厚射线样本数，1..100000，默认1000",
+        about="壁厚射线样本数，1..100000，默认1000；面数×样本须≤20000000",
       ),
       @argparse.OptionArg(
         "min-thickness",
@@ -437,6 +437,15 @@ async fn report(
   samples : Int32,
   limits : @stlkit.ParseLimits,
 ) -> Result[Bool, String] {
+  let input = @path.Path(path).resolve()
+  for output in [fix_path, svg_path] {
+    if output != "" &&
+      @path.Path(output).resolve().relative(base=input).to_string() == "" {
+      return Err(
+        "输出路径不能与输入模型相同（规范化后相同）；请选择新文件名",
+      )
+    }
+  }
   if fix_path != "" && svg_path != "" {
     // 使用宿主平台规则解析绝对路径，处理 .、..、重复分隔符与 Windows 大小写。
     let fix_output = @path.Path(fix_path).resolve()
@@ -463,6 +472,10 @@ async fn report(
   let mesh = match @stlkit.parse_mesh(data, limits~) {
     Ok(mesh) => mesh
     Err(msg) => return Err(msg)
+  }
+  match sampling_budget_error(mesh.triangle_count(), samples) {
+    Some(message) => return Err(message)
+    None => ()
   }
   let review = @stlkit.check_printability(mesh, min_thickness, samples~)
   let check = review.validation
@@ -515,7 +528,7 @@ async fn report(
     )
   }
   // 质量属性使用库中统一的前提检查；边计数闭合并不足够。
-  if review.mass_properties_available() {
+  if review.mass_properties_available() && mesh.mass_properties_numeric_valid() {
     let c = mesh.center_mass()
     println("  重心      \{fmt(c.x, 3)}, \{fmt(c.y, 3)}, \{fmt(c.z, 3)} mm")
     let pm = mesh.principal_moments()
@@ -540,9 +553,11 @@ async fn report(
       }
     None => ()
   }
-  let has_problem = review.needs_review()
+  let numeric_failure = review.mass_properties_available() &&
+    !mesh.mass_properties_numeric_valid()
+  let has_problem = review.needs_review() || numeric_failure
   println("")
-  print_findings(review, parts)
+  print_findings(review, parts, numeric_failure~)
 
   let (final_mesh, final_has_problem) = if fix_path != "" {
     match
@@ -579,7 +594,11 @@ async fn report(
 /// 每一条「不通过」都要说清楚**为什么这是问题**，不能只报一个数字。
 /// 看到「有 3 条边界边」的人不知道这意味着什么，看到「切片软件分不清
 /// 哪里是外面」才知道要修。
-fn print_findings(review : @stlkit.PrintabilityReport, parts : Int32) -> Unit {
+fn print_findings(
+  review : @stlkit.PrintabilityReport,
+  parts : Int32,
+  numeric_failure~ : Bool = false,
+) -> Unit {
   println("  \{@stlkit.review_scope()}")
   for component in review.winding.components {
     println(
@@ -629,7 +648,14 @@ fn print_findings(review : @stlkit.PrintabilityReport, parts : Int32) -> Unit {
   if parts > 1 {
     println("  提示：有 \{parts} 个按共享边分离的零件")
   }
-  println("  结论：\{review.verdict()}")
+  if numeric_failure {
+    println("  ⚠ 质量属性数值复核未通过，结果未评估")
+    println(
+      "  结论：数值计算异常，需要复核；不构成可打印结论。",
+    )
+  } else {
+    println("  结论：\{review.verdict()}")
+  }
 }
 
 ///|
@@ -652,14 +678,15 @@ fn fix_and_save(
     winding.orientation_reliable() {
     println("")
     println("未发现当前自动修复能处理的网格问题。")
-    match save_mesh(mesh, fix_path) {
-      Ok(_) => ()
+    let saved = match save_mesh(mesh, fix_path) {
+      Ok(saved) => saved
       Err(message) => return Err(message)
     }
     return Ok(
       (
-        mesh,
-        @stlkit.check_printability(mesh, min_thickness, samples~).needs_review(),
+        saved,
+        @stlkit.check_printability(saved, min_thickness, samples~).needs_review() ||
+        !saved.mass_properties_numeric_valid(),
       ),
     )
   }
@@ -713,28 +740,68 @@ fn fix_and_save(
     "  修复后 边界边 \{after.boundary_edge_count}  非流形边 \{after.non_manifold_edge_count}  退化面 \{after.degenerate_count}",
   )
 
-  match save_mesh(fixed.mesh, fix_path) {
-    Ok(_) => ()
+  let saved = match save_mesh(fixed.mesh, fix_path) {
+    Ok(saved) => saved
     Err(message) => return Err(message)
   }
-  print_findings(after_review, @stlkit.count_parts_default(fixed.mesh))
-  Ok((fixed.mesh, after_review.needs_review()))
+  match sampling_budget_error(saved.triangle_count(), samples) {
+    Some(message) => return Err(message)
+    None => ()
+  }
+  let saved_review = @stlkit.check_printability(saved, min_thickness, samples~)
+  print_findings(
+    saved_review,
+    @stlkit.count_parts_default(saved),
+    numeric_failure=saved_review.mass_properties_available() &&
+      !saved.mass_properties_numeric_valid(),
+  )
+  Ok(
+    (
+      saved,
+      saved_review.needs_review() ||
+      (
+        saved_review.mass_properties_available() &&
+        !saved.mass_properties_numeric_valid()
+      ),
+    ),
+  )
 }
 
 ///|
 /// 按请求导出最终网格；没有可修复改动时也生成输出文件。
-fn save_mesh(mesh : @stlkit.Mesh, path : String) -> Result[Unit, String] {
+fn save_mesh(
+  mesh : @stlkit.Mesh,
+  path : String,
+) -> Result[@stlkit.Mesh, String] {
   let bytes = match @stlkit.write_mesh(mesh, path) {
     Ok(bytes) => bytes
     Err(msg) => return Err(msg)
   }
+  let output_limits = {
+    ..@stlkit.ParseLimits::default(),
+    max_input_bytes: bytes.length(),
+    max_triangles: mesh.triangle_count().max(1),
+    max_vertices: (mesh.triangle_count() * 3).max(1),
+  }
+  match @stlkit.parse_mesh(bytes, limits=output_limits) {
+    Err(message) => return Err("导出数据无法重读：" + message)
+    Ok(_) => ()
+  }
   @fs.write_bytes_to_file(path, bytes) catch {
     @fs.IOError(msg) => return Err("写不了文件「\{path}」：\{msg}")
   }
-
+  let actual = @fs.read_file_to_bytes(path) catch {
+    @fs.IOError(message) =>
+      return Err("无法重读已导出文件：" + message)
+  }
+  let restored = match @stlkit.parse_mesh(actual, limits=output_limits) {
+    Ok(restored) => restored
+    Err(message) => return Err("已导出文件复核失败：" + message)
+  }
   println("")
   println("  已存到 \{path}（\{bytes.length()} 字节）")
-  Ok(())
+  println("  已重读导出文件，最终检查与 SVG 使用重读网格")
+  Ok(restored)
 }
 
 ///|

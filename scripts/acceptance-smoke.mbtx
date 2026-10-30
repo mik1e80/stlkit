@@ -1,0 +1,121 @@
+----
+import {
+  "moonbitlang/async",
+  "moonbitlang/async/shell",
+  "moonbitlang/core/string",
+  "moonbitlang/core/json",
+  "moonbitlang/x/fs",
+}
+----
+
+// SPDX-License-Identifier: Apache-2.0
+// Regression fixtures are generated from the project's own Apache-2.0 cube.
+fn field(document : Json, keys : Array[String]) -> Json raise {
+  let mut value = document
+  for key in keys {
+    guard value is Object(fields) else { fail("missing object " + key) }
+    value = fields.get(key).unwrap()
+  }
+  value
+}
+
+fn translated_obj(source : String, offset : Double) -> String raise {
+  let lines : Array[String] = []
+  for line in source.split("\n") {
+    if line.has_prefix("v ") {
+      let parts = line.split(" ").filter(s => s.length() > 0).collect()
+      lines.push("v \{@string.parse_double(parts[1]) + offset} \{@string.parse_double(parts[2]) + offset} \{@string.parse_double(parts[3]) + offset}")
+    } else { lines.push(line.to_owned()) }
+  }
+  lines.join("\n")
+}
+
+async fn main {
+  @shell.Cmd("moon", ["build", "--target", "native", "--release", "cmd/main"]).run(timeout_ms=120000)
+  let executable = if @fs.path_exists("_build/native/release/build/cmd/main/main.exe") { "_build/native/release/build/cmd/main/main.exe" } else { "_build/native/release/build/cmd/main/main" }
+  let dir = "_build/acceptance-smoke/"
+  if !@fs.path_exists(dir) { @fs.create_dir(dir) }
+  let source = @fs.read_file_to_string("examples/cube.obj")
+  let records : Array[Json] = []
+  for offset in [100000.0, 100000000.0] {
+    let path = dir + "translated-" + offset.to_string() + ".obj"
+    @fs.write_string_to_file(path, translated_obj(source, offset))
+    let result = @shell.Cmd(executable, [path, "--json", "--strict", "--samples", "8", "--min-thickness", "0"]).output(timeout_ms=30000)
+    assert_eq(result.exit_code(), 0, msg=result.stdout() + result.stderr())
+    let document = @json.parse(result.stdout())
+    assert_eq(field(document, ["mass_properties", "status"]), Json("available"))
+    assert_eq(field(document, ["review", "needs_review"]), Json(false))
+    guard field(document, ["geometry", "volume_mm3"]) is Number(volume, ..) else { fail("volume missing") }
+    assert_true((volume - 1.0).abs() < 1.0e-9)
+    guard field(document, ["mass_properties", "inertia_density_one"]) is Array(tensor) else { fail("tensor missing") }
+    for i in [0, 4, 8] {
+      guard tensor[i] is Number(moment, ..) else { fail("moment missing") }
+      assert_true((moment - 1.0 / 6.0).abs() < 1.0e-9)
+    }
+    records.push(document)
+  }
+  let collapsed = dir + "collapse.obj"
+  @fs.write_string_to_file(collapsed, translated_obj(source, 100000000.0))
+  let output = dir + "protected.stl"
+  let svg = dir + "rejected.svg"
+  if @fs.path_exists(svg) { @fs.remove_file(svg) }
+  @fs.write_string_to_file(output, "preserve existing output")
+  let rejected = @shell.Cmd(executable, [collapsed, "--fix", output, "--svg", svg, "--samples", "8", "--strict"]).output(timeout_ms=30000)
+  assert_eq(rejected.exit_code(), 1)
+  assert_true(rejected.stdout().contains("Float32"))
+  assert_eq(@fs.read_file_to_string(output), "preserve existing output")
+  assert_false(@fs.path_exists(svg))
+
+  let input = dir + "input.obj"
+  @fs.write_string_to_file(input, source)
+  for flag in ["--fix", "--svg"] {
+    for output_alias in [input, dir + "../acceptance-smoke/./input.obj"] {
+      let result = @shell.Cmd(executable, [input, flag, output_alias, "--samples", "1"]).output(timeout_ms=30000)
+      assert_eq(result.exit_code(), 1)
+      assert_true(result.stdout().contains("输入模型相同"))
+      assert_eq(@fs.read_file_to_string(input), source)
+    }
+  }
+
+  let safe = dir + "safe.obj"
+  @fs.write_string_to_file(safe, translated_obj(source, 100000.1))
+  let fixed = dir + "safe.stl"
+  let combined_svg = dir + "combined.svg"
+  let check_svg = dir + "reread.svg"
+  let saved = @shell.Cmd(executable, [safe, "--fix", fixed, "--svg", combined_svg, "--samples", "8", "--min-thickness", "0", "--strict"]).output(timeout_ms=30000)
+  assert_eq(saved.exit_code(), 0, msg=saved.stdout() + saved.stderr())
+  assert_true(saved.stdout().contains("已重读导出文件"))
+  @shell.Cmd(executable, [fixed, "--svg", check_svg, "--samples", "8", "--min-thickness", "0", "--strict"]).run(timeout_ms=30000)
+  assert_eq(@fs.read_file_to_string(combined_svg), @fs.read_file_to_string(check_svg))
+
+  let large = dir + "budget.obj"
+  let repeated = [source]
+  let faces = source.split("\n").filter(line => line.has_prefix("f ")).map(line => line.to_owned()).collect().join("\n")
+  for _ in 0..<2000 { repeated.push(faces + "\n") }
+  @fs.write_string_to_file(large, repeated.join("\n"))
+  for args in [[large], [large, "--json"]] {
+    let result = @shell.Cmd(executable, args).output(timeout_ms=30000)
+    assert_eq(result.exit_code(), if args.length() == 1 { 1 } else { 3 })
+    assert_true(result.stdout().contains("resource_limit"))
+    assert_true(result.stdout().contains("--samples"))
+    if args.length() > 1 {
+      let document = @json.parse(result.stdout())
+      assert_eq(field(document, ["error", "code"]), Json("resource_limit"))
+    }
+  }
+  // Validate the second supported CLI backend on the same generated fixtures.
+  let wasm_shifted = dir + "wasm-shifted.obj"
+  @fs.write_string_to_file(wasm_shifted, translated_obj(source, 100000.0))
+  for (args, status) in [
+    ([wasm_shifted, "--json", "--strict", "--samples", "8", "--min-thickness", "0"], 0),
+    ([input, "--svg", input, "--samples", "1"], 1),
+    ([collapsed, "--fix", output, "--samples", "1"], 1),
+  ] {
+    let result = @shell.Cmd("moon", ["run", "--target", "wasm", "cmd/main"] + args).output(timeout_ms=60000)
+    assert_eq(result.exit_code(), status, msg=result.stdout() + result.stderr())
+    assert_eq(@fs.read_file_to_string(input), source)
+    assert_eq(@fs.read_file_to_string(output), "preserve existing output")
+  }
+  @fs.write_string_to_file(dir + "mass-results.json", Json::array(records).stringify(indent=2))
+  println("ACCEPTANCE_SMOKE_OK: analytic translation, protected Float32 export, source aliases, actual-file SVG, normal/JSON ray budget")
+}

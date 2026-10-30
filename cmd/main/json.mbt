@@ -154,6 +154,10 @@ async fn json_execute(matches : @argparse.Matches) -> (Json, Int32) {
         3,
       )
   }
+  match sampling_budget_error(mesh.triangle_count(), samples) {
+    Some(message) => return json_failure("resource_limit", message, 3)
+    None => ()
+  }
   let report = match
     @stlkit.inspection_json(
       mesh,

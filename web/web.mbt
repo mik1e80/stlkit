@@ -106,6 +106,13 @@ fn analyze_mesh(file_base64 : String) -> Result[@stlkit.Mesh, String] {
 }
 
 ///|
+// Keep the existing 1000 samples for small models; explicitly report reduced
+// budgets on larger models. This limits ray/face work, not total running time.
+fn web_samples(mesh : @stlkit.Mesh) -> Int32 {
+  (20000000 / mesh.triangle_count().max(1)).min(1000).max(1)
+}
+
+///|
 /// 真正的分析逻辑。
 fn analyze_inner(
   file_base64 : String,
@@ -119,10 +126,14 @@ fn analyze_inner(
     Ok(mesh) => mesh
     Err(msg) => return Err(msg)
   }
-  let review = @stlkit.check_printability(mesh, min_thickness)
+  let samples = web_samples(mesh)
+  let review = @stlkit.check_printability(mesh, min_thickness, samples~)
+  let numeric_failure = review.mass_properties_available() &&
+    !mesh.mass_properties_numeric_valid()
   let check = review.validation
 
   let lines : Array[String] = []
+  lines.push("采样预算|\{samples}")
   lines.push("格式|\{format_name(data)}")
   lines.push("三角形|\{mesh.triangle_count()}")
   lines.push("顶点|\{check.raw_vertex_count}")
@@ -155,7 +166,7 @@ fn analyze_inner(
   if check.is_watertight() && review.winding.orientation_reliable() {
     lines.push("欧拉数|\{check.euler_number()}")
   }
-  if review.mass_properties_available() {
+  if review.mass_properties_available() && !numeric_failure {
     lines.push("质量属性|已评估（满足当前检查前提）")
     let c = mesh.center_mass()
     lines.push("重心|\{round3(c.x)}, \{round3(c.y)}, \{round3(c.z)}")
@@ -191,8 +202,10 @@ fn analyze_inner(
     "壁厚未评估|\{if review.thickness_unavailable() { 1 } else { 0 }}",
   )
   lines.push("壁厚阈值|\{min_thickness}")
-  lines.push("需复核|\{review.needs_review()}")
-  lines.push("结论|\{review.verdict()}")
+  lines.push("需复核|\{review.needs_review() || numeric_failure}")
+  lines.push(
+    "结论|\{if numeric_failure { "质量属性数值异常，需要复核；不构成可打印结论。" } else { review.verdict() }}",
+  )
   lines.push("工艺范围|\{@stlkit.review_scope()}")
   lines.push("水密|\{check.is_watertight()}")
   lines.push("边界边|\{check.boundary_edge_count}")
@@ -266,11 +279,21 @@ pub fn fix_report_with_threshold(
   match repair_of(file_base64) {
     Err(_) => ""
     Ok(result) => {
-      let review = @stlkit.check_printability(result.mesh, min_thickness)
+      let review = @stlkit.check_printability(
+        result.mesh,
+        min_thickness,
+        samples=web_samples(result.mesh),
+      )
+      let numeric_failure = review.mass_properties_available() &&
+        !result.mesh.mass_properties_numeric_valid()
       let after = review.validation
       let lines : Array[String] = []
-      lines.push("修复后需复核|\{review.needs_review()}")
-      lines.push("修复后结论|\{review.verdict()}")
+      lines.push(
+        "修复后需复核|\{review.needs_review() || numeric_failure}",
+      )
+      lines.push(
+        "修复后结论|\{if numeric_failure { "质量属性数值异常，需要复核；不构成可打印结论。" } else { review.verdict() }}",
+      )
       lines.push("可修复|\{result.changed()}")
       lines.push("删退化面|\{result.removed_degenerate}")
       lines.push("删重复面|\{result.removed_duplicates}")
@@ -295,7 +318,11 @@ pub fn fix_report_with_threshold(
 pub fn fixed_stl(file_base64 : String) -> String {
   match repair_of(file_base64) {
     Err(_) => ""
-    Ok(result) => @base64.encode(@stlkit.write_stl_binary(result.mesh))
+    Ok(result) =>
+      match @stlkit.write_stl_binary_checked(result.mesh) {
+        Ok(bytes) => @base64.encode(bytes)
+        Err(_) => ""
+      }
   }
 }
 
@@ -325,5 +352,14 @@ fn repair_of(file_base64 : String) -> Result[@stlkit.RepairResult, String] {
     Ok(mesh) => mesh
     Err(msg) => return Err(msg)
   }
-  Ok(@stlkit.repair(mesh, @stlkit.RepairOptions::default()))
+  let repaired = @stlkit.repair(mesh, @stlkit.RepairOptions::default())
+  let bytes = match @stlkit.write_stl_binary_checked(repaired.mesh) {
+    Ok(bytes) => bytes
+    Err(message) => return Err(message)
+  }
+  let restored = match @stlkit.parse_mesh(bytes, limits=web_limits()) {
+    Ok(restored) => restored
+    Err(message) => return Err("导出数据无法重读：" + message)
+  }
+  Ok({ ..repaired, mesh: restored, })
 }
