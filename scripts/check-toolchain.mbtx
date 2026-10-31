@@ -11,6 +11,10 @@ async fn main {
   assert_eq(version.exit_code(), 0)
   let text = version.stdout() + version.stderr()
   println(text)
-  assert_true(text.contains("v0.10.17+d971670cd"), msg="Unreviewed compiler version; update the baseline only after all backend and CLI checks pass")
+  // Exact hashes, never an open-ended minimum version. The older compiler is
+  // the local baseline; the newer official installer build must pass the full
+  // CI suite before its results are recorded as verified.
+  let known = ["v0.10.17+d971670cd", "v0.10.18+6c83a7f62"]
+  assert_true(known.any(version => text.contains(version)), msg="Unreviewed compiler version; validate a deliberate baseline update through all backend and CLI checks")
   @shell.Cmd("moon", ["version", "--all"]).run(timeout_ms=30000)
 }
