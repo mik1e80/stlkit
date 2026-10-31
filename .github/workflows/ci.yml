@@ -26,12 +26,6 @@ jobs:
           curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
           echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
 
-      - name: 打印版本
-        run: |
-          moon run scripts/check-toolchain.mbtx
-          # 校验已验证的编译器版本；升级工具链须先重跑四后端及集成回归。
-          moonc -v
-
       # 依赖装到 .mooncakes/，缓存起来省得每次重新下
       - name: 缓存依赖
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
@@ -42,6 +36,9 @@ jobs:
 
       - name: 解析依赖
         run: moon update
+
+      - name: 核对工具链版本
+        run: moon run scripts/check-toolchain.mbtx
 
       - name: 格式检查
         run: moon fmt --check
