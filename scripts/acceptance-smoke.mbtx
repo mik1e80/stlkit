@@ -21,11 +21,12 @@ fn field(document : Json, keys : Array[String]) -> Json raise {
 
 fn translated_obj(source : String, offset : Double) -> String raise {
   let lines : Array[String] = []
-  for line in source.split("\n") {
+  for raw in source.split("\n") {
+    let line = raw.trim().to_owned()
     if line.has_prefix("v ") {
       let parts = line.split(" ").filter(s => s.length() > 0).collect()
       lines.push("v \{@string.parse_double(parts[1]) + offset} \{@string.parse_double(parts[2]) + offset} \{@string.parse_double(parts[3]) + offset}")
-    } else { lines.push(line.to_owned()) }
+    } else { lines.push(line) }
   }
   lines.join("\n")
 }
@@ -36,6 +37,7 @@ async fn main {
   let dir = "_build/acceptance-smoke/"
   if !@fs.path_exists(dir) { @fs.create_dir(dir) }
   let source = @fs.read_file_to_string("examples/cube.obj")
+  assert_eq(translated_obj("v 0 1 2\r\n", 100.0), translated_obj("v 0 1 2\n", 100.0))
   let records : Array[Json] = []
   for offset in [100000.0, 100000000.0] {
     let path = dir + "translated-" + offset.to_string() + ".obj"
