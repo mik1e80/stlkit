@@ -1,19 +1,42 @@
 # STLKit 验收交付说明
 
-后续边界、许可与 CI 修订见 [顾问建议整改记录](advisor-remediation.md)。本页下文的 395 项测试和计时是第一批修订的历史证据；不能代替最新修订的复核结果。
+## 0.2.2 交付状态
 
-## 版本与获批范围
+2026-10-31 按参赛者提供的九项要求完成 0.2.2 工程交付；无需再次提交表格。本页记录实际源码、检查、发布与独立安装证据，不代表主办方已作出验收结论。
+
+| 项目 | 状态 |
+| --- | --- |
+| GitHub | https://github.com/mik1e80/stlkit |
+| 开发语言 / 许可 | MoonBit / Apache-2.0；第三方独立许可保留 |
+| 工具链 | 验收最低 moonc 0.10.16；实际基线 0.10.17+d971670cd，本次 CI 验证 0.10.18+6c83a7f62 |
+| 发布版本 / tag | [0.2.2 正式 Release](https://github.com/mik1e80/stlkit/releases/tag/v0.2.2) / v0.2.2，旧标签均保留 |
+| 完整源码 SHA | `3a85bb4464d18dbc64a1cddd314724d5551fc206`，为固定的发布源码，不是后续证据文档提交 |
+| check / build / 四后端 | [固定源码 CI](https://github.com/mik1e80/stlkit/actions/runs/41174322069) 成功；本机及 Linux Wasm / Wasm-GC / JS / Native 各 417 / 417，全目标零警告检查、构建与格式检查通过 |
+| Windows / Pages | 同一源码 CI 的 Windows 检查、CLI、Quick Start、导出、路径和许可回归成功；[网页部署](https://github.com/mik1e80/stlkit/actions/runs/41174322050) 成功 |
+| 独立变异 | [固定源码变异 CI](https://github.com/mik1e80/stlkit/actions/runs/41174322077) 成功，四后端各 1000 次摘要一致 |
+| Mooncakes 0.2.2 | [公开包](https://mooncakes.io/docs/mik1e80/stlkit@0.2.2/)，发布返回 200 OK；干净项目实际下载并核对安装版本 |
+| 独立 consumer | 本机干净目录四后端通过；[Linux / Windows 发布包矩阵](https://github.com/mik1e80/stlkit/actions/runs/41174578790) 两项任务均成功，每种系统四后端安装并调用受检校验 / 修复 / STL / SVG、面积加权采样及已有 API |
+| 示例 | cube 12 面 / 体积 1 / 面积 6、缺面修复重读、JSON；quickstart-smoke 真实入口验证 |
+| 模型 / 包内容 / 许可 | 67 次模型读取、5 组修复重读、10 组厚度对照通过；17 个官方及 15 个外部条目哈希、完整 BSD / CC0、浏览器许可链接校验通过；包清单保留必要许可与来源元数据，排除模型大文件与缓存 |
+
+最终证据提交可以晚于源码 tag；此时明确区分固定的发布源码 SHA 和后续仅补证据的文档提交，不移动标签。发布后的工作流在 Linux / Windows 干净目录安装公开包；发布前 CI 不尝试安装尚不存在的新包。
+
+[九项要求对照](acceptance-checklist.md) · [0.2.2 发布说明](releases/0.2.2.md) · [受检 API](checked-apis.md)。
+
+## 历史证据说明
+
+以下 395 项测试、版本表和计时保留第一批修订的原始状态，不是本次 0.2.2 的最终验收结果。后续边界修订见 [顾问建议整改记录](advisor-remediation.md)。
+
+## 历史获批基线与首次修订
 
 | 项目 | 当前状态 |
 | --- | --- |
 | 已获批申报基线 | `mik1e80/stlkit@0.1.4` / `v0.1.4`；保留原核心承诺 |
 | 基线源码 SHA | `f62486ecfed4a6222373edfb4dd00b86454f1377` |
-| 最近已发布参考 | `mik1e80/stlkit@0.2.0` / `v0.2.0` |
+| 历史已发布参考 | `mik1e80/stlkit@0.2.0` / `v0.2.0` |
 | 0.2.0 源码 SHA | `3a98e234c5507bb2a4273917d12a4aafdaf22a2e` |
-| 本批验收修订 | 未发布的工作区修改；不属于上述包或标签 |
-| 本批最终 tag / SHA / 包 | 尚未冻结和发布，不能用旧 SHA 代替 |
 
-本文件补充交付证据，不自动替代已获批的线上申报，也不证明组委会已接受版本变更。最终交付前须将真实的新版本、完整 SHA、包版本及对应 CI 链接补入本表；旧标签不移动。
+旧申报核心承诺保留为核对基线；当前交付版本、完整 SHA 和 CI 见本页顶部。本文件不证明主办方已完成验收；旧标签不移动。
 
 ## 对照已获批承诺的修订
 
@@ -68,3 +91,7 @@ node scripts/corpus-cases.cjs --check
 - 最新路径保护增加真实目标解析，识别符号链接和目录 junction；仍不识别硬链接别名，不防检查后的路径替换竞态，文件写入不承诺原子性。
 - CLI 的 `面数 × 样本数` 上限为 20000000，超限拒绝并建议较小的 `--samples`；JSON 返回 `resource_limit`、退出 3，中文入口退出 1。网页自动降低预算并显示；这不保证总耗时，BVH / Worker / 取消功能仍在后续路线中。
 - 最新补洞改为简单平面环耳切三角化，支持简单凹环；分支、自交、非平面或超预算洞拒绝。不将修订宣传为解决全部几何修复问题。
+
+## 0.2.1 过渡发布记录
+
+源码 d935f18c6f9dd3b1031d9928e4ba36f6b564ae28 / v0.2.1，[源码 CI](https://github.com/mik1e80/stlkit/actions/runs/41173680315) 通过，Mooncakes 发布返回 200 OK。随后的独立脚本启动因新注册表 async 0.22.7 引用旧 SDK 缺少的 core/async 而失败；未将它记为 consumer 通过，也未创建 0.2.1 GitHub Release。保留该包和标签，0.2.2 固定依赖后重新验证。

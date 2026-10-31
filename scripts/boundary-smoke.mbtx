@@ -1,11 +1,11 @@
 ----
 import {
-  "moonbitlang/async",
-  "moonbitlang/async/fs" @asyncfs,
-  "moonbitlang/async/shell",
+  "moonbitlang/async@0.22.1",
+  "moonbitlang/async@0.22.1/fs" @asyncfs,
+  "moonbitlang/async@0.22.1/shell",
   "moonbitlang/core/env",
-  "moonbitlang/x/fs",
-  "moonbitlang/x/path",
+  "moonbitlang/x@0.5.5/fs",
+  "moonbitlang/x@0.5.5/path",
 }
 ----
 
@@ -31,6 +31,19 @@ async fn main {
   assert_eq(clash.exit_code(), 1)
   assert_true(clash.stdout().contains("真实路径相同"))
   assert_false(@fs.path_exists(base + "/new.stl"))
+
+  // Windows CI keeps the checkout on D: and the OS temp directory on C:.
+  // A relative() across drives is absolute; prefixing that with ./ is invalid.
+  // Keep these fixtures on the checkout volume to exercise actual aliases.
+  let collision = base + "/collision.stl"
+  @fs.write_string_to_file(collision, "keep collision output")
+  let relative_output = @path.Path(collision).relative(base=@path.Path(".").resolve()).to_string()
+  for output_alias in [relative_output, "./" + relative_output] {
+    let result = @shell.Cmd(executable, [input, "--fix", collision, "--svg", output_alias, "--samples", "1"]).output(timeout_ms=30000)
+    assert_eq(result.exit_code(), 1)
+    assert_true(result.stdout().contains("规范化后相同"))
+    assert_eq(@fs.read_file_to_string(collision), "keep collision output")
+  }
 
   let alias_path = base + "/file-alias.obj"
   let file_symlink = try {

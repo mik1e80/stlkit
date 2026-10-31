@@ -1,0 +1,31 @@
+----
+import {
+  "moonbitlang/async@0.22.1",
+  "moonbitlang/async@0.22.1/shell",
+  "moonbitlang/core/env",
+  "moonbitlang/x@0.5.5/fs",
+}
+----
+
+// SPDX-License-Identifier: Apache-2.0
+async fn main {
+  let text = match @env.args() {
+    [_] => {
+      let output = @shell.Cmd("moon", ["package", "--list"]).output(timeout_ms=120000)
+      guard output.exit_code() == 0 else { fail("package listing failed: " + output.stderr()) }
+      output.stdout() + "\n" + output.stderr()
+    }
+    [_, "--file-list", file] => @fs.read_file_to_string(file)
+    _ => fail("usage: package-smoke.mbtx [--file-list PATH]")
+  }
+  let paths = text.split("\n").map(line => line.trim().split("\\").map(part => part.to_owned()).collect().join("/")).collect()
+  for required in ["LICENSE", "THIRD_PARTY_NOTICES.md", "examples/third-party-manifest.json", "examples/external/manifest.json", "examples/external/licenses/3MFConsortium.BSD-2-Clause.txt", "examples/external/licenses/SlicerTestModels.CC0-1.0.txt", "web/licenses/project.LICENSE", "web/licenses/moonbit-core.LICENSE", "web/licenses/moonbit-core.NOTICE", "web/licenses/fzip.LICENSE", "web/licenses/xml.LICENSE"] {
+    assert_true(paths.contains(required), msg="package missing required license/provenance: " + required)
+  }
+  for path in paths {
+    assert_false(path.has_prefix("_build/") || path.has_prefix(".mooncakes/") || path.has_prefix(".git/"), msg="package contains generated/cache files")
+    let lower = path.to_lower()
+    assert_false([".stl", ".obj", ".3mf", ".ply", ".scad"].iter().any(extension => lower.has_suffix(extension)), msg="package contains excluded model: " + path)
+  }
+  println("PACKAGE_OK: actual package list contains required full licenses and provenance; models and build caches excluded")
+}

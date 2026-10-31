@@ -2,6 +2,20 @@
 
 这些文件用于演示和回归检查。解析成功与网格检查结果是两回事；检查结果也不能保证打印成功。
 
+## 推荐快速示例
+
+在仓库根目录运行 `moon update` 后：
+
+```sh
+moon run cmd/main examples/cube.obj --strict
+moon run cmd/main examples/broken.stl --fix fixed.stl --strict
+moon run cmd/main examples/cube.obj --json --samples 32 --min-thickness 0 --strict
+```
+
+立方体为 12 面、体积 1、表面积 6，退出 0；缺面模型初始有 3 条边界边，补一个三角洞后导出重读为 12 面、无边界边，最终退出 0。JSON 文档 schema_version=1。模型均为项目自建 Apache-2.0，检查不构成可打印认证。
+
+`moon run scripts/quickstart-smoke.mbtx` 自动复核这些结果，生成文件放在已忽略的 `_build/quickstart-smoke/`；Linux / Windows CI 执行同一脚本。无外部模型和私有文件依赖的库示例见 [README.mbt.md](../README.mbt.md#最小库调用)。
+
 ## 自建模型
 
 | 文件 | 内容 | 检查用途 |

@@ -1,8 +1,10 @@
 ----
 import {
+  "moonbitlang/core/env",
   "moonbitlang/core/json",
-  "moonbitlang/x/crypto",
-  "moonbitlang/x/fs",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/x@0.5.5/crypto",
+  "moonbitlang/x@0.5.5/fs",
 }
 ----
 
@@ -13,15 +15,44 @@ fn digest(path : String) -> String raise {
   @crypto.bytes_to_hex_string(@crypto.sha256(bytes[:]))
 }
 
-fn main raise {
-  guard @json.parse(@fs.read_file_to_string("examples/third-party-manifest.json")) is { "files": Array(official), .. } else { fail("missing official model manifest") }
+fn git_blob(path : String) -> String raise {
+  guard path.has_prefix("examples/") && !path.contains("..") else { fail("invalid corpus path") }
+  let bytes = @fs.read_file_to_bytes(path)
+  let object = @utf8.encode("blob \{bytes.length()}\u0000") + bytes
+  @crypto.bytes_to_hex_string(@crypto.sha1(object[:]))
+}
+
+fn sha1_text(value : String) -> Bool {
+  value.length() == 40 && value.iter().all(c => (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'))
+}
+
+fn license_text(license : String) -> String raise {
+  let (path, hash) = match license {
+    "BSD-2-Clause" => ("examples/external/licenses/3MFConsortium.BSD-2-Clause.txt", "83b517301f26401f0b8cff0dcdc1b03aaa109252b91029e6a2f4c99e2d34f862")
+    "CC0-1.0" => ("examples/external/licenses/SlicerTestModels.CC0-1.0.txt", "eef4fa86739682461fc1c29747121932ed18a07fa4ae2cc2a5f2260f85d3ff35")
+    _ => fail("unreviewed external model license: " + license)
+  }
+  assert_eq(digest(path), hash, msg="complete approved license text changed: " + path)
+  path
+}
+
+fn check_main() -> Unit raise {
+  let (official_file, external_file) = match @env.args() {
+    [_] => ("examples/third-party-manifest.json", "examples/external/manifest.json")
+    [_, "--official-manifest", file] => (file, "examples/external/manifest.json")
+    [_, "--external-manifest", file] => ("examples/third-party-manifest.json", file)
+    _ => fail("usage: check-third-party.mbtx [--official-manifest PATH | --external-manifest PATH]")
+  }
+  guard @json.parse(@fs.read_file_to_string(official_file)) is { "files": Array(official), .. } else { fail("missing official model manifest") }
   assert_eq(official.length(), 17)
   for entry in official {
     guard entry is { "path": String(path), "sha256": String(hash), "license": String(license), "license_file": String(license_file), "upstream_commit": String(commit), "upstream_git_blob": String(blob), "upstream_path": String(upstream), "author": String(author), "modified": False, .. } else { fail("incomplete official provenance") }
     assert_eq(digest(path), hash)
     assert_eq(license, "BSD-2-Clause")
-    assert_eq(commit.length(), 40)
-    assert_eq(blob.length(), 40)
+    assert_true(sha1_text(commit), msg="invalid upstream commit")
+    assert_true(sha1_text(blob), msg="invalid upstream blob")
+    assert_eq(git_blob(path), blob, msg="Git blob mismatch: " + path)
+    assert_eq(license_file, license_text(license))
     assert_true(upstream.length() > 0 && author.length() > 0)
     let notice = @fs.read_file_to_string(license_file)
     assert_true(notice.contains("Copyright (c) 2018"))
@@ -29,10 +60,11 @@ fn main raise {
     assert_true(notice.contains("binary form must reproduce"))
     assert_true(notice.contains("THIS SOFTWARE IS PROVIDED"))
   }
-  guard @json.parse(@fs.read_file_to_string("examples/external/manifest.json")) is { "files": Array(external), .. } else { fail("missing external manifest") }
+  guard @json.parse(@fs.read_file_to_string(external_file)) is { "files": Array(external), .. } else { fail("missing external manifest") }
   for entry in external {
     guard entry is { "file": String(path), "sha256": String(hash), "license": String(license), "author": String(author), "source": String(source), .. } else { fail("incomplete external provenance") }
     assert_true(license.length() > 0 && author.length() > 0 && source.length() > 0)
+    ignore(license_text(license))
     assert_eq(digest(path), hash)
   }
   let browser = @fs.read_file_to_string("web/licenses/THIRD_PARTY_NOTICES.md")
@@ -45,5 +77,14 @@ fn main raise {
   for file in ["project.LICENSE", "moonbit-core.LICENSE", "moonbit-core.NOTICE", "fzip.LICENSE", "xml.LICENSE"] {
     assert_true(@fs.read_file_to_string("web/licenses/" + file).length() > 100)
   }
-  println("THIRD_PARTY_OK: 17 fixed-version official models, \{external.length()} existing external files, SHA-256, complete BSD notice and browser links")
+  println("THIRD_PARTY_OK: 17 official / \{external.length()} external entries; actual Git blob SHA-1 and SHA-256; approved complete BSD/CC0 texts; browser links")
+}
+
+fn main raise {
+  try check_main() catch {
+    error => {
+      println("THIRD_PARTY_ERROR: \{error}")
+      fail("third-party validation failed")
+    }
+  }
 }

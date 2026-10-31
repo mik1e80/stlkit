@@ -1,6 +1,24 @@
 // SPDX-License-Identifier: Apache-2.0
 
 ///|
+fn safe_svg_paint(value : String) -> Bool {
+  if [
+      "none", "transparent", "black", "white", "red", "green", "blue", "gray", "grey",
+      "currentColor",
+    ].contains(value) {
+    return true
+  }
+  if !value.has_prefix("#") || ![4, 5, 7, 9].contains(value.length()) {
+    return false
+  }
+  value[1:]
+  .iter()
+  .all(c => {
+    (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')
+  })
+}
+
+///|
 fn svg_attribute(value : String) -> String {
   let parts : Array[String] = []
   for c in value {
@@ -37,7 +55,7 @@ pub fn render_svg_checked(
     not_finite(options.stroke_width) ||
     options.stroke_width < 0.0 ||
     options.stroke_width > 256.0 ||
-    options.stroke.length() > 128 ||
+    !safe_svg_paint(options.stroke) ||
     options.stroke.iter().any(c => c < ' ') {
     return Err("invalid SVG preview options")
   }
