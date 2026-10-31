@@ -131,16 +131,10 @@ fn ray_cast_excluding(
 ///
 /// 这是**无符号**距离，不区分点在模型里面还是外面。
 pub fn Mesh::nearest_point(self : Mesh, p : Vec3) -> (Double, Vec3) {
-  let mut best_d = 1.0e300
-  let mut best_p = Vec3::zero()
-  for t in self.triangles {
-    let (d, q) = point_triangle_distance(p, t.a, t.b, t.c)
-    if d < best_d {
-      best_d = d
-      best_p = q
-    }
+  match self.nearest_point_checked(p) {
+    Ok(Some(result)) => result
+    _ => (1.0 / 0.0, Vec3::zero())
   }
-  (best_d, best_p)
 }
 
 ///|
@@ -154,6 +148,32 @@ fn point_triangle_distance(
   let ab = b.sub(a)
   let ac = c.sub(a)
   let ap = p.sub(a)
+  if ab.cross(ac).length() == 0.0 {
+    let mut best = (p.sub(a).length(), a)
+    for (start, finish) in [(a, b), (b, c), (c, a)] {
+      let edge = finish.sub(start)
+      let scale = edge.x.abs().max(edge.y.abs()).max(edge.z.abs())
+      if scale == 0.0 {
+        continue
+      }
+      let direction = Vec3::new(edge.x / scale, edge.y / scale, edge.z / scale)
+      let fraction = (p.sub(start).dot(direction) /
+        scale /
+        direction.dot(direction))
+        .max(0.0)
+        .min(1.0)
+      let nearest = Vec3::new(
+        start.x + edge.x * fraction,
+        start.y + edge.y * fraction,
+        start.z + edge.z * fraction,
+      )
+      let distance = p.sub(nearest).length()
+      if distance < best.0 {
+        best = (distance, nearest)
+      }
+    }
+    return best
+  }
 
   // 先把 p 投影到三角形所在平面上，看参数 (u, v) 落在哪
   let d1 = ab.dot(ap)

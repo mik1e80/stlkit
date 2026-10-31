@@ -44,7 +44,12 @@ fn polygon_edges_cross(
 ///|
 fn triangulate_polygon(
   vertices : Array[Vec3],
+  max_work~ : Int32 = 2000000,
 ) -> Result[Array[(Int32, Int32, Int32)], String] {
+  if max_work < 0 {
+    return Err("invalid triangulation operation budget")
+  }
+  let mut remaining = max_work
   let n = vertices.length()
   if n < 3 {
     return Err("一个面至少要有三个顶点")
@@ -114,6 +119,12 @@ fn triangulate_polygon(
       if j == i + 1 || (i == 0 && j == n - 1) {
         continue
       }
+      if remaining == 0 {
+        return Err(
+          "resource_limit: polygon triangulation work (max=\{max_work})",
+        )
+      }
+      remaining -= 1
       if polygon_edges_cross(a, b, points[j], points[(j + 1) % n]) {
         return Err("多边形有自相交或重复边，无法三角化")
       }
@@ -143,6 +154,12 @@ fn triangulate_polygon(
     let count = live.length()
     let mut ear : Int32? = None
     for i = 0; i < count; i = i + 1 {
+      if remaining == 0 {
+        return Err(
+          "resource_limit: polygon triangulation work (max=\{max_work})",
+        )
+      }
+      remaining -= 1
       let a = live[(i + count - 1) % count]
       let b = live[i]
       let c = live[(i + 1) % count]
@@ -154,10 +171,17 @@ fn triangulate_polygon(
         if j == a || j == b || j == c {
           continue
         }
+        if remaining == 0 {
+          return Err(
+            "resource_limit: polygon triangulation work (max=\{max_work})",
+          )
+        }
+        remaining -= 1
         if polygon_turn(points[a], points[b], points[j]) * sign >= -1.0e-14 &&
           polygon_turn(points[b], points[c], points[j]) * sign >= -1.0e-14 &&
           polygon_turn(points[c], points[a], points[j]) * sign >= -1.0e-14 {
           blocked = true
+          break
         }
       }
       if !blocked {
