@@ -214,7 +214,7 @@ const aliasPairs = [
   [collisionPath, `${dir}/./collision.stl`],
   [collisionPath, `${dir}/subdir/../collision.stl`],
   [collisionPath, relativeCollision],
-  [relativeCollision, `./${relativeCollision}`],
+  // Dot-prefixed relative aliases use same-volume fixtures in boundary-smoke.mbtx.
   [collisionPath, `${dir}//collision.stl`],
 ];
 if (process.platform === 'win32') {

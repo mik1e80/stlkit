@@ -124,12 +124,14 @@ test "non-planar rings and exceeded repair budgets return explicit errors" {
 ///|
 test "SVG escapes injected attributes and validates numeric drawing options" {
   let mesh = cube_mesh()
-  let svg = render_svg_checked(mesh, {
-    ..PreviewOptions::default(),
-    stroke: "\" onload=\"alert(1)",
-  }).unwrap()
-  assert_true(svg.contains("&quot;"))
-  assert_false(svg.contains("onload=\""))
+  assert_true(
+    render_svg_checked(mesh, {
+      ..PreviewOptions::default(),
+      stroke: "\" onload=\"alert(1)",
+    })
+    is Err(_),
+  )
+  assert_true(svg_attribute("\" onload=\"alert(1)").contains("&quot;"))
   for
     options in [
       { ..PreviewOptions::default(), width: -1, },

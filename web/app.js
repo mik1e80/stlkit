@@ -250,18 +250,18 @@ function renderReport(fields) {
 
 /// 点「修复」之后干的事：修一遍、把结果对照着显示、更新预览、给下载。
 function runFix() {
+  if (!currentBase64) return;
+  ++loadGeneration;
   const button = document.getElementById("fix");
   if (button) {
     button.disabled = true;
     button.textContent = "修复中…";
   }
 
-  const report = fix_report_with_threshold(currentBase64, currentMinThickness);
-  if (report === "") {
-    showError(fix_error(currentBase64));
-    return;
-  }
-  const fixed = parseReport(report);
+  let bundle;
+  try { bundle = readBundle(fix_bundle(currentBase64, currentMinThickness)); }
+  catch (error) { showError(error.message); return; }
+  const fixed = parseReport(bundle.repair_report);
 
   const box = document.getElementById("report");
   box.replaceChildren();
@@ -327,7 +327,7 @@ function runFix() {
   box.append(verdict);
 
   // 下载
-  const base64 = fixed_stl(currentBase64);
+  const base64 = bundle.stl_base64;
   if (base64 !== "") {
     const actions = document.createElement("div");
     actions.className = "fix-actions";
@@ -351,15 +351,11 @@ function runFix() {
   }
 
   // 预览换成修好的模型
-  const svg = fixed_preview(currentBase64);
-  if (svg !== "") {
-    previewEl.replaceChildren();
-    previewEl.innerHTML = svg;
-  }
+  drawPreview(bundle.svg, bundle.preview_error);
   // 后续阈值调整继续检查修复后的网格。
   if (base64 !== "") {
     currentBase64 = base64;
-    currentFields = parseReport(analyze_with_threshold(base64, currentMinThickness));
+    currentFields = parseReport(bundle.report);
   }
 }
 
@@ -385,6 +381,26 @@ const statusEl = document.getElementById("status");
 let currentBase64 = "";
 let currentFields = {};
 let currentMinThickness = 0.8;
+let loadGeneration = 0;
+const BROWSER_MAX_BYTES = 33554432;
+const BROWSER_MAX_TRIANGLES = 500000;
+
+function readBundle(text) {
+  const bundle = JSON.parse(text);
+  if (!bundle.ok) throw new Error(bundle.error || "模型处理失败");
+  return bundle;
+}
+
+function drawPreview(svg, error) {
+  previewEl.replaceChildren();
+  previewEl.innerHTML = "";
+  if (svg) previewEl.innerHTML = svg;
+  else if (error) {
+    const reason = document.createElement("p");
+    reason.textContent = "预览不可用：" + error;
+    previewEl.append(reason);
+  }
+}
 
 function thicknessThreshold() {
   const raw = document.getElementById("min-thickness").value;
@@ -411,60 +427,63 @@ function showError(message) {
   box.append(row);
 
   previewEl.replaceChildren();
+  previewEl.innerHTML = "";
   statusEl.textContent = "读不了";
   statusEl.className = "status status-error";
 }
 
 async function handleFile(file) {
+  const generation = ++loadGeneration;
   currentBase64 = "";
   currentFields = {};
+  document.getElementById("report").replaceChildren();
+  drawPreview("", "");
   statusEl.textContent = "分析中…";
   statusEl.className = "status";
-  const maxInput = Number(document.getElementById("max-input-bytes").value || 67108864);
-  const maxTriangles = Number(document.getElementById("max-triangles").value || 2000000);
-  if (!Number.isInteger(maxInput) || maxInput < 1 || maxInput > 2147483647 ||
-      !Number.isInteger(maxTriangles) || maxTriangles < 1 || maxTriangles > 715827882) {
-    showError("资源上限必须为范围内的正整数");
+  const maxInput = Number(document.getElementById("max-input-bytes").value || 16777216);
+  const maxTriangles = Number(document.getElementById("max-triangles").value || BROWSER_MAX_TRIANGLES);
+  if (!Number.isInteger(maxInput) || maxInput < 1 || maxInput > BROWSER_MAX_BYTES ||
+      !Number.isInteger(maxTriangles) || maxTriangles < 1 || maxTriangles > BROWSER_MAX_TRIANGLES) {
+    showError("浏览器上限最多为 32 MiB 和 500000 个三角形；较大文件请使用 CLI");
     return;
   }
-  const limitError = configure_limits(maxInput, maxTriangles);
-  if (limitError || file.size > maxInput) {
-    showError(limitError || `resource_limit: max_input_bytes (max=${maxInput})`);
+  if (file.size > maxInput) {
+    showError(`resource_limit: max_input_bytes (max=${maxInput})；较大文件请使用 CLI`);
     return;
   }
-
-  let base64;
+  let threshold;
+  try { threshold = thicknessThreshold(); } catch (error) { showError(error.message); return; }
+  const warning = document.getElementById("large-file-warning");
+  warning.textContent = file.size >= 8388608 ? "较大文件可能占用较多内存并暂时阻塞界面，建议使用 CLI。" : "";
+  let buffer;
   try {
-    const buffer = await file.arrayBuffer();
-    base64 = bytesToBase64(new Uint8Array(buffer));
+    buffer = await file.arrayBuffer();
   } catch {
+    if (generation !== loadGeneration) return;
     showError("读不了这个文件");
     return;
   }
-
-  // 分析失败时 analyze 返回空串，这时再去问一次原因。
-  // 和上个项目一样的套路：Result 过不了 JS 边界，就拆成两个函数。
-  let threshold;
-  try { threshold = thicknessThreshold(); } catch (err) { showError(err.message); return; }
-  const report = analyze_with_threshold(base64, threshold);
-  if (report === "") {
-    showError(analyze_error(base64));
+  if (generation !== loadGeneration) return;
+  if (buffer.byteLength > maxInput) {
+    showError(`resource_limit: max_input_bytes (max=${maxInput})`);
     return;
   }
-
+  const limitError = configure_limits(maxInput, maxTriangles);
+  if (limitError) { showError(limitError); return; }
+  let base64, bundle;
+  try {
+    base64 = bytesToBase64(new Uint8Array(buffer));
+    bundle = readBundle(analyze_bundle(base64, threshold));
+  } catch (error) {
+    if (generation === loadGeneration) showError(error.message);
+    return;
+  }
+  if (generation !== loadGeneration) return;
   currentBase64 = base64;
   currentMinThickness = threshold;
-  currentFields = parseReport(report);
+  currentFields = parseReport(bundle.report);
   renderReport(currentFields);
-
-  const svg = preview(base64);
-  previewEl.replaceChildren();
-  if (svg !== "") {
-    // 这段 SVG 完全由我们自己的 MoonBit 代码生成，内容只有数字和多边形，
-    // 不含任何来自文件的原文，所以可以放心当 HTML 插进去。
-    previewEl.innerHTML = svg;
-  }
-
+  drawPreview(bundle.svg, bundle.preview_error);
   statusEl.textContent = file.name;
   statusEl.className = "status status-ok";
 }
@@ -477,7 +496,9 @@ document.getElementById("pick").addEventListener("click", () => {
 
 fileInput.addEventListener("change", () => {
   if (fileInput.files.length > 0) {
-    handleFile(fileInput.files[0]);
+    const file = fileInput.files[0];
+    fileInput.value = "";
+    return handleFile(file);
   }
 });
 
@@ -505,9 +526,10 @@ document.getElementById("min-thickness").addEventListener("change", () => {
   if (!currentBase64) return;
   try {
     currentMinThickness = thicknessThreshold();
-    currentFields = parseReport(analyze_with_threshold(currentBase64, currentMinThickness));
+    const bundle = readBundle(analyze_bundle(currentBase64, currentMinThickness));
+    currentFields = parseReport(bundle.report);
     renderReport(currentFields);
-    previewEl.innerHTML = preview(currentBase64);
+    drawPreview(bundle.svg, bundle.preview_error);
   } catch (err) { showError(err.message); }
 });
 

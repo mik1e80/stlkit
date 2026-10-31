@@ -32,9 +32,13 @@ pub fn Triangle::from_vertices(a : Vec3, b : Vec3, c : Vec3) -> Triangle {
 /// 按右手定则从顶点算出的法线（已单位化）。
 ///
 /// 面法线 = (b - a) × (c - a)。三个点共线时叉乘为零向量，
-/// `normalize` 会原样返回零向量，调用方靠这个判断退化面。
+/// 无法保留缩放信息或含非有限坐标时也返回零；零不证明数学退化，
+/// 需要显式数值错误时调用 area_checked / 受检网格接口。
 pub fn Triangle::computed_normal(self : Triangle) -> Vec3 {
-  self.b.sub(self.a).cross(self.c.sub(self.a)).normalize()
+  match triangle_frame(self) {
+    Some((cross, _, _)) => cross.normalize()
+    None => Vec3::zero()
+  }
 }
 
 ///|
@@ -42,28 +46,19 @@ pub fn Triangle::computed_normal(self : Triangle) -> Vec3 {
 ///
 /// 两条边叉乘的模长等于这两个边张成的平行四边形面积，三角形是它的一半。
 pub fn Triangle::area(self : Triangle) -> Double {
-  self.b.sub(self.a).cross(self.c.sub(self.a)).length() / 2.0
+  match triangle_frame(self) {
+    Some((cross, a, b)) => scaled_area(cross, a, b)
+    None => 0.0 / 0.0
+  }
 }
 
 ///|
 /// 按最长边归一化，避免大坐标叉乘溢出，也避免微小面面积下溢。
 fn triangle_is_degenerate(triangle : Triangle) -> Bool {
-  let ab = triangle.b.sub(triangle.a)
-  let ac = triangle.c.sub(triangle.a)
-  let scale = ab.x
-    .abs()
-    .max(ab.y.abs())
-    .max(ab.z.abs())
-    .max(ac.x.abs())
-    .max(ac.y.abs())
-    .max(ac.z.abs())
-  if scale == 0.0 {
-    return true
+  match triangle_frame(triangle) {
+    Some((cross, _, _)) => cross.x == 0.0 && cross.y == 0.0 && cross.z == 0.0
+    None => true
   }
-  let u = Vec3::new(ab.x / scale, ab.y / scale, ab.z / scale)
-  let v = Vec3::new(ac.x / scale, ac.y / scale, ac.z / scale)
-  let cross = u.cross(v)
-  cross.x == 0.0 && cross.y == 0.0 && cross.z == 0.0
 }
 
 ///|

@@ -26,12 +26,6 @@ jobs:
           curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
           echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
 
-      - name: 打印版本
-        run: |
-          moon run scripts/check-toolchain.mbtx
-          # 校验已验证的编译器版本；升级工具链须先重跑四后端及集成回归。
-          moonc -v
-
       # 依赖装到 .mooncakes/，缓存起来省得每次重新下
       - name: 缓存依赖
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
@@ -43,11 +37,14 @@ jobs:
       - name: 解析依赖
         run: moon update
 
+      - name: 核对工具链版本
+        run: moon run scripts/check-toolchain.mbtx
+
       - name: 格式检查
         run: moon fmt --check
 
       - name: 独立 MoonBit 脚本格式检查
-        run: moon fmt scripts/fuzz.mbtx scripts/consumer-smoke.mbtx scripts/limits-smoke.mbtx scripts/json-smoke.mbtx scripts/indexed-memory.mbtx scripts/acceptance-smoke.mbtx scripts/build-web.mbtx scripts/boundary-smoke.mbtx scripts/check-third-party.mbtx scripts/check-toolchain.mbtx --check
+        run: moon fmt scripts/fuzz.mbtx scripts/consumer-smoke.mbtx scripts/limits-smoke.mbtx scripts/json-smoke.mbtx scripts/indexed-memory.mbtx scripts/acceptance-smoke.mbtx scripts/build-web.mbtx scripts/boundary-smoke.mbtx scripts/check-third-party.mbtx scripts/check-toolchain.mbtx scripts/quickstart-smoke.mbtx scripts/package-smoke.mbtx scripts/round2-smoke.mbtx --check
 
       - name: 检查（全目标，零警告才算过）
         run: moon check --target all --deny-warn
@@ -70,6 +67,9 @@ jobs:
       - name: CLI 参数和退出码回归
         run: node cmd/main/smoke.cjs
 
+      - name: README 推荐示例及解析值复核
+        run: moon run scripts/quickstart-smoke.mbtx
+
       - name: CLI 资源限制真实入口
         run: moon run scripts/limits-smoke.mbtx
 
@@ -83,6 +83,8 @@ jobs:
         run: |
           moon run scripts/boundary-smoke.mbtx
           moon run scripts/check-third-party.mbtx
+          moon run scripts/package-smoke.mbtx
+          moon run scripts/round2-smoke.mbtx
 
       - name: 验证审查案例和报告未过期
         run: |
@@ -122,8 +124,11 @@ jobs:
       - run: moon run scripts/check-toolchain.mbtx
       - run: moon check --target all --deny-warn
       - run: node cmd/main/smoke.cjs
+      - run: moon run scripts/quickstart-smoke.mbtx
       - run: moon run scripts/acceptance-smoke.mbtx
       - run: moon run scripts/boundary-smoke.mbtx
       - run: moon run scripts/check-third-party.mbtx
-      - name: Published package installation baseline
-        run: moon run scripts/consumer-smoke.mbtx 0.2.0
+      - run: moon run scripts/package-smoke.mbtx
+      - run: moon run scripts/round2-smoke.mbtx
+      # Published-package installation is tested on Linux and Windows by
+      # consumer.yml after publication; a candidate version is not public yet.

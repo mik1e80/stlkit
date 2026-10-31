@@ -4,11 +4,15 @@ package "mik1e80/stlkit/web"
 // Values
 pub fn analyze(String) -> String
 
+pub fn analyze_bundle(String, Double) -> String
+
 pub fn analyze_error(String) -> String
 
 pub fn analyze_with_threshold(String, Double) -> String
 
 pub fn configure_limits(Int32, Int32) -> String
+
+pub fn fix_bundle(String, Double) -> String
 
 pub fn fix_error(String) -> String
 

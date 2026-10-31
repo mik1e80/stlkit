@@ -1,8 +1,25 @@
 # stlkit：接口与实现
 
-当前工作区包含未发布的验收修订，和下列已发布 0.2.0 包、旧标签不同；见 [验收交付说明](docs/acceptance-delivery.md)。
+MoonBit 的 STL / OBJ / 3MF / PLY 三角网格工具链。本次版本 **0.2.3**；安装 `moon add mik1e80/stlkit@0.2.3`，源码固定 [v0.2.3](https://github.com/mik1e80/stlkit/tree/v0.2.3)。包含 0.2.0 的 JSON 协议、结构化解析错误与 IndexedMesh，以及本次受检修复 / 导出、数值、预览与格式边界修订；见 [发布说明](docs/releases/0.2.3.md)、[受检 API](docs/checked-apis.md) 和 [验收交付说明](docs/acceptance-delivery.md)。旧接口保留，部分非法输入现在明确拒绝。
 
-MoonBit 的 STL / OBJ / 3MF / PLY 三角网格工具链。本次版本 **0.2.0**；安装 `moon add mik1e80/stlkit@0.2.0`，源码固定 [v0.2.0](https://github.com/mik1e80/stlkit/tree/v0.2.0)。新增 JSON 检查协议、结构化解析错误和独立索引网格；见 [JSON 协议](docs/json-report.md) 与 [IndexedMesh](docs/indexed-mesh.md)。旧接口保留；见 [资源限制](docs/resource-limits.md)、[格式兼容性](docs/format-compatibility.md) 及 [发布说明](docs/releases/0.2.0.md)。
+验收最低要求为 moonc 0.10.16；实际验证为 0.10.17+d971670cd 与 0.10.18+6c83a7f62，精确白名单以 `scripts/check-toolchain.mbtx` 为准。
+
+## 最小库调用
+
+下面是开放的单三角形，示例用于解析、诊断与受检往返，不将它作为实体体积模型。代码块参与 `moon test`，不读取仓库内模型。
+
+```mbt check
+///|
+test "minimal library quick start" {
+  let mesh = @stlkit.parse_obj("v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n").unwrap()
+  assert_eq(mesh.triangle_count(), 1)
+  assert_eq(mesh.surface_area(), 0.5)
+  let report = @stlkit.validate_checked(mesh, 0.0).unwrap()
+  assert_eq(report.boundary_edge_count, 3)
+  let bytes = @stlkit.write_stl_binary_checked(mesh).unwrap()
+  assert_eq(@stlkit.parse_mesh(bytes).unwrap().triangle_count(), 1)
+}
+```
 
 ## 数据与单位
 
@@ -38,7 +55,7 @@ ASCII PLY 默认严格按声明消费正文：记录可跨行或共用一行，�
 
 PLY 必须以 `ply` 为第一行，第二行声明唯一的 `format <编码> 1.0`，编码为 ascii / binary_little_endian / binary_big_endian；不再从默认值猜测 ASCII，不接受缺少 / 重复 / 字段不全或多余 / 非 1.0 版本 / 位置不正确的 format。合法注释可位于 format 之后。大小端二进制都必须在消费全部声明数据后到达 EOF，额外尾字节一律拒绝；已声明未知属性与元素仍消费后丢弃。ASCII 兼容选项不绕过 header 或二进制长度规则。依据为 [原始 PLY 格式说明](https://gamma-web.iacs.umd.edu/POWERPLANT/papers/ply.pdf)，本库仍只声明支持子集。
 
-PLY 的每个 `vertex` 元素（含 count=0 的声明）必须分别包含且只包含一个标量 `x`、`y`、`z`。在构建正文游标前拒绝缺失、list 型或重复坐标属性，不从默认零值推断未声明的坐标。三种编码和显式逐行兼容模式采用同一 schema 规则；坐标重排、真实零值及未知属性仍可读取。回归见 `ply_schema_wbtest.mbt` 和自建的 `examples/missing-z.ply`。
+PLY 的每个 `vertex` 元素（含 count=0 的声明）必须分别包含且只包含一个标量 `x`、`y`、`z`。在构建正文游标前拒绝缺失、list 型或重复坐标属性，不从默认零值推断未声明的坐标。三种编码和显式逐行兼容模式采用同一 schema 规则；坐标重排、真实零值及未知属性仍可读取。回归见 `ply_schema_wbtest.mbt` 和自建的 [missing-z.ply](https://github.com/mik1e80/stlkit/blob/v0.2.3/examples/missing-z.ply)。
 
 `detect_format(data)` 返回 `Ascii`（ASCII STL）、`Binary`（二进制 STL）、`Obj`、`ThreeMF`、`Ply` 或 `Unknown`。它依据内容提供解析路由提示，不使用文件后缀，也不证明文件有效或完整符合规范。
 
@@ -46,7 +63,7 @@ PLY 的每个 `vertex` 元素（含 count=0 的声明）必须分别包含且只
 
 `parse_mesh()` 将已识别格式送到对应解析器；`Unknown` 文本依次尝试 ASCII STL 和 OBJ，均失败时返回“无法识别网格格式”并附两者原因。已识别格式的解析错误直接保留，不因文件损坏而换一种格式蒙混通过。`Unknown` 不再是 OBJ 的别名；`parse_stl()` 明确拒绝 OBJ、PLY 和 3MF。
 
-可复现：`examples/long-header.stl` 的 solid 名称长 2048 个字符，首个 facet 位于 512 字节之后；`examples/obj-stl-keywords.obj` 的注释和对象名称包含 STL 关键字。两者均应按实际内容显示正确格式、读取 12 个三角形；库、CLI、网页都有回归检查。
+可复现：[long-header.stl](https://github.com/mik1e80/stlkit/blob/v0.2.3/examples/long-header.stl) 的 solid 名称长 2048 个字符，首个 facet 位于 512 字节之后；[obj-stl-keywords.obj](https://github.com/mik1e80/stlkit/blob/v0.2.3/examples/obj-stl-keywords.obj) 的注释和对象名称包含 STL 关键字。两者均应按实际内容显示正确格式、读取 12 个三角形；库、CLI、网页都有回归检查。
 
 ### 声明面法线检查范围
 
@@ -204,3 +221,9 @@ ASCII STL / OBJ 的坐标和被读取的法线必须有限；二进制 STL 全�
 
 
 模型实测、失败反馈、外部来源与许可证、薄壁采样和 100k/500k/1m 大文件结果统一见 [COMPARISON.md](COMPARISON.md)。完整原始输出和命令可逐项复核；解析成功不等于网格或工艺通过。
+
+## 源码案例与第二轮 API
+
+Mooncakes 只安装库及必要许可/来源元数据，模型附件有意排除。[固定版本完整 examples](https://github.com/mik1e80/stlkit/tree/v0.2.3/examples) 和 [测试源码](https://github.com/mik1e80/stlkit/tree/v0.2.3) 可用于文件案例复现；最小库调用不依赖附件。
+
+Triangle::area_checked() 返回 Result[Double,String]，面积溢出/下溢或缩放丢失信息时拒绝；退化面返回 0。Mesh::nearest_point_checked(p) 返回 Result[(Double,Vec3)?,String]，空网格为 Ok(None)，非有限输入或检测到数值损失为 Err。旧 nearest_point 的无结果/错误哨兵改为 Infinity，调用方应使用新接口区分。详见 [受检 API](docs/checked-apis.md)。
