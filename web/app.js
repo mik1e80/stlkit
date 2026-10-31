@@ -201,6 +201,10 @@ function renderReport(fields) {
   thicknessNote.className = "report-note";
   thicknessNote.textContent = `壁厚为表面采样结果，可能漏掉局部薄处；本次采样预算 ${fields["采样预算"] || "未知"}（最多1000，大模型按面数降低）；STL、OBJ、PLY 按毫米解释，请先确认模型单位。`;
   box.append(thicknessNote);
+  const previewNote = document.createElement("p");
+  previewNote.className = "report-note";
+  previewNote.textContent = fields["预览范围"] || "预览最多显示 20000 个面，可能降采样。";
+  box.append(previewNote);
   const scope = document.createElement("p");
   scope.className = "report-note";
   scope.textContent = fields["工艺范围"] || "喷嘴和支撑设置仅记录，不参与几何门禁或可打印判断。";

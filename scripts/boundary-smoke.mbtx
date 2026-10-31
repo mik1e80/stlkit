@@ -1,0 +1,74 @@
+----
+import {
+  "moonbitlang/async",
+  "moonbitlang/async/fs" @asyncfs,
+  "moonbitlang/async/shell",
+  "moonbitlang/core/env",
+  "moonbitlang/x/fs",
+  "moonbitlang/x/path",
+}
+----
+
+// SPDX-License-Identifier: Apache-2.0
+async fn main {
+  @shell.Cmd("moon", ["build", "--target", "native", "--release", "cmd/main"]).run(timeout_ms=120000)
+  let executable = if @fs.path_exists("_build/native/release/build/cmd/main/main.exe") { "_build/native/release/build/cmd/main/main.exe" } else { "_build/native/release/build/cmd/main/main" }
+  let stamp = @env.now().to_string()
+  let base = @path.Path("_build/boundary-smoke-" + stamp).resolve().to_string()
+  @fs.create_dir(base)
+  let input = base + "/input.obj"
+  let original = @fs.read_file_to_string("examples/cube.obj")
+  @fs.write_string_to_file(input, original)
+  let link = @path.Path("_build/boundary-link-" + stamp).resolve().to_string()
+  @asyncfs.symlink(link, target=base)
+  for flag in ["--fix", "--svg"] {
+    let result = @shell.Cmd(executable, [input, flag, link + "/input.obj", "--samples", "1"]).output(timeout_ms=30000)
+    assert_eq(result.exit_code(), 1, msg=result.stdout() + result.stderr())
+    assert_true(result.stdout().contains("真实路径与输入"))
+    assert_eq(@fs.read_file_to_string(input), original)
+  }
+  let clash = @shell.Cmd(executable, [input, "--fix", base + "/new.stl", "--svg", link + "/new.stl", "--samples", "1"]).output(timeout_ms=30000)
+  assert_eq(clash.exit_code(), 1)
+  assert_true(clash.stdout().contains("真实路径相同"))
+  assert_false(@fs.path_exists(base + "/new.stl"))
+
+  let alias_path = base + "/file-alias.obj"
+  let file_symlink = try {
+    @asyncfs.symlink(alias_path, target=input, force_symlink=true)
+    true
+  } catch { _ => false }
+  if file_symlink {
+    let result = @shell.Cmd(executable, [input, "--svg", alias_path, "--samples", "1"]).output(timeout_ms=30000)
+    assert_eq(result.exit_code(), 1)
+    assert_eq(@fs.read_file_to_string(input), original)
+  } else {
+    println("FILE_SYMLINK_SKIPPED: unavailable privilege; existing-directory link aliases were tested")
+  }
+
+  let branching = base + "/branching.obj"
+  @fs.write_string_to_file(branching, "v 0 0 0\nv 1 0 0\nv 0 1 0\nv -1 0 0\nv 0 -1 0\nf 1 2 3\nf 1 4 5\n")
+  let preserved_output = base + "/protected.stl"
+  @fs.write_string_to_file(preserved_output, "preserve output")
+  let refused = @shell.Cmd(executable, [branching, "--fix", preserved_output, "--strict", "--samples", "1"]).output(timeout_ms=30000)
+  assert_eq(refused.exit_code(), 1)
+  assert_true(refused.stdout().contains("branching boundary"))
+  assert_eq(@fs.read_file_to_string(preserved_output), "preserve output")
+
+  for (name, source) in [
+    ("unsupported.obj", original + "\nl 1 2\n"),
+    ("duplicate-indices.ply", "ply\nformat ascii 1.0\nelement vertex 3\nproperty float x\nproperty float y\nproperty float z\nelement face 1\nproperty list uchar int vertex_indices\nproperty list uchar int vertex_index\nend_header\n"),
+  ] {
+    let file = base + "/" + name
+    @fs.write_string_to_file(file, source)
+    for (options, status) in [([], 1), (["--json"], 3)] {
+      let result = @shell.Cmd(executable, [file] + options).output(timeout_ms=30000)
+      assert_eq(result.exit_code(), status, msg=result.stdout() + result.stderr())
+    }
+  }
+  // The Wasm CLI uses the same actual-path check and post-write reread path.
+  let exported = @shell.Cmd("moon", ["run", "--target", "wasm", "cmd/main", input, "--fix", base + "/wasm-fixed.stl", "--samples", "8", "--min-thickness", "0", "--strict"]).output(timeout_ms=60000)
+  assert_eq(exported.exit_code(), 0, msg=exported.stdout() + exported.stderr())
+  assert_eq(@fs.read_file_to_bytes(base + "/wasm-fixed.stl").length(), 684)
+  assert_eq(@fs.read_file_to_string(input), original)
+  println("BOUNDARY_SMOKE_OK: real path aliases, unsafe repair refusal, strict OBJ/PLY boundaries, preserved bytes and Wasm export")
+}

@@ -456,6 +456,10 @@ async fn report(
       )
     }
   }
+  match output_paths_safe(path, fix_path, svg_path) {
+    Ok(_) => ()
+    Err(error) => return Err(error)
+  }
   let data = match read_input(path, limits) {
     Ok(data) => data
     Err(error) => return Err(error)
@@ -577,6 +581,11 @@ async fn report(
   }
 
   if svg_path != "" {
+    if final_mesh.triangle_count() > 20000 {
+      println(
+        "  预览降采样：从 \{final_mesh.triangle_count()} 面确定性选择最多 20000 面",
+      )
+    }
     let svg = @stlkit.render_svg(final_mesh, @stlkit.PreviewOptions::default())
     @fs.write_string_to_file(svg_path, svg) catch {
       @fs.IOError(msg) =>
@@ -691,7 +700,11 @@ fn fix_and_save(
     )
   }
 
-  let fixed = @stlkit.repair(mesh, @stlkit.RepairOptions::default())
+  let fixed = match
+    @stlkit.repair_checked(mesh, @stlkit.RepairOptions::default()) {
+    Ok(fixed) => fixed
+    Err(message) => return Err("自动修复拒绝：" + message)
+  }
   let after_review = @stlkit.check_printability(
     fixed.mesh,
     min_thickness,

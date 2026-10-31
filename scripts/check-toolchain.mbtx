@@ -1,0 +1,16 @@
+----
+import {
+  "moonbitlang/async",
+  "moonbitlang/async/shell",
+}
+----
+
+// SPDX-License-Identifier: Apache-2.0
+async fn main {
+  let version = @shell.Cmd("moonc", ["-v"]).output(timeout_ms=30000)
+  assert_eq(version.exit_code(), 0)
+  let text = version.stdout() + version.stderr()
+  println(text)
+  assert_true(text.contains("v0.10.17+d971670cd"), msg="Unreviewed compiler version; update the baseline only after all backend and CLI checks pass")
+  @shell.Cmd("moon", ["version", "--all"]).run(timeout_ms=30000)
+}

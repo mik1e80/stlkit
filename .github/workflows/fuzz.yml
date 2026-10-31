@@ -19,17 +19,18 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Install MoonBit
         run: |
           curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
           echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
       - run: moon update
+      - run: moon run scripts/check-toolchain.mbtx
       - name: Compare four backends with bounded child processes
         env:
           FUZZ_CASES: ${{ inputs.cases || '1000' }}
         run: moon run scripts/fuzz.mbtx all "$FUZZ_CASES"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: mutation-logs

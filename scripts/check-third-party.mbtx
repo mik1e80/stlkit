@@ -1,0 +1,49 @@
+----
+import {
+  "moonbitlang/core/json",
+  "moonbitlang/x/crypto",
+  "moonbitlang/x/fs",
+}
+----
+
+// SPDX-License-Identifier: Apache-2.0
+fn digest(path : String) -> String raise {
+  guard path.has_prefix("examples/") && !path.contains("..") else { fail("invalid corpus path") }
+  let bytes = @fs.read_file_to_bytes(path)
+  @crypto.bytes_to_hex_string(@crypto.sha256(bytes[:]))
+}
+
+fn main raise {
+  guard @json.parse(@fs.read_file_to_string("examples/third-party-manifest.json")) is { "files": Array(official), .. } else { fail("missing official model manifest") }
+  assert_eq(official.length(), 17)
+  for entry in official {
+    guard entry is { "path": String(path), "sha256": String(hash), "license": String(license), "license_file": String(license_file), "upstream_commit": String(commit), "upstream_git_blob": String(blob), "upstream_path": String(upstream), "author": String(author), "modified": False, .. } else { fail("incomplete official provenance") }
+    assert_eq(digest(path), hash)
+    assert_eq(license, "BSD-2-Clause")
+    assert_eq(commit.length(), 40)
+    assert_eq(blob.length(), 40)
+    assert_true(upstream.length() > 0 && author.length() > 0)
+    let notice = @fs.read_file_to_string(license_file)
+    assert_true(notice.contains("Copyright (c) 2018"))
+    assert_true(notice.contains("source code must retain"))
+    assert_true(notice.contains("binary form must reproduce"))
+    assert_true(notice.contains("THIS SOFTWARE IS PROVIDED"))
+  }
+  guard @json.parse(@fs.read_file_to_string("examples/external/manifest.json")) is { "files": Array(external), .. } else { fail("missing external manifest") }
+  for entry in external {
+    guard entry is { "file": String(path), "sha256": String(hash), "license": String(license), "author": String(author), "source": String(source), .. } else { fail("incomplete external provenance") }
+    assert_true(license.length() > 0 && author.length() > 0 && source.length() > 0)
+    assert_eq(digest(path), hash)
+  }
+  let browser = @fs.read_file_to_string("web/licenses/THIRD_PARTY_NOTICES.md")
+  for part in browser.split("](").drop(1) {
+    let target = part.split(")").next().unwrap().to_owned()
+    if !target.has_prefix("https://") && !target.has_prefix("#") {
+      assert_true(@fs.path_exists("web/licenses/" + target), msg="broken browser license link: " + target)
+    }
+  }
+  for file in ["project.LICENSE", "moonbit-core.LICENSE", "moonbit-core.NOTICE", "fzip.LICENSE", "xml.LICENSE"] {
+    assert_true(@fs.read_file_to_string("web/licenses/" + file).length() > 100)
+  }
+  println("THIRD_PARTY_OK: 17 fixed-version official models, \{external.length()} existing external files, SHA-256, complete BSD notice and browser links")
+}

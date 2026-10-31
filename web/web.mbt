@@ -134,6 +134,9 @@ fn analyze_inner(
 
   let lines : Array[String] = []
   lines.push("采样预算|\{samples}")
+  lines.push(
+    "预览范围|最多 20000 面，超限采用确定性降采样，预览不代表全部几何",
+  )
   lines.push("格式|\{format_name(data)}")
   lines.push("三角形|\{mesh.triangle_count()}")
   lines.push("顶点|\{check.raw_vertex_count}")
@@ -352,7 +355,11 @@ fn repair_of(file_base64 : String) -> Result[@stlkit.RepairResult, String] {
     Ok(mesh) => mesh
     Err(msg) => return Err(msg)
   }
-  let repaired = @stlkit.repair(mesh, @stlkit.RepairOptions::default())
+  let repaired = match
+    @stlkit.repair_checked(mesh, @stlkit.RepairOptions::default()) {
+    Ok(repaired) => repaired
+    Err(message) => return Err("自动修复拒绝：" + message)
+  }
   let bytes = match @stlkit.write_stl_binary_checked(repaired.mesh) {
     Ok(bytes) => bytes
     Err(message) => return Err(message)

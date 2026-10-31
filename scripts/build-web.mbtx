@@ -22,7 +22,6 @@ async fn main {
   for (source, destination) in [
     ("_build/js/release/build/web/web.js", "web/dist/web.js"),
     ("LICENSE", "web/licenses/project.LICENSE"),
-    ("THIRD_PARTY_NOTICES.md", "web/licenses/THIRD_PARTY_NOTICES.md"),
     (".mooncakes/hustcer/fzip/LICENSE", "web/licenses/fzip.LICENSE"),
     (".mooncakes/Milky2018/xml/LICENSE", "web/licenses/xml.LICENSE"),
     (moon_dir + "/lib/core/LICENSE", "web/licenses/moonbit-core.LICENSE"),

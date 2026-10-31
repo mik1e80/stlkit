@@ -11,6 +11,7 @@ CLAUDE.md
 # The complete licensed model corpus remains in the fixed GitHub source tag.
 # Keep provenance and full license texts in the installable library package.
 /examples/*
+!/examples/third-party-manifest.json
 !/examples/external/
 /examples/external/*
 !/examples/external/licenses/

@@ -26,7 +26,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: 安装 MoonBit
         run: |
@@ -36,9 +36,12 @@ jobs:
       - name: 解析依赖
         run: moon update
 
+      - name: Verify compiler baseline
+        run: moon run scripts/check-toolchain.mbtx
+
       - name: 构建并检查网页
         run: |
-          bash web/build.sh
+          moon run scripts/build-web.mbtx
           node web/smoke.cjs
 
       - name: 准备站点文件
@@ -48,14 +51,14 @@ jobs:
           cp web/style.css   _site/
           cp web/app.js      _site/
           cp web/dist/web.js _site/dist/
-          cp LICENSE THIRD_PARTY_NOTICES.md _site/
+          cp LICENSE _site/
           cp -R web/licenses _site/licenses
 
-      - uses: actions/configure-pages@v6
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6
 
-      - uses: actions/upload-pages-artifact@v5
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
         with:
           path: _site
 
       - id: deploy
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5

@@ -10,7 +10,7 @@
 **位置**：`examples/*.3mf`（4 个）和 `examples/conformance/*.3mf`（13 个）
 
 **来源**：[3MF Consortium 的 3mf-samples](https://github.com/3MFConsortium/3mf-samples) 仓库，
-分别是 `examples/core/` 下的示例模型和 `validation tests/3mf-Verify/MUSTPASS/` 下的一致性测试文件。
+分别是 `examples/core/` 下的示例模型和 `validation tests/_archive/3mf-Verify/MUSTPASS/` 下的几何回归文件。17 个文件已逐一核验与上游固定提交 `665e20dc4d7777fd4c9702bca86a2d4028440337` 的 Git blob 完全一致，原始路径、Git blob、SHA-256、作者及许可证见 [官方样例清单](examples/third-party-manifest.json)。这固定的是已验证的内容版本，不虚构未记录的原始下载日期。
 
 **改动**：无。原样收录。
 
@@ -63,14 +63,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 `moon.mod` 里声明的依赖，各自的许可证以它们自己的仓库为准：
 
-| 依赖 | 用途 | 许可证 |
-| --- | --- | --- |
-| `hustcer/fzip` | 解 ZIP（3MF 用） | Apache-2.0 |
-| `Milky2018/xml` | 解 XML（3MF 用） | Apache-2.0 |
-| `moonbitlang/x` | 读文件、设退出码（命令行用） | Apache-2.0 |
-| `moonbitlang/async` | 分块读文件（只有 `--bench` 用） | Apache-2.0 |
+| 依赖及上游 | 版本 | 许可证 | 使用位置 |
+| --- | --- | --- | --- |
+| [hustcer/fzip](https://github.com/hustcer/fzip) | 0.8.7 | Apache-2.0 | 3MF ZIP |
+| [Milky2018/xml](https://github.com/moonbit-community/xml-mbt) | 0.5.0 | Apache-2.0 | 3MF XML |
+| [moonbitlang/x](https://github.com/moonbitlang/x) | 0.5.5 | Apache-2.0 | CLI 文件、路径、系统功能；来源校验脚本的 SHA-256 |
+| [moonbitlang/async](https://github.com/moonbitlang/async) | 0.22.1 | Apache-2.0 | CLI 基准、分块读取、真实路径解析及 MoonBit 自动化脚本 |
 
-分块读取现也用于 `--stream-only`。网页分发的 MoonBit core、fzip、XML 完整许可，以及本项目许可和此来源说明，保存在 `web/licenses/` 并随 Pages 部署。`examples/review/` 的模型及报告由本项目生成，未引入外部样例。`scripts/review-cases.cjs` 记录确定性构造方法和实际 CLI 输出。
+网页只分发 MoonBit core、fzip、XML 和本项目编译代码，对应完整许可及独立浏览器声明保存在 [web/licenses/](web/licenses/THIRD_PARTY_NOTICES.md)，不直接复制本根声明。`examples/review/` 的模型及报告由本项目生成，未引入外部样例。`scripts/review-cases.cjs` 记录确定性构造方法和实际 CLI 输出。
 
 
 ## 浏览器分发补充
