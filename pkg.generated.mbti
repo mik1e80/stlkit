@@ -6,6 +6,8 @@ pub fn check_printability(Mesh, Double, samples? : Int32) -> PrintabilityReport
 
 pub fn check_thickness(Mesh, Int32) -> ThicknessReport
 
+pub fn check_thickness_area_weighted(Mesh, Int32, seed? : Int32) -> ThicknessReport
+
 pub fn check_thickness_default(Mesh) -> ThicknessReport
 
 pub fn check_winding(Mesh, Double) -> WindingReport
@@ -46,7 +48,11 @@ pub fn ray_triangle(Vec3, Vec3, Vec3, Vec3, Vec3) -> Double?
 
 pub fn render_svg(Mesh, PreviewOptions) -> String
 
+pub fn render_svg_checked(Mesh, PreviewOptions, max_faces? : Int32, max_output_bytes? : Int32) -> Result[String, String]
+
 pub fn repair(Mesh, RepairOptions) -> RepairResult
+
+pub fn repair_checked(Mesh, RepairOptions, limits? : RepairLimits) -> Result[RepairResult, String]
 
 pub fn review_scope() -> String
 
@@ -63,6 +69,8 @@ pub fn symmetric_eigenvector(FixedArray[Double], Double) -> Vec3
 pub fn unify_winding(Mesh, Double) -> Mesh
 
 pub fn validate(Mesh, Double) -> ValidationReport
+
+pub fn validate_checked(Mesh, Double) -> Result[ValidationReport, String]
 
 pub fn validate_default(Mesh) -> ValidationReport
 
@@ -206,6 +214,14 @@ pub(all) struct RayHit {
   triangle : Int32
   point : Vec3
 }
+
+pub(all) struct RepairLimits {
+  max_faces : Int32
+  max_boundary_edges : Int32
+  max_hole_vertices : Int32
+  max_holes : Int32
+}
+pub fn RepairLimits::default() -> Self
 
 pub(all) struct RepairOptions {
   tolerance : Double

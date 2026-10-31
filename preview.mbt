@@ -44,7 +44,7 @@ pub fn PreviewOptions::default() -> PreviewOptions {
 ///
 /// 空网格返回一张空图而不是报错——调用方（网页）在文件还没上传时
 /// 需要有个东西显示。
-pub fn render_svg(mesh : Mesh, options : PreviewOptions) -> String {
+fn render_svg_inner(mesh : Mesh, options : PreviewOptions) -> String {
   if mesh.is_empty() {
     return "<!-- 空网格 -->"
   }
@@ -162,7 +162,7 @@ pub fn render_svg(mesh : Mesh, options : PreviewOptions) -> String {
       (
         depth,
         "<polygon points=\"\{ax},\{ay} \{bx},\{by} \{cx},\{cy}\" " +
-        "fill=\"\{fill}\" stroke=\"\{options.stroke}\" " +
+        "fill=\"\{fill}\" stroke=\"\{svg_attribute(options.stroke)}\" " +
         "stroke-width=\"\{options.stroke_width}\" stroke-linejoin=\"round\"/>",
       ),
     )

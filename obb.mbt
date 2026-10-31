@@ -40,22 +40,41 @@ pub fn Obb::volume(self : Obb) -> Double {
 ///|
 /// 求有向包围盒。空网格返回 `None`。
 pub fn Mesh::oriented_bounding_box(self : Mesh) -> Obb? {
-  let pts = unique_positions(self)
+  let pts = unique_positions_exact(self)
   if pts.length() == 0 {
     return None
   }
 
-  // 重心
-  let mut cx = 0.0
-  let mut cy = 0.0
-  let mut cz = 0.0
+  // 局部坐标中补偿求和，并归一化协方差以避免平方溢出/下溢。
+  let origin = pts[0]
+  let cx = MomentSum::new()
+  let cy = MomentSum::new()
+  let cz = MomentSum::new()
+  let mut scale = 0.0
   for p in pts {
-    cx = cx + p.x
-    cy = cy + p.y
-    cz = cz + p.z
+    if !finite_vertex(p) {
+      return None
+    }
+    let d = p.sub(origin)
+    if !finite_vertex(d) {
+      return None
+    }
+    scale = scale.max(d.x.abs()).max(d.y.abs()).max(d.z.abs())
+  }
+  let scale = if scale > 0.0 { scale } else { 1.0 }
+  for p in pts {
+    let d = p.sub(origin)
+    cx.add(d.x / scale)
+    cy.add(d.y / scale)
+    cz.add(d.z / scale)
   }
   let n = pts.length().to_double()
-  let centroid = Vec3::new(cx / n, cy / n, cz / n)
+  let local_center = Vec3::new(cx.value() / n, cy.value() / n, cz.value() / n)
+  let centroid = Vec3::new(
+    origin.x + local_center.x * scale,
+    origin.y + local_center.y * scale,
+    origin.z + local_center.z * scale,
+  )
 
   // 协方差矩阵。对称，所以 9 个数里只有 6 个独立
   let mut xx = 0.0
@@ -65,9 +84,10 @@ pub fn Mesh::oriented_bounding_box(self : Mesh) -> Obb? {
   let mut yz = 0.0
   let mut zx = 0.0
   for p in pts {
-    let dx = p.x - centroid.x
-    let dy = p.y - centroid.y
-    let dz = p.z - centroid.z
+    let d = p.sub(origin)
+    let dx = d.x / scale - local_center.x
+    let dy = d.y / scale - local_center.y
+    let dz = d.z / scale - local_center.z
     xx = xx + dx * dx
     yy = yy + dy * dy
     zz = zz + dz * dz
@@ -93,17 +113,22 @@ pub fn Mesh::oriented_bounding_box(self : Mesh) -> Obb? {
   // 投影的基准取重心——选哪里都行，取重心数值上稳一些
   let lo : Array[Double] = [0.0, 0.0, 0.0]
   let hi : Array[Double] = [0.0, 0.0, 0.0]
-  for k = 0; k < 3; k = k + 1 {
-    lo[k] = 1.0e300
-    hi[k] = -1.0e300
-  }
-  for p in pts {
+  for i, p in pts {
     for k = 0; k < 3; k = k + 1 {
-      let d = p.sub(centroid).dot(axes[k])
-      if d < lo[k] {
+      let shifted = p.sub(origin)
+      let local_point = Vec3::new(
+        shifted.x / scale - local_center.x,
+        shifted.y / scale - local_center.y,
+        shifted.z / scale - local_center.z,
+      )
+      let d = local_point.dot(axes[k]) * scale
+      if not_finite(d) {
+        return None
+      }
+      if i == 0 || d < lo[k] {
         lo[k] = d
       }
-      if d > hi[k] {
+      if i == 0 || d > hi[k] {
         hi[k] = d
       }
     }
@@ -113,13 +138,17 @@ pub fn Mesh::oriented_bounding_box(self : Mesh) -> Obb? {
   let mut center = centroid
   let half : Array[Double] = []
   for k = 0; k < 3; k = k + 1 {
-    let mid = (lo[k] + hi[k]) / 2.0
+    let mid = lo[k] / 2.0 + hi[k] / 2.0
     center = Vec3::new(
       center.x + axes[k].x * mid,
       center.y + axes[k].y * mid,
       center.z + axes[k].z * mid,
     )
-    half.push((hi[k] - lo[k]) / 2.0)
+    let radius = hi[k] / 2.0 - lo[k] / 2.0
+    if not_finite(radius) {
+      return None
+    }
+    half.push(radius)
   }
 
   // 按边长从大到小排。主轴按特征值排是「分布最开的方向优先」，
@@ -156,15 +185,13 @@ fn sort_axes_by_length(half : Array[Double]) -> Array[Int32] {
 ///|
 /// 去重后的顶点位置。
 ///
-/// 用完整坐标键量化去重——和校验、流式扫描、PLY 导出是同一套。
-/// 「什么算同一个点」整个项目只有一个答案，不然同一条边
-/// 在这个环节算共用的、到那个环节又算两个点，报告就会自相矛盾。
-fn unique_positions(mesh : Mesh) -> Array[Vec3] {
+/// 几何统计用精确坐标去重，不让默认拓扑焊接容差压扁微小模型。
+fn unique_positions_exact(mesh : Mesh) -> Array[Vec3] {
   let table : Map[PositionKey, Int32] = Map([])
   let out : Array[Vec3] = []
   for t in mesh.triangles {
     for v in [t.a, t.b, t.c] {
-      let key = position_key(v, default_weld_tolerance())
+      let key = position_key(v, 0.0)
       match table.get(key) {
         Some(_) => ()
         None => {

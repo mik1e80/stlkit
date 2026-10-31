@@ -349,6 +349,8 @@ fn parse_model_xml(
   let mut resources_seen = false
   let mut build_seen = false
   let mut geometry_seen = false
+  let mut vertices_seen = false
+  let mut triangles_seen = false
 
   // 当前正在攒的对象
   let mut cur_id : Int32? = None
@@ -379,6 +381,11 @@ fn parse_model_xml(
         let scope = scopes.pop().unwrap()
         if scope.name != name {
           return Err("3MF XML 标签不匹配")
+        }
+        if scope.tag == "mesh" && (!vertices_seen || !triangles_seen) {
+          return Err(
+            "3MF mesh 必须包含唯一且按序的 vertices、triangles 容器",
+          )
         }
         if scope.tag == "object" {
           flush_object(
@@ -434,6 +441,12 @@ fn parse_model_xml(
       return Err("3MF XML 使用了未声明的命名空间前缀")
     }
     let tag_name = local_name(element.name)
+    if uri == "http://schemas.microsoft.com/3dmanufacturing/beamlattice/2017/02" &&
+      tag_name == "beamlattice" {
+      return Err(
+        "unsupported feature: beam lattice; only core triangle meshes are supported",
+      )
+    }
     let mut tag = if uri == MF_CORE_NS { tag_name } else { "" }
     if scopes.length() == 0 {
       if model_seen || tag != "model" {
@@ -473,6 +486,25 @@ fn parse_model_xml(
         return Err("3MF object 只能包含一个 mesh 或一个 components")
       }
       geometry_seen = true
+    }
+    if tag == "mesh" {
+      vertices_seen = false
+      triangles_seen = false
+      if !(event.kind is @xml.EventKind::Start(_)) {
+        return Err("3MF mesh 缺少 vertices 和 triangles 容器")
+      }
+    }
+    if tag == "vertices" {
+      if vertices_seen || triangles_seen {
+        return Err("3MF vertices 必须唯一且位于 triangles 之前")
+      }
+      vertices_seen = true
+    }
+    if tag == "triangles" {
+      if !vertices_seen || triangles_seen {
+        return Err("3MF triangles 必须唯一且位于 vertices 之后")
+      }
+      triangles_seen = true
     }
     if event.kind is @xml.EventKind::Start(_) {
       if scopes.length() >= limits.max_xml_depth {
@@ -691,6 +723,20 @@ fn append_object(
     return Err(resource_error("max_triangles", limits.max_triangles))
   }
   if obj.triangles.length() > 0 {
+    let orientation = mf_transform_orientation([
+      transform[0],
+      transform[1],
+      transform[2],
+      transform[3],
+      transform[4],
+      transform[5],
+      transform[6],
+      transform[7],
+      transform[8],
+    ])
+    if orientation == 0.0 {
+      return Err("unsupported 3MF transform: singular composed matrix")
+    }
     // 共享顶点表：三角形存的是下标，到这里才真正取出坐标
     let n = obj.vertices.length()
     for (i, j, k) in obj.triangles {
@@ -706,7 +752,13 @@ fn append_object(
       if !finite_vertex(a) || !finite_vertex(b) || !finite_vertex(c) {
         return Err("3MF 对象 id=\{id} 变换后坐标超出有限范围")
       }
-      out.push(Triangle::from_vertices(a, b, c))
+      out.push(
+        if orientation < 0.0 {
+          Triangle::from_vertices(a, c, b)
+        } else {
+          Triangle::from_vertices(a, b, c)
+        },
+      )
     }
   }
   for (child_id, child_tf) in obj.components {
@@ -910,6 +962,11 @@ fn attribute_transform(
       "3MF 的 transform 应该有 12 个数（4 行 3 列的矩阵），实际有 \{out.length()} 个",
     )
   }
+  if mf_transform_orientation(out) == 0.0 {
+    return Err(
+      "unsupported 3MF transform: singular or numerically unresolved linear matrix",
+    )
+  }
   Ok(
     Some([
       out[0],
@@ -926,4 +983,32 @@ fn attribute_transform(
       out[11],
     ]),
   )
+}
+
+///|
+// Row normalization avoids overflow when checking the determinant sign.
+// Consumers preserve the volume sign under reflection (Core 1.3 section 3.3).
+fn mf_transform_orientation(values : Array[Double]) -> Double {
+  let normalized : Array[Double] = []
+  for row in 0..<3 {
+    let scale = values[row * 3]
+      .abs()
+      .max(values[row * 3 + 1].abs())
+      .max(values[row * 3 + 2].abs())
+    if scale == 0.0 || not_finite(scale) {
+      return 0.0
+    }
+    for col in 0..<3 {
+      normalized.push(values[row * 3 + col] / scale)
+    }
+  }
+  let m = normalized
+  let determinant = m[0] * (m[4] * m[8] - m[5] * m[7]) -
+    m[1] * (m[3] * m[8] - m[5] * m[6]) +
+    m[2] * (m[3] * m[7] - m[4] * m[6])
+  if not_finite(determinant) {
+    0.0
+  } else {
+    determinant
+  }
 }

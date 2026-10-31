@@ -68,6 +68,16 @@ pub fn ray_triangle(
 /// 内部归一化有限非零方向，distance 不受方向向量长度影响。
 /// 零方向、非有限起点或方向返回 None；方向的正倍数表示同一条射线。
 pub fn Mesh::ray_cast(self : Mesh, origin : Vec3, dir : Vec3) -> RayHit? {
+  ray_cast_excluding(self, origin, dir, -1)
+}
+
+///|
+fn ray_cast_excluding(
+  mesh : Mesh,
+  origin : Vec3,
+  dir : Vec3,
+  excluded : Int32,
+) -> RayHit? {
   if !finite_vertex(origin) || !finite_vertex(dir) {
     return None
   }
@@ -79,7 +89,10 @@ pub fn Mesh::ray_cast(self : Mesh, origin : Vec3, dir : Vec3) -> RayHit? {
   }
   let dir = Vec3::new(dir.x / scale, dir.y / scale, dir.z / scale).normalize()
   let mut best : RayHit? = None
-  for i, t in self.triangles {
+  for i, t in mesh.triangles {
+    if i == excluded {
+      continue
+    }
     match ray_triangle(origin, dir, t.a, t.b, t.c) {
       Some(d) => {
         if not_finite(d) {

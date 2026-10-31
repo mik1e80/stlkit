@@ -59,18 +59,20 @@ pub fn Vec3::dot(self : Vec3, other : Vec3) -> Double {
 ///|
 /// 模长。
 pub fn Vec3::length(self : Vec3) -> Double {
-  self.dot(self).sqrt()
+  @math.hypot(@math.hypot(self.x, self.y), self.z)
 }
 
 ///|
 /// 单位化。零向量原样返回——网格里出现零长度法线时不该让整个流程崩掉，
 /// 交给校验环节去报告。
 pub fn Vec3::normalize(self : Vec3) -> Vec3 {
-  let len = self.length()
-  if len == 0.0 {
+  let scale = self.x.abs().max(self.y.abs()).max(self.z.abs())
+  if scale == 0.0 || not_finite(scale) {
     self
   } else {
-    { x: self.x / len, y: self.y / len, z: self.z / len, }
+    let v = Vec3::new(self.x / scale, self.y / scale, self.z / scale)
+    let len = v.length()
+    { x: v.x / len, y: v.y / len, z: v.z / len, }
   }
 }
 

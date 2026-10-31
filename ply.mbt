@@ -104,6 +104,30 @@ pub fn parse_ply(
   let mut vertices = 0L
   let mut faces = 0L
   for element in header.elements {
+    let names : Map[String, Unit] = Map([])
+    let mut indices = 0
+    for property in element.props {
+      let name = match property {
+        Scalar(name, _) | List(name, _, _) => name
+      }
+      if names.contains(name) {
+        return Err("PLY element 重复声明属性：\{name}")
+      }
+      names[name] = ()
+      if element.name == "face" &&
+        (name == "vertex_indices" || name == "vertex_index") {
+        indices += 1
+        match property {
+          Scalar(_, _) => return Err("PLY face 顶点索引必须为 list")
+          List(_, _, _) => ()
+        }
+      }
+    }
+    if element.name == "face" && indices != 1 {
+      return Err(
+        "PLY face 必须恰好声明一个 vertex_indices / vertex_index 列表，不能缺少或重复",
+      )
+    }
     records += element.count.to_int64()
     if element.name == "vertex" {
       vertices += element.count.to_int64()
@@ -196,7 +220,13 @@ fn find_header_end(data : Bytes) -> Result[Int32, String] {
     }
     i = i + 1
   }
-  Err("PLY 文件里找不到 end_header，头不完整")
+  if data.length() >= 65536 {
+    Err(
+      "resource_limit: PLY header exceeds fixed 65536-byte limit or lacks end_header within it",
+    )
+  } else {
+    Err("PLY 文件里找不到 end_header，头不完整")
+  }
 }
 
 ///|

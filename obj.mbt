@@ -123,6 +123,10 @@ pub fn parse_obj(
             }
           Err(msg) => return Err(msg)
         }
+      ["l" | "p" | "curv" | "curv2" | "surf" | "vp" | "call" | "csh", ..] =>
+        return Err(
+          "第 \{line_no} 行：OBJ 包含当前网格子集不支持的几何或外部语句",
+        )
       _ => ()
     }
   }

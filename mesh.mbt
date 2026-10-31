@@ -171,11 +171,11 @@ pub fn Mesh::volume(self : Mesh) -> Double {
 /// 这个数不受水密性影响——破洞的网格也能算出「现有这些面的总面积」，
 /// 只是它不等于「这个实体的表面积」。
 pub fn Mesh::surface_area(self : Mesh) -> Double {
-  let mut total = 0.0
+  let total = MomentSum::new()
   for triangle in self.triangles {
-    total = total + triangle.area()
+    total.add(triangle.area())
   }
-  total
+  total.value()
 }
 
 ///|

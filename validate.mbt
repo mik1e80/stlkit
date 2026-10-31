@@ -72,6 +72,11 @@ priv enum CoordinateKey {
 
 ///|
 fn quantize(value : Double, tolerance : Double) -> CoordinateKey {
+  // Legacy callers get exact coordinates for invalid tolerances, never the
+  // all-zero grid produced by division by infinity. Checked APIs reject them.
+  if !valid_weld_tolerance(tolerance) || tolerance == 0.0 {
+    return Exact(if value == 0.0 { 0.0 } else { value })
+  }
   let scaled = value / tolerance
   // 不截成 Int，也不截低位。极端尺度除法溢出时，用独立的精确键。
   if scaled.is_inf() || scaled.is_nan() {

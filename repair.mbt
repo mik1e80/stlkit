@@ -6,7 +6,7 @@
 // 四件事，从简单到麻烦：
 //   1. 删退化面        三个点粘在一起、没有面积的面，删掉
 //   2. 删重复面        同一个三角形出现两次，删掉后面的
-//   3. 补洞            找边界环，用「环中心 + 两个相邻边界点」补三角形
+//   3. 补洞            校验简单平面边界环后用耳切三角化补面
 //   4. 重算法线        按顶点顺序重算，把文件里写错的法线覆盖掉
 //
 // 补洞是最有价值的一项，也是最容易出错的：新补的三角形绕向必须和原来
@@ -93,7 +93,11 @@ pub fn RepairResult::changed(self : RepairResult) -> Bool {
 
 ///|
 /// 修复一个网格。
-pub fn repair(mesh : Mesh, options : RepairOptions) -> RepairResult {
+fn repair_inner(
+  mesh : Mesh,
+  options : RepairOptions,
+  limits : RepairLimits,
+) -> Result[RepairResult, String] {
   let mut removed_degenerate = 0
   let mut removed_duplicates = 0
 
@@ -140,7 +144,10 @@ pub fn repair(mesh : Mesh, options : RepairOptions) -> RepairResult {
   let mut result = kept
   if options.fill_holes {
     let before = result.length()
-    let (patched, count) = fill_holes(result, kept_ids, options.tolerance)
+    let (patched, count) = match fill_holes_safe(result, kept_ids, limits) {
+      Ok(value) => value
+      Err(message) => return Err(message)
+    }
     result = patched
     added_triangles = result.length() - before
     filled_holes = count
@@ -182,7 +189,7 @@ pub fn repair(mesh : Mesh, options : RepairOptions) -> RepairResult {
     }
   }
 
-  {
+  Ok({
     mesh: Mesh::new(final_triangles),
     removed_degenerate,
     removed_duplicates,
@@ -191,7 +198,7 @@ pub fn repair(mesh : Mesh, options : RepairOptions) -> RepairResult {
     recomputed_normals: recomputed,
     flipped_faces,
     reoriented_components,
-  }
+  })
 }
 
 ///|
@@ -215,202 +222,4 @@ fn canonical_key(a : Int32, b : Int32, c : Int32) -> String {
     (c, b, a)
   }
   "\{x},\{y},\{z}"
-}
-
-///|
-/// 补洞：找出所有边界环，每个环用「环中心 + 两个相邻边界点」补一圈三角形。
-///
-/// 为什么用环中心而不是直接把环扇形三角化？因为洞的形状可能是个凹多边形，
-/// 直接扇形会补出翻到实体外面的三角形。加一个中心点，每个三角形都只覆盖
-/// 环上相邻的两点，凹洞也能补得比较合理。
-///
-/// 绕向是关键：原来的面里有一条边 a→b 只被一个面用到，说明洞在那一侧。
-/// 新补的三角形必须用 b→a 的方向，这条边才会变成「被两个面以相反方向
-/// 共用」，也就是水密。方向搞反的话补完还是不通。
-fn fill_holes(
-  triangles : Array[Triangle],
-  ids : Array[(Int32, Int32, Int32)],
-  tolerance : Double,
-) -> (Array[Triangle], Int32) {
-  // 数每条边被几个面用。方向要记下来——补洞时要用反向的。
-  // 键是「去的方向」：'a>b'，值是出现次数。
-  let counts : Map[String, Int32] = Map([])
-  for id in ids {
-    let (a, b, c) = id
-    for edge in [(a, b), (b, c), (c, a)] {
-      let key = "\{edge.0}>\{edge.1}"
-      counts.set(
-        key,
-        match counts.get(key) {
-          Some(n) => n + 1
-          None => 1
-        },
-      )
-    }
-  }
-
-  // 收集边界边：这个方向只出现过一次，而且反向一次都没出现过。
-  // 后面那个条件是防御性的——正常网格里不该出现「a→b 和 b→a 各一次」，
-  // 那说明两个面背对背贴着，是坏数据。
-  let boundary : Array[(Int32, Int32)] = []
-  for key, count in counts {
-    if count != 1 {
-      continue
-    }
-    // 把 'a>b' 拆回两个数
-    let parts : Array[StringView] = []
-    for part in key.split(">") {
-      parts.push(part)
-    }
-    match parts {
-      [a_str, b_str] => {
-        let a = match parse_int_quiet(a_str) {
-          Some(v) => v
-          None => continue
-        }
-        let b = match parse_int_quiet(b_str) {
-          Some(v) => v
-          None => continue
-        }
-        let reverse = "\{b}>\{a}"
-        if !counts.contains(reverse) {
-          boundary.push((a, b))
-        }
-      }
-      _ => ()
-    }
-  }
-
-  if boundary.length() == 0 {
-    return (triangles, 0)
-  }
-
-  // 把边界边串成环。做法是「每个起点找一条以它开头的边」，一路接下去
-  // 直到回到起点。
-  //
-  // 一个顶点上如果有两条以上的边界边（比如两个洞共用了一个点），
-  // 这里可能串错。实际模型里很少见，串错了下面的绕向检查会把它挡下来。
-  let used : Map[String, Unit] = Map([])
-  let rings : Array[Array[Int32]] = []
-  for start_edge in boundary {
-    let start = start_edge.0
-    let first_key = "\{start_edge.0}>\{start_edge.1}"
-    if used.contains(first_key) {
-      continue
-    }
-    let ring : Array[Int32] = []
-    let mut current = start
-    let mut steps = 0
-    while steps < boundary.length() + 1 {
-      steps = steps + 1
-      // 找一条从 current 出发、还没用过的边
-      let mut next : Int32? = None
-      let mut next_key = ""
-      for edge in boundary {
-        if edge.0 == current {
-          let key = "\{edge.0}>\{edge.1}"
-          if !used.contains(key) {
-            next = Some(edge.1)
-            next_key = key
-            break
-          }
-        }
-      }
-      match next {
-        None => break
-        Some(n) => {
-          used.set(next_key, ())
-          ring.push(current)
-          current = n
-          if current == start {
-            break
-          }
-        }
-      }
-    }
-    if current == start && ring.length() >= 3 {
-      rings.push(ring)
-    }
-  }
-
-  if rings.length() == 0 {
-    return (triangles, 0)
-  }
-
-  let result : Array[Triangle] = []
-  for triangle in triangles {
-    result.push(triangle)
-  }
-
-  for ring in rings {
-    // 三角形的洞直接补一个三角形就够了，不用加中心点。
-    // 绕向要反过来：环上的边在原面里是 a→b，新面得用 b→a，
-    // 这条边才会变成被两个面以相反方向共用。
-    if ring.length() == 3 {
-      let v0 = vertex_of(triangles, ids, ring[0])
-      let v1 = vertex_of(triangles, ids, ring[1])
-      let v2 = vertex_of(triangles, ids, ring[2])
-      result.push({ normal: Vec3::zero(), a: v0, b: v2, c: v1, })
-      continue
-    }
-
-    // 环中心：环上所有点的平均。用它当扇形中心，凹洞也能补得比较合理。
-    let mut cx = 0.0
-    let mut cy = 0.0
-    let mut cz = 0.0
-    for id in ring {
-      let v = vertex_of(triangles, ids, id)
-      cx = cx + v.x
-      cy = cy + v.y
-      cz = cz + v.z
-    }
-    let n = ring.length().to_double()
-    let center = Vec3::new(cx / n, cy / n, cz / n)
-
-    // 环上每两个相邻点加中心组成一个三角形。
-    // 绕向要反过来：原来的面里是 a→b，新面用 b→a，
-    // 这条边才变成被两个面以相反方向共用。
-    for i = 0; i < ring.length(); i = i + 1 {
-      let a = ring[i]
-      let b = ring[(i + 1) % ring.length()]
-      let va = vertex_of(triangles, ids, a)
-      let vb = vertex_of(triangles, ids, b)
-      result.push({ normal: Vec3::zero(), a: center, b: vb, c: va, })
-    }
-  }
-  let _ = tolerance
-  (result, rings.length())
-}
-
-///|
-/// 从焊接编号倒推出这个点原来在哪个位置。
-///
-/// 需要这一步是因为边界环里存的是焊接后的编号，而这个编号是我们自己
-/// 分配的，跟三角形数组的下标没有直接关系。扫一遍找到第一个用这个编号
-/// 的顶点就当它的位置——同一个编号的所有顶点位置本来就一样（差在容差内）。
-fn vertex_of(
-  triangles : Array[Triangle],
-  ids : Array[(Int32, Int32, Int32)],
-  target : Int32,
-) -> Vec3 {
-  for i, id in ids {
-    if id.0 == target {
-      return triangles[i].a
-    }
-    if id.1 == target {
-      return triangles[i].b
-    }
-    if id.2 == target {
-      return triangles[i].c
-    }
-  }
-  Vec3::zero()
-}
-
-///|
-/// 解析整数，失败返回 None。给内部用，不产生错误信息。
-fn parse_int_quiet(s : StringView) -> Int32? {
-  Some(@string.parse_int(s)) catch {
-    _ => None
-  }
 }

@@ -35,7 +35,12 @@ pub fn check_thickness_default(mesh : Mesh) -> ThicknessReport {
 /// 采样是**确定性**的：同一个模型每次跑出来的数一样。
 /// 用黄金比之类的低差异序列把采样点铺开，而不是伪随机数——
 /// 「上次跑 0.42，这次跑 0.38」这种报告没法用来对比修复前后的变化。
-pub fn check_thickness(mesh : Mesh, samples : Int32) -> ThicknessReport {
+fn thickness_samples(
+  mesh : Mesh,
+  samples : Int32,
+  weighted : Bool,
+  seed : Int32,
+) -> ThicknessReport {
   let n = mesh.triangle_count()
   if n == 0 || samples <= 0 {
     return {
@@ -47,28 +52,66 @@ pub fn check_thickness(mesh : Mesh, samples : Int32) -> ThicknessReport {
     }
   }
 
-  // 射线起点往里挪一点点，免得打中自己所在的那个三角形。
-  // 挪的量按模型尺度取，别用固定值——微米级的模型和米级的模型差着六个数量级
-  let inset = probe_inset(mesh)
+  // Start at the sampled surface and exclude its source triangle. A global
+  // bounding-box inset can jump across a locally thin wall.
+  let cumulative : Array[Double] = []
+  let area_total = MomentSum::new()
+  if weighted {
+    let mut max_area = 0.0
+    for triangle in mesh.triangles {
+      max_area = max_area.max(triangle.area())
+    }
+    if max_area > 0.0 && !not_finite(max_area) {
+      for triangle in mesh.triangles {
+        area_total.add(triangle.area() / max_area)
+        cumulative.push(area_total.value())
+      }
+    }
+  }
 
   let mut hits = 0
-  let mut min_d = 1.0e300
+  let mut min_d = 1.0 / 0.0
   let mut min_at : Vec3? = None
-  let mut total = 0.0
+  let total = MomentSum::new()
 
   for i = 0; i < samples; i = i + 1 {
     // 三角形编号：乘一个大奇数再取模，把相邻的采样打散到整个模型上。
     // 顺序扫的话前一半采样全落在模型的同一片区域
-    let idx = (i.to_uint64() * 2654435761UL % n.to_uint64()).to_int()
+    let idx = if weighted {
+      if cumulative.length() == 0 {
+        continue
+      }
+      let target = frac(
+          (i.to_double() + 0.5) * 0.6180339887498949 +
+          seed.to_double() * 0.4142135623730951,
+        ) *
+        area_total.value()
+      let mut lo = 0
+      let mut hi = cumulative.length()
+      while lo < hi {
+        let mid = lo + (hi - lo) / 2
+        if cumulative[mid] <= target {
+          lo = mid + 1
+        } else {
+          hi = mid
+        }
+      }
+      lo.min(n - 1)
+    } else {
+      (i.to_uint64() * 2654435761UL % n.to_uint64()).to_int()
+    }
     let tri = mesh.triangles[idx]
 
     // 三角形内的均匀采样点
-    let r1 = frac(i.to_double() * 0.6180339887498949).sqrt()
-    let r2 = frac(i.to_double() * 0.7548776662466927)
+    let sample = i.to_double() + (if weighted { 0.5 } else { 0.0 })
+    let r1 = frac(sample * 0.6180339887498949).sqrt()
+    let r2 = frac(sample * 0.7548776662466927)
+    let ab = tri.b.sub(tri.a)
+    let ac = tri.c.sub(tri.a)
     let p = Vec3::new(
-      tri.a.x * (1.0 - r1) + tri.b.x * (r1 * (1.0 - r2)) + tri.c.x * (r1 * r2),
-      tri.a.y * (1.0 - r1) + tri.b.y * (r1 * (1.0 - r2)) + tri.c.y * (r1 * r2),
-      tri.a.z * (1.0 - r1) + tri.b.z * (r1 * (1.0 - r2)) + tri.c.z * (r1 * r2),
+      tri.a.x + ab.x * (r1 * (1.0 - r2)) + ac.x * (r1 * r2),
+      tri.a.y + ab.y * (r1 * (1.0 - r2)) + ac.y * (r1 * r2),
+      tri.a.z + ab.z * (r1 * (1.0 - r2)) + ac.z * (r1 * r2),
     )
 
     // 往**里面**打。法线朝外，所以方向取反。
@@ -78,16 +121,10 @@ pub fn check_thickness(mesh : Mesh, samples : Int32) -> ThicknessReport {
       continue
     }
     let dir = Vec3::new(-normal.x, -normal.y, -normal.z)
-    let origin = Vec3::new(
-      p.x + dir.x * inset,
-      p.y + dir.y * inset,
-      p.z + dir.z * inset,
-    )
-
-    match mesh.ray_cast(origin, dir) {
+    match ray_cast_excluding(mesh, p, dir, idx) {
       Some(hit) => {
         hits = hits + 1
-        total = total + hit.distance
+        total.add(hit.distance)
         if hit.distance < min_d {
           min_d = hit.distance
           min_at = Some(hit.point)
@@ -113,7 +150,7 @@ pub fn check_thickness(mesh : Mesh, samples : Int32) -> ThicknessReport {
     hits,
     min_thickness: min_d,
     min_at,
-    mean_thickness: total / hits.to_double(),
+    mean_thickness: total.value() / hits.to_double(),
   }
 }
 
@@ -124,21 +161,19 @@ fn frac(v : Double) -> Double {
 }
 
 ///|
-/// 射线起点往里挪多少。
-///
-/// 取包围盒对角线的一亿分之一：足够大到能躲开自己那个三角形，
-/// 又小到不影响测出来的厚度。模型尺度差几个数量级也能自适应
-fn probe_inset(mesh : Mesh) -> Double {
-  match mesh.bounding_box() {
-    Some(b) => {
-      let s = b.size()
-      let diag = (s.x * s.x + s.y * s.y + s.z * s.z).sqrt()
-      if diag > 0.0 {
-        diag * 1.0e-8
-      } else {
-        1.0e-9
-      }
-    }
-    None => 1.0e-9
-  }
+/// 确定性面索引采样。从表面向内查询，排除来源三角形。
+/// 首命中距离受采样、法线和射线阈值影响，不保证全局最薄处。
+pub fn check_thickness(mesh : Mesh, samples : Int32) -> ThicknessReport {
+  thickness_samples(mesh, samples, false, 0)
+}
+
+///|
+/// Area-weighted deterministic surface sampling with a repeatable seed.
+/// Statistics describe ray first hits, not a certified global minimum.
+pub fn check_thickness_area_weighted(
+  mesh : Mesh,
+  samples : Int32,
+  seed~ : Int32 = 0,
+) -> ThicknessReport {
+  thickness_samples(mesh, samples, true, seed)
 }
