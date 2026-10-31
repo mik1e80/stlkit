@@ -2,6 +2,8 @@
 
 依据参赛者提供的本期验收指南：已审核通过者无需再交表格，开发内容上传 GitHub。这里是工程自查，不代表组委会已作出验收结论；不将八月技能附带的不同期次规则替换本次九条要求。
 
+2026-10-31 已完成 0.2.2 发布及独立安装验证，下列九项均有仓库或实际执行证据。固定源码 `3a85bb4464d18dbc64a1cddd314724d5551fc206`，四后端各 417 项；Linux / Windows 源码 CI、Pages、变异及两平台四后端发布包 consumer 全部通过。完整结果链接见交付说明。
+
 | 要求 | 对应实现与复核方法 |
 | --- | --- |
 | 1. MoonBit 为主，moonc ≥ 0.10.16 | 根目录、CLI 与网页的 .mbt 核心；check-toolchain 精确核对已验证的 0.10.17 / 0.10.18，不声称实测 0.10.16 |
@@ -11,7 +13,7 @@
 | 5. check / build / test CI | [工作流](../.github/workflows/ci.yml)：全目标检查、构建、四后端、Linux / Windows 入口与模型语料；实际结果以对应 SHA 为准 |
 | 6. 可运行示例 | cube.obj、broken.stl、JSON 命令；README.mbt.md 的无文件依赖库示例参与测试 |
 | 7. 核心路径测试 | 格式正反例、解析值、修复、JSON、SVG、CLI / Web、67 次模型读取、5 组修复重读、10 组厚度对照与独立变异测试；历史数量不冒充新版本结果 |
-| 8. Mooncakes 发布 | [0.2.1 包](https://mooncakes.io/docs/mik1e80/stlkit@0.2.1/)；发布后干净目录安装并调用新增 API，Release consumer 覆盖 Linux / Windows 四后端 |
+| 8. Mooncakes 发布 | [0.2.2 包](https://mooncakes.io/docs/mik1e80/stlkit@0.2.2/)；发布后干净目录安装并调用新增 API，Release consumer 覆盖 Linux / Windows 四后端 |
 | 9. OSI 许可证及第三方要求 | 项目 Apache-2.0；完整 [LICENSE](../LICENSE)、[第三方声明](../THIRD_PARTY_NOTICES.md)、固定模型清单与 SHA-256；check-third-party 校验实际附件 |
 
 每一项的最终状态、源码 SHA、CI 链接、包与独立安装结果统一见 [验收交付说明](acceptance-delivery.md)。版本号已修改、页面链接已写入或 tag 存在，本身都不证明包已发布和安装通过。

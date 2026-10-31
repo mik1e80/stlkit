@@ -1,11 +1,11 @@
 ----
 import {
-  "moonbitlang/async",
-  "moonbitlang/async/fs" @asyncfs,
-  "moonbitlang/async/shell",
+  "moonbitlang/async@0.22.1",
+  "moonbitlang/async@0.22.1/fs" @asyncfs,
+  "moonbitlang/async@0.22.1/shell",
   "moonbitlang/core/env",
-  "moonbitlang/x/fs",
-  "moonbitlang/x/path",
+  "moonbitlang/x@0.5.5/fs",
+  "moonbitlang/x@0.5.5/path",
 }
 ----
 

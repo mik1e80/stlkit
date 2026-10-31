@@ -30,12 +30,13 @@
           <input type="file" id="file" accept=".stl,.obj,.3mf,.ply" hidden />
         </div>
         <div class="preview" id="preview"></div>
+        <p class="dropzone-small" id="large-file-warning"></p>
         <label class="threshold-setting" for="max-input-bytes">输入字节上限
-          <input id="max-input-bytes" type="number" min="1" max="2147483647" step="1" value="67108864" />
+          <input id="max-input-bytes" type="number" min="1" max="33554432" step="1" value="16777216" />
         </label>
         <label class="threshold-setting" for="max-triangles">三角形上限
-          <input id="max-triangles" type="number" min="1" max="715827882" step="1" value="2000000" />
-          <small>下一次选择文件时生效。其他解析预算仍独立生效；上限不等于浏览器内存保证。</small>
+          <input id="max-triangles" type="number" min="1" max="500000" step="1" value="500000" />
+          <small>浏览器硬上限为 32 MiB / 50 万面，默认 16 MiB。较大文件请使用 CLI；上限不等于内存或时限保证，当前分析仍在主线程。</small>
         </label>
       </section>
 

@@ -30,5 +30,10 @@ fn main raise {
   let weighted = @stlkit.check_thickness_area_weighted(mesh, 4, seed=7)
   assert_eq(weighted.samples, 4)
   assert_eq(weighted.hits, 0)
+  assert_eq(mesh.triangles[0].area_checked().unwrap(), 0.5)
+  let nearest = mesh.nearest_point_checked(@stlkit.Vec3::new(0.25, 0.25, 1.0)).unwrap().unwrap()
+  assert_eq(nearest.0, 1.0)
+  assert_eq(nearest.1.z, 0.0)
+  assert_true(@stlkit.Mesh::empty().nearest_point_checked(@stlkit.Vec3::zero()).unwrap() is None)
   println("CONSUMER_OK triangles=1 area=0.5 boundary=3 roundtrip=1 indexed_vertices=3 schema=1 checked_error=unknown_format")
 }

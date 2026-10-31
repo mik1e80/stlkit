@@ -44,7 +44,7 @@ jobs:
         run: moon fmt --check
 
       - name: 独立 MoonBit 脚本格式检查
-        run: moon fmt scripts/fuzz.mbtx scripts/consumer-smoke.mbtx scripts/limits-smoke.mbtx scripts/json-smoke.mbtx scripts/indexed-memory.mbtx scripts/acceptance-smoke.mbtx scripts/build-web.mbtx scripts/boundary-smoke.mbtx scripts/check-third-party.mbtx scripts/check-toolchain.mbtx scripts/quickstart-smoke.mbtx --check
+        run: moon fmt scripts/fuzz.mbtx scripts/consumer-smoke.mbtx scripts/limits-smoke.mbtx scripts/json-smoke.mbtx scripts/indexed-memory.mbtx scripts/acceptance-smoke.mbtx scripts/build-web.mbtx scripts/boundary-smoke.mbtx scripts/check-third-party.mbtx scripts/check-toolchain.mbtx scripts/quickstart-smoke.mbtx scripts/package-smoke.mbtx scripts/round2-smoke.mbtx --check
 
       - name: 检查（全目标，零警告才算过）
         run: moon check --target all --deny-warn
@@ -83,6 +83,8 @@ jobs:
         run: |
           moon run scripts/boundary-smoke.mbtx
           moon run scripts/check-third-party.mbtx
+          moon run scripts/package-smoke.mbtx
+          moon run scripts/round2-smoke.mbtx
 
       - name: 验证审查案例和报告未过期
         run: |
@@ -126,5 +128,7 @@ jobs:
       - run: moon run scripts/acceptance-smoke.mbtx
       - run: moon run scripts/boundary-smoke.mbtx
       - run: moon run scripts/check-third-party.mbtx
+      - run: moon run scripts/package-smoke.mbtx
+      - run: moon run scripts/round2-smoke.mbtx
       # Published-package installation is tested on Linux and Windows by
       # consumer.yml after publication; a candidate version is not public yet.

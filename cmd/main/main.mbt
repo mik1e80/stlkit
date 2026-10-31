@@ -586,7 +586,11 @@ async fn report(
         "  预览降采样：从 \{final_mesh.triangle_count()} 面确定性选择最多 20000 面",
       )
     }
-    let svg = @stlkit.render_svg(final_mesh, @stlkit.PreviewOptions::default())
+    let svg = match
+      @stlkit.render_svg_checked(final_mesh, @stlkit.PreviewOptions::default()) {
+      Ok(svg) => svg
+      Err(message) => return Err("无法生成预览图：" + message)
+    }
     @fs.write_string_to_file(svg_path, svg) catch {
       @fs.IOError(msg) =>
         return Err("写不了预览图「\{svg_path}」：\{msg}")

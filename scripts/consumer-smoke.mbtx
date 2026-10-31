@@ -1,16 +1,16 @@
 ----
 import {
-  "moonbitlang/async",
-  "moonbitlang/async/shell",
+  "moonbitlang/async@0.22.1",
+  "moonbitlang/async@0.22.1/shell",
   "moonbitlang/core/env",
-  "moonbitlang/x/fs",
+  "moonbitlang/x@0.5.5/fs",
 }
 ----
 
 // SPDX-License-Identifier: Apache-2.0
 async fn main {
   let args = @env.args()
-  let version = if args.length() > 1 { args[1] } else { "0.2.1" }
+  let version = if args.length() > 1 { args[1] } else { "0.2.3" }
   guard version.length() > 0 && version.iter().all(c => (c >= '0' && c <= '9') || c == '.') else { fail("numeric package version required") }
   let base = @env.get_env_var("TEMP").unwrap_or(@env.get_env_var("TMPDIR").unwrap_or("/tmp"))
   let dir = base + "/stlkit-consumer-" + @env.now().to_string()

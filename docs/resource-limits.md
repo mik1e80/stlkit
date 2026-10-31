@@ -48,3 +48,9 @@ moon run cmd/main examples/review/cubes-1.stl --stream-only --max-vertices 10000
 ## 验证
 
 `parse_limits_wbtest.mbt` 覆盖各格式边界、重复展开、空元素、深度、CRC、配置错误及提高预算后仍拒绝非法输入；`web/limits_wbtest.mbt` 验证设置接口。真实 CLI 通过 `moon run scripts/limits-smoke.mbtx` 检查超限、参数错误及正向边界。变异测试方法见 [fuzz-testing.md](fuzz-testing.md)。
+
+## 浏览器独立预算与三角化工作量
+
+0.2.3 候选将浏览器默认输入设为 16 MiB，硬上限 32 MiB、500000 个三角形；设置不能放宽此上限。JS 在读取前按 File.size 检查，读取后按实际 buffer 大小再次检查，MoonBit 在 Base64 解码前后再检查。解析顶点预算最多为请求面数的三倍。Base64、字符串、网格和临时结构同时占内存；该上限是保守工作策略，没有被包装为所有浏览器/设备上的内存安全上限。实际 UI 回归覆盖乱序成功/失败、同文件重选和大小检查；未声称完成峰值 RSS 浏览器基准。大模型请使用 CLI；当前分析仍占主线程，Worker、进度与取消尚未实现。
+
+每个大于三点的多边形共用 2000000 次几何检查预算，覆盖非相邻边对、耳候选和阻挡顶点；超限为 resource_limit，适用于 OBJ / PLY / 补洞。可调顶点上限不是执行时间保证，工作预算也不是进程级时限。

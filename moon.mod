@@ -1,6 +1,6 @@
 name = "mik1e80/stlkit"
 
-version = "0.2.1"
+version = "0.2.3"
 
 readme = "README.mbt.md"
 

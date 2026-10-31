@@ -193,5 +193,63 @@ async function load(text) {
   for (const fixture of require("../scripts/format-fixtures.cjs").cases) {
     assert.match(context.analyze_error(fixture.bytes.toString("base64")), fixture.error);
   }
-  console.log("网页回归通过：朝内、薄壁、阈值调整、修复结论和非法输入。");
+  // Actual app request interleavings, not a standalone imitation of generation logic.
+  document.getElementById('min-thickness').value = '0.8';
+  const fileBytes = text => {
+    const bytes = Buffer.from(text);
+    return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+  };
+  let oldResolve;
+  const oldRead = new Promise(resolve => { oldResolve = resolve; });
+  const oldRequest = context.handleFile({name:'old.obj', size:20, arrayBuffer:() => oldRead});
+  await context.handleFile({name:'latest.obj', size:Buffer.byteLength(cube), arrayBuffer:async () => fileBytes(cube)});
+  const newestReport = vm.runInContext('currentBase64', context);
+  oldResolve(fileBytes('v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n'));
+  await oldRequest;
+  assert.equal(document.getElementById('status').textContent, 'latest.obj');
+  assert.equal(vm.runInContext('currentBase64', context), newestReport);
+  let oldReject;
+  const rejectedRead = new Promise((_, reject) => { oldReject = reject; });
+  const rejectedRequest = context.handleFile({name:'old-error.obj', size:20, arrayBuffer:() => rejectedRead});
+  await context.handleFile({name:'newest.obj', size:Buffer.byteLength(cube), arrayBuffer:async () => fileBytes(cube)});
+  oldReject(new Error('old read failed'));
+  await rejectedRequest;
+  assert.equal(document.getElementById('status').textContent, 'newest.obj');
+  assert.equal(vm.runInContext('currentBase64', context), newestReport);
+  let oversizedRead = false;
+  await context.handleFile({name:'oversized.stl', size:33554433, arrayBuffer:async () => { oversizedRead=true; throw new Error('must not read'); }});
+  assert.equal(oversizedRead, false);
+  assert.equal(vm.runInContext('currentBase64', context), '');
+  document.getElementById('max-input-bytes').value = '8';
+  await context.handleFile({name:'lying-size.obj', size:1, arrayBuffer:async () => new ArrayBuffer(9)});
+  assert.equal(document.getElementById('status').className, 'status status-error');
+  document.getElementById('max-input-bytes').value = '16777216';
+
+  let analyses = 0, fixes = 0;
+  const analyzeBundle = context.analyze_bundle, fixBundle = context.fix_bundle;
+  context.analyze_bundle = (...args) => { analyses++; return analyzeBundle(...args); };
+  context.fix_bundle = (...args) => {
+    fixes++;
+    const output = fixBundle(...args);
+    assert.deepEqual(JSON.parse(output).work, {parses:2, repairs:1, exports:1, reviews:1});
+    return output;
+  };
+  for (const name of ['analyze_with_threshold', 'analyze_error', 'preview', 'fix_report_with_threshold', 'fixed_stl', 'fixed_preview', 'fix_error']) {
+    context[name] = () => { throw new Error('UI repeated legacy operation: ' + name); };
+  }
+  await load(inward);
+  assert.equal(analyses, 1);
+  context.runFix();
+  assert.equal(fixes, 1);
+  assert.equal(analyses, 1, 'repair report, preview and download must share a single result');
+  document.getElementById('min-thickness').events.get('change')();
+  assert.equal(analyses, 2);
+  const fileInput = document.getElementById('file');
+  fileInput.files = [{name:'same.obj', size:Buffer.byteLength(cube), arrayBuffer:async () => fileBytes(cube)}];
+  fileInput.value = 'same.obj';
+  await fileInput.events.get('change')();
+  assert.equal(fileInput.value, '', 'allow choosing the same file again');
+  await context.handleFile({name:'extreme.obj', size:80, arrayBuffer:async () => fileBytes('v -1e308 0 0\nv 1e308 0 0\nv 0 1e-308 0\nf 1 2 3\n')});
+  assert(descendants(document.getElementById('preview')).some(e => e.textContent.includes('预览不可用')));
+  console.log("网页回归通过：旧流程、单次 bundle、过时成功/错误隔离、读取前后硬上限、同文件重选与预览失败反馈。");
 })().catch(error => { console.error(error); process.exitCode = 1; });
