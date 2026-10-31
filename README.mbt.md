@@ -1,8 +1,25 @@
 # stlkit：接口与实现
 
-当前工作区包含未发布的验收修订，和下列已发布 0.2.0 包、旧标签不同；见 [验收交付说明](docs/acceptance-delivery.md)。
+MoonBit 的 STL / OBJ / 3MF / PLY 三角网格工具链。本次版本 **0.2.1**；安装 `moon add mik1e80/stlkit@0.2.1`，源码固定 [v0.2.1](https://github.com/mik1e80/stlkit/tree/v0.2.1)。包含 0.2.0 的 JSON 协议、结构化解析错误与 IndexedMesh，以及本次受检修复 / 导出、数值、预览与格式边界修订；见 [发布说明](docs/releases/0.2.1.md)、[受检 API](docs/checked-apis.md) 和 [验收交付说明](docs/acceptance-delivery.md)。旧接口保留，部分非法输入现在明确拒绝。
 
-MoonBit 的 STL / OBJ / 3MF / PLY 三角网格工具链。本次版本 **0.2.0**；安装 `moon add mik1e80/stlkit@0.2.0`，源码固定 [v0.2.0](https://github.com/mik1e80/stlkit/tree/v0.2.0)。新增 JSON 检查协议、结构化解析错误和独立索引网格；见 [JSON 协议](docs/json-report.md) 与 [IndexedMesh](docs/indexed-mesh.md)。旧接口保留；见 [资源限制](docs/resource-limits.md)、[格式兼容性](docs/format-compatibility.md) 及 [发布说明](docs/releases/0.2.0.md)。
+验收最低要求为 moonc 0.10.16；实际验证为 0.10.17+d971670cd 与 0.10.18+6c83a7f62，精确白名单以 `scripts/check-toolchain.mbtx` 为准。
+
+## 最小库调用
+
+下面是开放的单三角形，示例用于解析、诊断与受检往返，不将它作为实体体积模型。代码块参与 `moon test`，不读取仓库内模型。
+
+```mbt check
+///|
+test "minimal library quick start" {
+  let mesh = @stlkit.parse_obj("v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n").unwrap()
+  assert_eq(mesh.triangle_count(), 1)
+  assert_eq(mesh.surface_area(), 0.5)
+  let report = @stlkit.validate_checked(mesh, 0.0).unwrap()
+  assert_eq(report.boundary_edge_count, 3)
+  let bytes = @stlkit.write_stl_binary_checked(mesh).unwrap()
+  assert_eq(@stlkit.parse_mesh(bytes).unwrap().triangle_count(), 1)
+}
+```
 
 ## 数据与单位
 

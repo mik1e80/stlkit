@@ -44,7 +44,7 @@ jobs:
         run: moon fmt --check
 
       - name: 独立 MoonBit 脚本格式检查
-        run: moon fmt scripts/fuzz.mbtx scripts/consumer-smoke.mbtx scripts/limits-smoke.mbtx scripts/json-smoke.mbtx scripts/indexed-memory.mbtx scripts/acceptance-smoke.mbtx scripts/build-web.mbtx scripts/boundary-smoke.mbtx scripts/check-third-party.mbtx scripts/check-toolchain.mbtx --check
+        run: moon fmt scripts/fuzz.mbtx scripts/consumer-smoke.mbtx scripts/limits-smoke.mbtx scripts/json-smoke.mbtx scripts/indexed-memory.mbtx scripts/acceptance-smoke.mbtx scripts/build-web.mbtx scripts/boundary-smoke.mbtx scripts/check-third-party.mbtx scripts/check-toolchain.mbtx scripts/quickstart-smoke.mbtx --check
 
       - name: 检查（全目标，零警告才算过）
         run: moon check --target all --deny-warn
@@ -66,6 +66,9 @@ jobs:
 
       - name: CLI 参数和退出码回归
         run: node cmd/main/smoke.cjs
+
+      - name: README 推荐示例及解析值复核
+        run: moon run scripts/quickstart-smoke.mbtx
 
       - name: CLI 资源限制真实入口
         run: moon run scripts/limits-smoke.mbtx
@@ -119,8 +122,9 @@ jobs:
       - run: moon run scripts/check-toolchain.mbtx
       - run: moon check --target all --deny-warn
       - run: node cmd/main/smoke.cjs
+      - run: moon run scripts/quickstart-smoke.mbtx
       - run: moon run scripts/acceptance-smoke.mbtx
       - run: moon run scripts/boundary-smoke.mbtx
       - run: moon run scripts/check-third-party.mbtx
-      - name: Published package installation baseline
-        run: moon run scripts/consumer-smoke.mbtx 0.2.0
+      # Published-package installation is tested on Linux and Windows by
+      # consumer.yml after publication; a candidate version is not public yet.
