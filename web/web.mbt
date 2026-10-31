@@ -14,7 +14,7 @@ priv struct WebLimits {
 }
 
 ///|
-let settings : WebLimits = { input_bytes: 67108864, triangles: 2000000, }
+let settings : WebLimits = { input_bytes: 16777216, triangles: 500000, }
 
 ///|
 /// Configure the next local analysis. Empty means success; rejected settings
@@ -23,8 +23,11 @@ pub fn configure_limits(
   max_input_bytes : Int32,
   max_triangles : Int32,
 ) -> String {
-  if max_input_bytes < 1 || max_triangles < 1 || max_triangles > 715827882 {
-    return "资源上限必须为正整数，三角形上限不能超过 715827882"
+  if max_input_bytes < 1 ||
+    max_input_bytes > 33554432 ||
+    max_triangles < 1 ||
+    max_triangles > 500000 {
+    return "浏览器上限必须为正整数，最多 32 MiB 和 500000 个三角形；较大文件请使用 CLI"
   }
   settings.input_bytes = max_input_bytes
   settings.triangles = max_triangles
@@ -37,15 +40,15 @@ fn web_limits() -> @stlkit.ParseLimits {
     ..@stlkit.ParseLimits::default(),
     max_input_bytes: settings.input_bytes,
     max_triangles: settings.triangles,
+    max_vertices: settings.triangles * 3,
   }
 }
 
 ///|
 /// 分析一个模型文件，返回一份「每行一个 `字段|值`」的报告。
 ///
-/// 为什么不用 JSON：库这边没有公开的 JSON 造值构造器（core/json 只有
-/// as_xxx 取值的），手拼 JSON 还要处理转义。而这个报告只有数字和几个
-/// 固定的中文标签，用竖线分隔足够，JS 那边 split 两下就解开了。
+/// 旧文本接口保留兼容。页面通过 JSON bundle 一次取得报告、预览或修复
+/// 下载，避免为各项结果重复解码、解析与修复。
 ///
 /// 失败时返回空串，具体原因问 `analyze_error`。
 pub fn analyze(file_base64 : String) -> String {
@@ -84,7 +87,11 @@ pub fn analyze_error(file_base64 : String) -> String {
 /// textContent 显示。
 pub fn preview(file_base64 : String) -> String {
   match analyze_mesh(file_base64) {
-    Ok(mesh) => @stlkit.render_svg(mesh, preview_options())
+    Ok(mesh) =>
+      match @stlkit.render_svg_checked(mesh, preview_options()) {
+        Ok(svg) => svg
+        Err(_) => ""
+      }
     Err(_) => ""
   }
 }
@@ -101,7 +108,7 @@ fn analyze_mesh(file_base64 : String) -> Result[@stlkit.Mesh, String] {
   let data = decode(file_base64)
   match data {
     Err(msg) => Err(msg)
-    Ok(data) => @stlkit.parse_mesh(data, limits=web_limits())
+    Ok(data) => web_parse(data)
   }
 }
 
@@ -118,16 +125,28 @@ fn analyze_inner(
   file_base64 : String,
   min_thickness : Double,
 ) -> Result[Array[String], String] {
+  if min_thickness.is_nan() || min_thickness.is_inf() || min_thickness < 0.0 {
+    return Err("参考壁厚必须为非负有限数")
+  }
   let data = match decode(file_base64) {
     Ok(data) => data
     Err(msg) => return Err(msg)
   }
-  let mesh = match @stlkit.parse_mesh(data, limits=web_limits()) {
+  let mesh = match web_parse(data) {
     Ok(mesh) => mesh
     Err(msg) => return Err(msg)
   }
+  Ok(analyze_loaded(data, mesh, web_review(mesh, min_thickness), min_thickness))
+}
+
+///|
+fn analyze_loaded(
+  data : Bytes,
+  mesh : @stlkit.Mesh,
+  review : @stlkit.PrintabilityReport,
+  min_thickness : Double,
+) -> Array[String] {
   let samples = web_samples(mesh)
-  let review = @stlkit.check_printability(mesh, min_thickness, samples~)
   let numeric_failure = review.mass_properties_available() &&
     !mesh.mass_properties_numeric_valid()
   let check = review.validation
@@ -219,7 +238,7 @@ fn analyze_inner(
   // 绕向才是几何本身对不对
   let winding = review.winding
   lines.push("绕向反了|\{winding.flipped_faces}")
-  Ok(lines)
+  lines
 }
 
 ///|
@@ -257,6 +276,9 @@ fn decode(file_base64 : String) -> Result[Bytes, String] {
 ///|
 /// 保留三位小数。网格数据本身带浮点误差，多显示的位数没有意义。
 fn round3(value : Double) -> String {
+  if value.is_inf() || value.is_nan() || value.abs() > 1.0e305 {
+    return value.to_string()
+  }
   let rounded = (value * 1000.0).round() / 1000.0
   rounded.to_string()
 }
@@ -281,36 +303,36 @@ pub fn fix_report_with_threshold(
 ) -> String {
   match repair_of(file_base64) {
     Err(_) => ""
-    Ok(result) => {
-      let review = @stlkit.check_printability(
-        result.mesh,
-        min_thickness,
-        samples=web_samples(result.mesh),
-      )
-      let numeric_failure = review.mass_properties_available() &&
-        !result.mesh.mass_properties_numeric_valid()
-      let after = review.validation
-      let lines : Array[String] = []
-      lines.push(
-        "修复后需复核|\{review.needs_review() || numeric_failure}",
-      )
-      lines.push(
-        "修复后结论|\{if numeric_failure { "质量属性数值异常，需要复核；不构成可打印结论。" } else { review.verdict() }}",
-      )
-      lines.push("可修复|\{result.changed()}")
-      lines.push("删退化面|\{result.removed_degenerate}")
-      lines.push("删重复面|\{result.removed_duplicates}")
-      lines.push("补洞新增|\{result.added_triangles}")
-      lines.push("重算法线|\{result.recomputed_normals}")
-      lines.push("翻转绕向|\{result.flipped_faces}")
-      lines.push("整体翻转分量|\{result.reoriented_components}")
-      lines.push("修复后体积|\{round3(result.mesh.volume())}")
-      lines.push("修复后水密|\{after.is_watertight()}")
-      lines.push("修复后边界边|\{after.boundary_edge_count}")
-      lines.push("修复后三角形|\{result.mesh.triangle_count()}")
-      lines.join("\n")
-    }
+    Ok(result) =>
+      repair_report_loaded(result, web_review(result.mesh, min_thickness))
   }
+}
+
+///|
+fn repair_report_loaded(
+  result : @stlkit.RepairResult,
+  review : @stlkit.PrintabilityReport,
+) -> String {
+  let numeric_failure = review.mass_properties_available() &&
+    !result.mesh.mass_properties_numeric_valid()
+  let after = review.validation
+  let lines : Array[String] = []
+  lines.push("修复后需复核|\{review.needs_review() || numeric_failure}")
+  lines.push(
+    "修复后结论|\{if numeric_failure { "质量属性数值异常，需要复核；不构成可打印结论。" } else { review.verdict() }}",
+  )
+  lines.push("可修复|\{result.changed()}")
+  lines.push("删退化面|\{result.removed_degenerate}")
+  lines.push("删重复面|\{result.removed_duplicates}")
+  lines.push("补洞新增|\{result.added_triangles}")
+  lines.push("重算法线|\{result.recomputed_normals}")
+  lines.push("翻转绕向|\{result.flipped_faces}")
+  lines.push("整体翻转分量|\{result.reoriented_components}")
+  lines.push("修复后体积|\{round3(result.mesh.volume())}")
+  lines.push("修复后水密|\{after.is_watertight()}")
+  lines.push("修复后边界边|\{after.boundary_edge_count}")
+  lines.push("修复后三角形|\{result.mesh.triangle_count()}")
+  lines.join("\n")
 }
 
 ///|
@@ -319,13 +341,9 @@ pub fn fix_report_with_threshold(
 /// 走 base64 是因为 Bytes 过不了 JS 边界；JS 那边解回字节就能做成
 /// 下载链接。失败返回空串。
 pub fn fixed_stl(file_base64 : String) -> String {
-  match repair_of(file_base64) {
+  match repair_once(file_base64) {
     Err(_) => ""
-    Ok(result) =>
-      match @stlkit.write_stl_binary_checked(result.mesh) {
-        Ok(bytes) => @base64.encode(bytes)
-        Err(_) => ""
-      }
+    Ok((_, bytes)) => @base64.encode(bytes)
   }
 }
 
@@ -334,7 +352,11 @@ pub fn fixed_stl(file_base64 : String) -> String {
 pub fn fixed_preview(file_base64 : String) -> String {
   match repair_of(file_base64) {
     Err(_) => ""
-    Ok(result) => @stlkit.render_svg(result.mesh, preview_options())
+    Ok(result) =>
+      match @stlkit.render_svg_checked(result.mesh, preview_options()) {
+        Ok(svg) => svg
+        Err(_) => ""
+      }
   }
 }
 
@@ -351,22 +373,31 @@ pub fn fix_error(file_base64 : String) -> String {
 /// 解码 + 解析 + 修复。三个修复相关的导出函数都要走这条链路，
 /// 抽出来免得写三遍。
 fn repair_of(file_base64 : String) -> Result[@stlkit.RepairResult, String] {
+  match repair_once(file_base64) {
+    Ok((result, _)) => Ok(result)
+    Err(error) => Err(error)
+  }
+}
+
+///|
+fn repair_once(
+  file_base64 : String,
+) -> Result[(@stlkit.RepairResult, Bytes), String] {
   let mesh = match analyze_mesh(file_base64) {
     Ok(mesh) => mesh
     Err(msg) => return Err(msg)
   }
-  let repaired = match
-    @stlkit.repair_checked(mesh, @stlkit.RepairOptions::default()) {
+  let repaired = match web_repair(mesh) {
     Ok(repaired) => repaired
     Err(message) => return Err("自动修复拒绝：" + message)
   }
-  let bytes = match @stlkit.write_stl_binary_checked(repaired.mesh) {
+  let bytes = match web_export(repaired.mesh) {
     Ok(bytes) => bytes
     Err(message) => return Err(message)
   }
-  let restored = match @stlkit.parse_mesh(bytes, limits=web_limits()) {
+  let restored = match web_parse(bytes) {
     Ok(restored) => restored
     Err(message) => return Err("导出数据无法重读：" + message)
   }
-  Ok({ ..repaired, mesh: restored, })
+  Ok(({ ..repaired, mesh: restored, }, bytes))
 }

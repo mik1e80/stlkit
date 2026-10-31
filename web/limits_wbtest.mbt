@@ -13,6 +13,6 @@ test "web resource settings apply to analyze preview and repair exports" {
   assert_true(fix_error(encoded).contains("resource_limit:"))
   assert_true(configure_limits(-1, 1) != "")
   assert_true(analyze_error(encoded).contains("resource_limit:"))
-  assert_eq(configure_limits(67108864, 2000000), "")
+  assert_eq(configure_limits(16777216, 500000), "")
   assert_true(analyze(encoded) != "")
 }
