@@ -1338,7 +1338,7 @@
       "command": "moon run --target native cmd/main examples/external/rotated-group.3mf --samples 1 --min-thickness 0",
       "triangles": 40,
       "vertices": 21,
-      "volume": 57262.581,
+      "volume": 72720.115,
       "area": 18105.806,
       "parts": 4,
       "boundary": 0,

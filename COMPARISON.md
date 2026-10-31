@@ -4,6 +4,8 @@
 
 本批在现有语料之外增加项目自建 Apache-2.0 解析值反例：大幅平移的立方体 / 长方体、Float32 导出导致面退化或溢出，以及输入输出路径别名。真实 CLI 还检查实际导出文件的重读、SVG 一致性和射线预算拒绝；网页检查同类导出拒绝及预算显示。命令与交付状态见 [验收交付说明](docs/acceptance-delivery.md)。这些修订尚未进入已发布的 0.2.0 包。
 
+2026-10-31 继续补充简单平面凹洞、非法容差、SVG 注入与预算、路径真实目标及格式容器反例；四后端各 416 项通过，现有模型语料再次复测通过。17 个官方样例新增固定上游路径、内容锚点及 SHA-256，见 [整改记录](docs/advisor-remediation.md)。rotated-group 的镜像变换现保留源绕向符号，原始体积贡献快照更新为 72720.115；该模型仍含非流形及退化面，此值不可作为可信实体体积，文件哈希未变。
+
 体积及质量属性改用局部参考坐标，开放网格的原始贡献绝对值可能变化，仍不解释为可靠实体体积；历史版本的性能表和来源记录保留，不冒充修订版重新测量。CLI 在 `面数 × 样本数 > 20000000` 时拒绝并提示较小预算，网页降低并显示预算；这属于工作量限制，没有实现 BVH 或给出总时长保证。
 
 ## 0.2.0 API 与索引表示复核（2026-10-28）
@@ -117,7 +119,7 @@ CC0 模型来自 [Ghostkeeper / SlicerTestModels contributors](https://github.co
 | [examples/external/gear.stl](examples/external/gear.stl) | CC0-1.0 | 284 | 5769.966 / 3784.259 | 0 / 0 / 0 | 复杂轮廓齿轮读取成功；[原始输出](examples/corpus/reports/external_gear.stl.txt) |
 | [examples/external/concave-cad.obj](examples/external/concave-cad.obj) | CC0-1.0 | 28 | 2750 / 2250 | 0 / 0 / 0 | U 形 CAD 凹八边形面，体积 2750、面积 2250；[原始输出](examples/corpus/reports/external_concave-cad.obj.txt) |
 | [examples/external/heart.stl](examples/external/heart.stl) | CC0-1.0 | 33576 | 2636.211 / 1136.99 | 0 / 0 / 0 | 有机曲面读取成功；未检验精确自遮挡/自交；[原始输出](examples/corpus/reports/external_heart.stl.txt) |
-| [examples/external/rotated-group.3mf](examples/external/rotated-group.3mf) | CC0-1.0 | 40 | 57262.581 / 18105.806 | 0 / 3 / 6 | 4 个共享边零件；报告 3 条非流形边及 6 个退化面；[原始输出](examples/corpus/reports/external_rotated-group.3mf.txt) |
+| [examples/external/rotated-group.3mf](examples/external/rotated-group.3mf) | CC0-1.0 | 40 | 72720.115 / 18105.806 | 0 / 3 / 6 | 4 个共享边零件；报告 3 条非流形边及 6 个退化面；[原始输出](examples/corpus/reports/external_rotated-group.3mf.txt) |
 | [examples/external/cura-4.2-project.3mf](examples/external/cura-4.2-project.3mf) | CC0-1.0 | 36 | 3000 / 1800 | 0 / 0 / 0 | Cura 4.2 工程几何读取；不验证切片配置；[原始输出](examples/corpus/reports/external_cura-4.2-project.3mf.txt) |
 | [examples/external/kinect-scan.3mf](examples/external/kinect-scan.3mf) | BSD-2-Clause | 282544 | 178768.942 / 27465.862 | 0 / 0 / 0 | 141249 顶点扫描模型读取成功；材料不进入 Mesh；[原始输出](examples/corpus/reports/external_kinect-scan.3mf.txt) |
 | [examples/external/cura-4.5-project.3mf](examples/external/cura-4.5-project.3mf) | CC0-1.0 | — | 拒绝 | — | Cura 私有 XML 根元素不是 Core model，严格拒绝；不支持完整工程恢复；[原始输出](examples/corpus/reports/external_cura-4.5-project.3mf.txt) |
