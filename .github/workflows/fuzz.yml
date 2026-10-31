@@ -2,9 +2,9 @@ name: Deterministic parser mutations
 on:
   push:
     branches: [main]
-    paths: ['moon.mod', '**/*.mbt', 'scripts/fuzz.mbtx', '.github/workflows/fuzz.yml']
+    paths: ['moon.mod', '**/*.mbt', 'scripts/fuzz.mbtx', 'scripts/check-toolchain.mbtx', '.github/workflows/fuzz.yml']
   pull_request:
-    paths: ['moon.mod', '**/*.mbt', 'scripts/fuzz.mbtx', '.github/workflows/fuzz.yml']
+    paths: ['moon.mod', '**/*.mbt', 'scripts/fuzz.mbtx', 'scripts/check-toolchain.mbtx', '.github/workflows/fuzz.yml']
   workflow_dispatch:
     inputs:
       cases:
