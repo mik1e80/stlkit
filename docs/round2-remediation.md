@@ -56,8 +56,13 @@ node scripts/corpus-cases.cjs --check
 | Dependabot #7 | 更新后 Linux / Windows CI 41196683810 成功，合并提交 e7f3b6780023b87de5d0e31412a4935d18ce64f2 |
 | 私密漏洞报告 | 已启用，GitHub API 回读 enabled=true；SECURITY.md 同步入口 |
 | 签名标签 | 本地未配置 user.signingkey；本批不伪造维护者签名，旧标签不重写 |
-| 不可变 Release | 0.2.2 API immutable=false；本批未改变不可变发布策略 |
+| 不可变 Release | 0.2.2 / 0.2.3 API immutable=false；本批未改变不可变发布策略 |
 | main / 标签保护 | 已授权 API 返回 main Branch not protected，rulesets=[]；本批未启用保护，不把 Actions 成功等同于强制检查 |
 | 实际浏览器 | 已读取公开 HTTPS 部署并检查画面，新限额 / 提示 / 许可链接可见；文件交互由编译产物 UI 回归验证，未测峰值内存 |
 
-后三项保护策略作为长期维护保留；需要真实签名身份及后续发布 / 合并策略，不属于已完成事项。CI 权限仍最小化、Actions 仍固定 SHA。
+签名、不可变发布与分支 / 标签保护作为长期维护保留；需要真实签名身份及后续发布 / 合并策略，不属于已完成事项。CI 权限仍最小化、Actions 仍固定 SHA。
+
+
+## 正式发布证据
+
+固定源码：`df3f5b573f0f0c72f37746f39ba5175e74e26299` / v0.2.3。源码 [CI](https://github.com/mik1e80/stlkit/actions/runs/41197025986)、[Pages](https://github.com/mik1e80/stlkit/actions/runs/41197025794)、[发布包 Linux / Windows 四后端安装](https://github.com/mik1e80/stlkit/actions/runs/41197315441) 均成功；Mooncakes 0.2.3 发布返回 200 OK，本机干净目录四后端验证实际版本与新增 API。完整证据见 [验收交付说明](acceptance-delivery.md)。旧标签保留。

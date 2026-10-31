@@ -1,6 +1,25 @@
 # STLKit 验收交付说明
 
-## 0.2.2 交付状态
+## 0.2.3 交付状态
+
+2026-10-31 第二轮整改已发布。源码、GitHub Release、Mooncakes 和发布后安装分别核验；不代表组委会已作出最终验收结论。
+
+| 项目 | 证据 |
+| --- | --- |
+| 固定源码 | `df3f5b573f0f0c72f37746f39ba5175e74e26299` / [v0.2.3](https://github.com/mik1e80/stlkit/tree/v0.2.3)，旧标签保留 |
+| 语言 / 工具链 | MoonBit；本机 moonc 0.10.17+d971670cd，CI 0.10.18+6c83a7f62；验收最低 0.10.16，不声称实测该最低版本 |
+| check / build / test | [固定源码两平台 CI](https://github.com/mik1e80/stlkit/actions/runs/41197025986) 成功；Linux 四后端各 427 / 427、全目标零警告、构建与格式检查；Windows 真实入口和许可 / 包检查通过 |
+| Web | [公开部署](https://github.com/mik1e80/stlkit/actions/runs/41197025794) 成功，已检查 HTTPS 页面与新限额提示；编译产物 UI 回归覆盖逆序读取、失败、同文件重选和单次工作量 |
+| 变异 | [四后端确定性变异](https://github.com/mik1e80/stlkit/actions/runs/41196900041) 各 1000 次，接受 252 / 拒绝 748 / 摘要 541334653 一致；其后仅文档 / Actions cache 改动 |
+| 模型与压力 | 67 次读取、5 次修复重读、10 次厚度对照；Linux 10 万面全量 / 分块一致性通过。本机缺少 Python，没有本机压力新测值，50 万 / 100 万面历史计时不冒充本次结果 |
+| 发布包 | [Mooncakes 0.2.3](https://mooncakes.io/docs/mik1e80/stlkit@0.2.3/) 发布返回 200 OK；[正式 Release](https://github.com/mik1e80/stlkit/releases/tag/v0.2.3) |
+| 独立安装 | 本机干净项目及 [Linux / Windows 发布包矩阵](https://github.com/mik1e80/stlkit/actions/runs/41197315441) 各四后端通过，确认实际安装 0.2.3，并调用新增面积 / 最近点受检 API |
+| 来源与许可 | 项目 Apache-2.0；17 个官方与 15 个外部条目 SHA-256，官方 Git Blob SHA-1，完整 CC0 / BSD 与浏览器许可检查通过；实际包内容和负向回归通过 |
+| 维护状态 | Dependabot #5/#6/#7 已更新重测后合并；私密漏洞报告已启用。签名标签、不可变发布与分支 / 标签保护仍待长期维护，不标记为已完成 |
+
+[第二轮逐项整改](round2-remediation.md) · [迁移和受检接口](checked-apis.md) · [0.2.3 发布说明](releases/0.2.3.md)。固定源码标签早于本次补证据文档提交，不移动标签。BVH、完整自交、非流形顶点、Worker / 取消仍未实现。
+
+## 0.2.2 历史交付状态
 
 2026-10-31 按参赛者提供的九项要求完成 0.2.2 工程交付；无需再次提交表格。本页记录实际源码、检查、发布与独立安装证据，不代表主办方已作出验收结论。
 
