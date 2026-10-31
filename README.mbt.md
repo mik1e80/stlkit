@@ -1,6 +1,6 @@
 # stlkit：接口与实现
 
-MoonBit 的 STL / OBJ / 3MF / PLY 三角网格工具链。本次版本 **0.2.1**；安装 `moon add mik1e80/stlkit@0.2.1`，源码固定 [v0.2.1](https://github.com/mik1e80/stlkit/tree/v0.2.1)。包含 0.2.0 的 JSON 协议、结构化解析错误与 IndexedMesh，以及本次受检修复 / 导出、数值、预览与格式边界修订；见 [发布说明](docs/releases/0.2.1.md)、[受检 API](docs/checked-apis.md) 和 [验收交付说明](docs/acceptance-delivery.md)。旧接口保留，部分非法输入现在明确拒绝。
+MoonBit 的 STL / OBJ / 3MF / PLY 三角网格工具链。本次版本 **0.2.2**；安装 `moon add mik1e80/stlkit@0.2.2`，源码固定 [v0.2.2](https://github.com/mik1e80/stlkit/tree/v0.2.2)。包含 0.2.0 的 JSON 协议、结构化解析错误与 IndexedMesh，以及本次受检修复 / 导出、数值、预览与格式边界修订；见 [发布说明](docs/releases/0.2.2.md)、[受检 API](docs/checked-apis.md) 和 [验收交付说明](docs/acceptance-delivery.md)。旧接口保留，部分非法输入现在明确拒绝。
 
 验收最低要求为 moonc 0.10.16；实际验证为 0.10.17+d971670cd 与 0.10.18+6c83a7f62，精确白名单以 `scripts/check-toolchain.mbtx` 为准。
 

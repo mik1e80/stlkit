@@ -6,16 +6,16 @@ STLKit is a MoonBit library for mesh ingestion, diagnostics, analysis and simple
 
 [在线演示](https://mik1e80.github.io/stlkit/) · [库接口](README.mbt.md) · [范围与复现案例](docs/review-cases.md) · [项目对比](COMPARISON.md) · [变更记录](CHANGELOG.md)
 
-当前版本 **0.2.1**：数值稳定性、受检修复与导出、简单平面凹洞、格式边界和许可证交付修订。[Mooncakes](https://mooncakes.io/docs/mik1e80/stlkit@0.2.1/) · [固定源码 v0.2.1](https://github.com/mik1e80/stlkit/tree/v0.2.1) · [发布说明](docs/releases/0.2.1.md)。历史 v0.1.4 与 v0.2.0 保留不动。
+当前版本 **0.2.2**：数值稳定性、受检修复与导出、简单平面凹洞、格式边界和许可证交付修订。[Mooncakes](https://mooncakes.io/docs/mik1e80/stlkit@0.2.2/) · [固定源码 v0.2.2](https://github.com/mik1e80/stlkit/tree/v0.2.2) · [发布说明](docs/releases/0.2.2.md)。历史 v0.1.4 与 v0.2.0 保留不动。
 
-0.2.1 汇总此前主分支的验收修订，这些改动不属于旧版 0.2.0。精确发布状态、源码 SHA、CI 与独立安装证据见 [验收交付说明](docs/acceptance-delivery.md)；[九项验收对照](docs/acceptance-checklist.md) 与 [顾问建议整改记录](docs/advisor-remediation.md) 将实现、测试和保留边界分开列明。
+0.2.2 汇总此前主分支的验收修订，这些改动不属于旧版 0.2.0。精确发布状态、源码 SHA、CI 与独立安装证据见 [验收交付说明](docs/acceptance-delivery.md)；[九项验收对照](docs/acceptance-checklist.md) 与 [顾问建议整改记录](docs/advisor-remediation.md) 将实现、测试和保留边界分开列明。
 
 [资源预算与兼容变化](docs/resource-limits.md) · [变异测试报告](docs/fuzz-testing.md) · [后续路线](docs/roadmap.md)。CLI / 网页可设置资源上限；这些预算不保证进程内存或时限。[JSON 协议](docs/json-report.md) 和 [IndexedMesh](docs/indexed-mesh.md) 已有实现；BVH 和自相交仍属后续计划。索引转换的峰值内存没有下降，见实测。
 
 在已有 MoonBit 项目中安装指定版本：
 
 ```sh
-moon add mik1e80/stlkit@0.2.1
+moon add mik1e80/stlkit@0.2.2
 ```
 
 ## 快速运行
@@ -23,7 +23,7 @@ moon add mik1e80/stlkit@0.2.1
 验收要求 **moonc ≥ 0.10.16**；本项目实际验证的编译器为 `0.10.17+d971670cd`（本机）及 `0.10.18+6c83a7f62`（CI）。CI 使用精确版本白名单，最低版本要求不表示所有后续版本都已经测试。安装 [MoonBit 工具链](https://www.moonbitlang.com/download/)，获取源码后执行：
 
 ```sh
-git clone --branch v0.2.1 --depth 1 https://github.com/mik1e80/stlkit
+git clone --branch v0.2.2 --depth 1 https://github.com/mik1e80/stlkit
 cd stlkit
 moon update
 moon run cmd/main examples/cube.obj --strict

@@ -11,7 +11,7 @@
 | 5. check / build / test CI | [工作流](../.github/workflows/ci.yml)：全目标检查、构建、四后端、Linux / Windows 入口与模型语料；实际结果以对应 SHA 为准 |
 | 6. 可运行示例 | cube.obj、broken.stl、JSON 命令；README.mbt.md 的无文件依赖库示例参与测试 |
 | 7. 核心路径测试 | 格式正反例、解析值、修复、JSON、SVG、CLI / Web、67 次模型读取、5 组修复重读、10 组厚度对照与独立变异测试；历史数量不冒充新版本结果 |
-| 8. Mooncakes 发布 | [0.2.1 包](https://mooncakes.io/docs/mik1e80/stlkit@0.2.1/)；发布后干净目录安装并调用新增 API，Release consumer 覆盖 Linux / Windows 四后端 |
+| 8. Mooncakes 发布 | [0.2.2 包](https://mooncakes.io/docs/mik1e80/stlkit@0.2.2/)；发布后干净目录安装并调用新增 API，Release consumer 覆盖 Linux / Windows 四后端 |
 | 9. OSI 许可证及第三方要求 | 项目 Apache-2.0；完整 [LICENSE](../LICENSE)、[第三方声明](../THIRD_PARTY_NOTICES.md)、固定模型清单与 SHA-256；check-third-party 校验实际附件 |
 
 每一项的最终状态、源码 SHA、CI 链接、包与独立安装结果统一见 [验收交付说明](acceptance-delivery.md)。版本号已修改、页面链接已写入或 tag 存在，本身都不证明包已发布和安装通过。

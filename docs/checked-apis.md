@@ -1,6 +1,6 @@
 # 0.2.1 受检接口与迁移
 
-安装 `moon add mik1e80/stlkit@0.2.1`，在包的 moon.pkg 中导入 `mik1e80/stlkit`。完整签名以 [生成接口](../pkg.generated.mbti) 为准；[最小可执行调用](../README.mbt.md#最小库调用) 与独立 consumer 会检查真实发布包。
+安装 `moon add mik1e80/stlkit@0.2.2`，在包的 moon.pkg 中导入 `mik1e80/stlkit`。完整签名以 [生成接口](../pkg.generated.mbti) 为准；[最小可执行调用](../README.mbt.md#最小库调用) 与独立 consumer 会检查真实发布包。
 
 | 接口 | 参数及返回 | 失败与边界 |
 | --- | --- | --- |
