@@ -1,0 +1,59 @@
+----
+import {
+  "moonbitlang/async@0.22.1",
+  "moonbitlang/async@0.22.1/shell",
+  "moonbitlang/core/json",
+  "moonbitlang/x@0.5.5/fs",
+}
+----
+
+// SPDX-License-Identifier: Apache-2.0
+async fn expect_failure(program : String, args : Array[String], message : String) -> Unit {
+  let result = @shell.Cmd(program, args).output(timeout_ms=60000)
+  assert_true(result.exit_code() != 0, msg="unexpected success: " + message)
+  assert_true((result.stdout() + result.stderr()).contains(message), msg=result.stdout() + result.stderr())
+}
+
+fn mutated_manifest(file : String, key : String, value : String) -> String raise {
+  let document = @json.parse(@fs.read_file_to_string(file))
+  guard document is Object(root) && root.get("files") is Some(Array(files)) && files[0] is Object(fields) else { fail("manifest shape") }
+  fields[key] = Json(value)
+  document.stringify(indent=2)
+}
+
+async fn main {
+  let dir = "_build/round2-smoke"
+  if !@fs.path_exists(dir) { @fs.create_dir(dir) }
+  @shell.Cmd("moon", ["build", "--target", "native", "--release", "cmd/main"]).run(timeout_ms=120000)
+  let executable = if @fs.path_exists("_build/native/release/build/cmd/main/main.exe") { "_build/native/release/build/cmd/main/main.exe" } else { "_build/native/release/build/cmd/main/main" }
+  let extreme = dir + "/extreme.obj"
+  let output = dir + "/preserved.svg"
+  @fs.write_string_to_file(extreme, "v -1e308 0 0\nv 1e308 0 0\nv 0 1e-308 0\nf 1 2 3\n")
+  @fs.write_string_to_file(output, "keep previous preview")
+  let result = @shell.Cmd(executable, [extreme, "--svg", output, "--samples", "1", "--min-thickness", "0"]).output(timeout_ms=30000)
+  assert_eq(result.exit_code(), 1, msg=result.stdout() + result.stderr())
+  assert_true(result.stdout().contains("无法生成预览图"))
+  assert_false(result.stdout().contains("预览图已导出"))
+  assert_eq(@fs.read_file_to_string(output), "keep previous preview")
+  let normal = dir + "/normal.svg"
+  @shell.Cmd(executable, ["examples/cube.obj", "--svg", normal, "--samples", "1", "--strict"]).run(timeout_ms=30000)
+  assert_true(@fs.read_file_to_string(normal).contains("<svg"))
+
+  let bad_blob = dir + "/bad-blob.json"
+  @fs.write_string_to_file(bad_blob, mutated_manifest("examples/third-party-manifest.json", "upstream_git_blob", "0000000000000000000000000000000000000000"))
+  expect_failure("moon", ["run", "scripts/check-third-party.mbtx", "--official-manifest", bad_blob], "Git blob mismatch")
+  let bad_license = dir + "/bad-license.json"
+  @fs.write_string_to_file(bad_license, mutated_manifest("examples/external/manifest.json", "license", "UNREVIEWED"))
+  expect_failure("moon", ["run", "scripts/check-third-party.mbtx", "--external-manifest", bad_license], "unreviewed external model license")
+
+  let listing = @shell.Cmd("moon", ["package", "--list"]).output(timeout_ms=120000)
+  assert_eq(listing.exit_code(), 0)
+  let text = listing.stdout() + "\n" + listing.stderr()
+  let missing = dir + "/missing-license-list.txt"
+  @fs.write_string_to_file(missing, text.split("\n").filter(line => line.trim() != "LICENSE").map(line => line.to_owned()).collect().join("\n"))
+  expect_failure("moon", ["run", "scripts/package-smoke.mbtx", "--file-list", missing], "package missing required license/provenance: LICENSE")
+  let unwanted = dir + "/model-in-package-list.txt"
+  @fs.write_string_to_file(unwanted, text + "\nexamples/cube.stl\n")
+  expect_failure("moon", ["run", "scripts/package-smoke.mbtx", "--file-list", unwanted], "package contains excluded model")
+  println("ROUND2_OK: SVG refusal preserves existing output; actual blob mismatch, unreviewed license, missing package license and bundled model are rejected")
+}
